@@ -1,0 +1,1 @@
+/home/hgh/code/verilog/mycpu/rtl/mycpu_top.v
