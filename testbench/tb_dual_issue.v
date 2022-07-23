@@ -1,0 +1,1 @@
+/home/hgh/code/verilog/mycpu/testbench/tb_dual_issue.v
