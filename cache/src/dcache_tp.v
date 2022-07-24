@@ -86,24 +86,24 @@ module dcache_tp(
     //index -> tag -> data
     //sin_ ... sta_ ... sda_ ...
     //sin段
-    wire        sin_req         ;
-    wire        sin_wr          ;
-    wire [1 :0] sin_size        ;
-    wire [6 :0] sin_index       ;
-    wire [4 :0] sin_offset      ;
-    wire [3 :0] sin_wstrb       ;
-    wire [31:0] sin_wdata       ;
+    wire        sin_req   ;
+    wire        sin_wr    ;
+    wire [1 :0] sin_size  ;
+    wire [6 :0] sin_index ;
+    wire [4 :0] sin_offset;
+    wire [3 :0] sin_wstrb ;
+    wire [31:0] sin_wdata ;
     //sta段
-    reg         sta_req            ;
-    reg         sta_wr             ;
-    reg  [1 :0] sta_size           ;
-    reg  [6 :0] sta_index          ;
-    reg  [4 :0] sta_offset         ;
-    wire [19:0] sta_tag            ;
-    wire        sta_hasException   ;
-    wire        sta_unCache        ;
-    reg  [3 :0] sta_wstrb          ;
-    reg  [31:0] sta_wdata          ;
+    reg         sta_req         ;
+    reg         sta_wr          ;
+    reg  [1 :0] sta_size        ;
+    reg  [6 :0] sta_index       ;
+    reg  [4 :0] sta_offset      ;
+    wire [19:0] sta_tag         ;
+    wire        sta_hasException;
+    wire        sta_unCache     ;
+    reg  [3 :0] sta_wstrb       ;
+    reg  [31:0] sta_wdata       ;
     //sda段
     reg          sda_req            ;
     reg          sda_wr             ;
@@ -128,9 +128,6 @@ module dcache_tp(
     reg [6:0] reset_counter;
     //REFILL
     reg  [2  :0] refill_counter       ;
-    reg  [19 :0] refill_tag           ;
-    reg  [6  :0] refill_index         ;
-    reg  [4  :0] refill_offset        ;
     reg  [31 :0] refill_buf_data [7:0];
     reg  [7  :0] refill_buf_valid     ;
     wire [31 :0] refill_wen [3:0]     ;
@@ -144,10 +141,10 @@ module dcache_tp(
     // 初始化使用的循环控制变量
     integer i;
     // 命中信号
-    wire [3 :0] hit_way        ;
-    wire        hit_run        ;
-    wire [1 :0] hit_loc        ;
-    wire [31:0] hit_run_data   ;
+    wire [3 :0] hit_way     ;
+    wire        hit_run     ;
+    wire [1 :0] hit_loc     ;
+    wire [31:0] hit_run_data;
     // tagv块
     wire [3 :0] tag_wen        ;
     wire [3 :0] val_wen        ;
@@ -166,7 +163,7 @@ module dcache_tp(
     wire [2:0] dirty_loc    ;
     // WRITEBUFFER
     wire         hit_write        ;
-    wire [4  :0] sr_wen           ;//移位用
+    wire [4  :0] sl_wen           ;//移位用
     wire [31 :0] write_wstrb      ;
     wire [31 :0] write_wen [3:0]  ;//写使能信号
     wire [255:0] write_buffer_line;
@@ -195,6 +192,7 @@ module dcache_tp(
     wire        deal_cache_op;
     reg  [31:0] ca_wb_addr;
     reg  [255:0] ca_wb_data;
+    wire [1:0] ca_dirty_loc;
 `endif    
     // 额外的转换信号
     reg ok_send_arv;//是否允许开始AXI读
@@ -203,7 +201,7 @@ module dcache_tp(
     ////////////////////////////////////////////////////////
     //TODO 与CPU交互
 `ifdef EN_DCACHE_OP
-    assign dcache_ok = (cache_stat == `CA_OP && !ca_need_wb) || (ca_wb_end);
+    assign dcache_ok     = (cache_stat == `CA_OP && !ca_need_wb) || (ca_wb_end);
     assign deal_cache_op = (cache_stat ==`RUN) && !sda_req && !sta_req && dcache_req;
     assign data_index_ok =  !deal_cache_op &&
                             (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL && cache_stat != `CA_WB) 
@@ -212,12 +210,12 @@ module dcache_tp(
     assign data_index_ok = (cache_stat != `RESET) && sin_req & (!sda_req | data_data_ok);    
 `endif
     assign data_data_ok  = sda_req & (hit_run | data_uncache_data_ok);
-    assign data_rdata = sda_unCache ? data_uncache_rdata : 
-                        sda_raw_col ? {raw_data[3],raw_data[2],raw_data[1],raw_data[0]} : hit_run_data;
-    assign raw_data[0] = sda_raw_wstrb[0] ? sda_raw_data[0]:hit_run_data[7:0];
-    assign raw_data[1] = sda_raw_wstrb[1] ? sda_raw_data[1]:hit_run_data[15:8];
-    assign raw_data[2] = sda_raw_wstrb[2] ? sda_raw_data[2]:hit_run_data[23:16];
-    assign raw_data[3] = sda_raw_wstrb[3] ? sda_raw_data[3]:hit_run_data[31:24];
+    assign data_rdata    = sda_unCache ? data_uncache_rdata : 
+                           sda_raw_col ? {raw_data[3],raw_data[2],raw_data[1],raw_data[0]} : hit_run_data;
+    assign raw_data[0] = sda_raw_wstrb[0] ? sda_raw_data[0] : hit_run_data[7 : 0];
+    assign raw_data[1] = sda_raw_wstrb[1] ? sda_raw_data[1] : hit_run_data[15: 8];
+    assign raw_data[2] = sda_raw_wstrb[2] ? sda_raw_data[2] : hit_run_data[23:16];
+    assign raw_data[3] = sda_raw_wstrb[3] ? sda_raw_data[3] : hit_run_data[31:24];
 
     //驱动data_uncache
     assign data_uncache_req   = !sda_hasException & sda_unCache & sda_req & !sda_uca_addr_ok;
@@ -346,20 +344,20 @@ module dcache_tp(
                                 (sta_offset[4:2] == sda_offset[4:2]) &&
                                 (sta_tag == sta_tag) && sda_wr;
             sda_raw_wstrb    <= sda_wstrb;
-            sda_raw_data[0]     <= sda_wstrb[0] ? sda_wdata[7:0] : 0;
-            sda_raw_data[1]     <= sda_wstrb[1] ? sda_wdata[15:8] : 0;
-            sda_raw_data[2]     <= sda_wstrb[2] ? sda_wdata[23:16] : 0;
-            sda_raw_data[3]     <= sda_wstrb[3] ? sda_wdata[31:24] : 0;
+            sda_raw_data[0]  <= {8{sda_wstrb[0]}} & sda_wdata[7 : 0];
+            sda_raw_data[1]  <= {8{sda_wstrb[1]}} & sda_wdata[15: 8];
+            sda_raw_data[2]  <= {8{sda_wstrb[2]}} & sda_wdata[23:16];
+            sda_raw_data[3]  <= {8{sda_wstrb[3]}} & sda_wdata[31:24];
         end
         else if (cache_stat == `IDLE) begin
-            sda_tagv_back[0] <= tagv_back[0]    ;
-            sda_tagv_back[1] <= tagv_back[1]    ;
-            sda_tagv_back[2] <= tagv_back[2]    ;
-            sda_tagv_back[3] <= tagv_back[3]    ;
-            sda_rdata[0]     <= cache_rdata[0]  ;
-            sda_rdata[1]     <= cache_rdata[1]  ;
-            sda_rdata[2]     <= cache_rdata[2]  ;
-            sda_rdata[3]     <= cache_rdata[3]  ;
+            sda_tagv_back[0] <= tagv_back[0]  ;
+            sda_tagv_back[1] <= tagv_back[1]  ;
+            sda_tagv_back[2] <= tagv_back[2]  ;
+            sda_tagv_back[3] <= tagv_back[3]  ;
+            sda_rdata[0]     <= cache_rdata[0];
+            sda_rdata[1]     <= cache_rdata[1];
+            sda_rdata[2]     <= cache_rdata[2];
+            sda_rdata[3]     <= cache_rdata[3];
         end
         //TODO 当数据传输完毕，需要拉低sda_req
         else if (data_data_ok) begin
@@ -389,7 +387,7 @@ module dcache_tp(
                 `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
                                           (sda_req && !sda_unCache &&!hit_run) ? `MISS : `RUN;
                 `CA_SEL:    cache_stat <= `CA_OP;
-                `CA_OP :    cache_stat <= ca_need_wb ? `CA_WB  : `RUN;
+                `CA_OP :    cache_stat <= ca_need_wb && victim_stat == `VIC_IDLE ? `CA_WB  : `RUN;
                 `CA_WB :    cache_stat <= ca_wb_end  ? `RUN    : `CA_WB;
 `else
                 `RUN:       cache_stat <=  (sda_req && !sda_unCache &&!hit_run) ? `MISS : `RUN;
@@ -427,15 +425,9 @@ module dcache_tp(
     always @(posedge clk) begin
         if (!rst) begin
             refill_counter <= 3'b0 ;
-            refill_tag     <= 20'b0;
-            refill_index   <= 7'b0 ;
-            refill_offset  <= 5'b0 ;
         end
         else if (cache_stat == `MISS) begin
             refill_counter <= sda_offset[4:2]   ;
-            refill_tag     <= sda_tag           ;
-            refill_index   <= sda_index         ;
-            refill_offset  <= sda_offset        ;
         end
         // 地址握手完成，开始传输，计数器开始自�?
         // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
@@ -464,24 +456,14 @@ module dcache_tp(
     assign refill_wen[3] = {32{way[3] & (cache_stat==`FINISH)}}; 
     assign refill_wdata  = { refill_buf_data[7],refill_buf_data[6],refill_buf_data[5],refill_buf_data[4],
                              refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0] };
-
-
-
-    //REFILL 完成之后的工作
-    //1. 在FINISH状态下，装载回sda_index所需要的数据
-    //2. 在RECOVER状态下，取出sda_index所需要的数据（从cache中）
-    //3. 在IDLE状态下，将该数据存到sda_data
-    //4. 进入RUN状态，判断是否命中
-    //assign hit_fin = refill_index == sda_index & refill_tag == sda_tag & cache_stat==`FINISH;
-    //assign hit_fin_data = refill_buf_data[sda_offset[4:2]];
-    
+  
     //HIT
     assign hit_way[0] = sda_tagv_back[0][0] & sda_tagv_back[0][20:1] == sda_tag;
     assign hit_way[1] = sda_tagv_back[1][0] & sda_tagv_back[1][20:1] == sda_tag;
     assign hit_way[2] = sda_tagv_back[2][0] & sda_tagv_back[2][20:1] == sda_tag;
     assign hit_way[3] = sda_tagv_back[3][0] & sda_tagv_back[3][20:1] == sda_tag;
     assign hit_run = |hit_way & cache_stat==`RUN & !sda_unCache;
-    assign hit_loc = {{hit_way[2] | hit_way[3]}, {hit_way[1] | hit_way[3]}};
+    assign hit_loc = `encoder4_2(hit_way);
     assign hit_run_data =  {32{sda_offset[4:2] ==3'b000}} & {sda_rdata[hit_loc][31 : 0 ]}
                         |  {32{sda_offset[4:2] ==3'b001}} & {sda_rdata[hit_loc][63 :32 ]}
                         |  {32{sda_offset[4:2] ==3'b010}} & {sda_rdata[hit_loc][95 :64 ]}
@@ -500,13 +482,13 @@ module dcache_tp(
                         (cache_stat == `CA_OP)  ? ca_val_wen :
                         4'b0000;
     assign tagv_index = (cache_stat == `RESET)  ? reset_counter :
-                        (cache_stat == `FINISH) ? refill_index  :
+                        (cache_stat == `FINISH) ? sda_index  :
                         (cache_stat == `RECOVER)? sda_index     :
                         (deal_cache_op        ) ? dcache_addr[11:5] :
                         (cache_stat == `CA_OP)  ? ca_index_reg  :
                         (data_index_ok && cache_stat==`RUN) ? sin_index : sta_index;
     assign tagv_wdata = (cache_stat == `RESET)  ? 4'b1111    :
-                        (cache_stat == `FINISH) ? refill_tag : 
+                        (cache_stat == `FINISH) ? sda_tag : 
                         (cache_stat == `CA_OP)  ? ca_wtag_reg : 20'b0;
     assign tagv_valid = (cache_stat == `RESET)  ? 1'b0    :
                         (cache_stat == `FINISH) ? 1'b1    : 
@@ -517,20 +499,12 @@ module dcache_tp(
     assign val_wen =    (cache_stat == `RESET)  ? 4'b1111 :
                         (cache_stat == `FINISH) ? way : 4'b0000;
     assign tagv_index = (cache_stat == `RESET) ? reset_counter :
-                        (cache_stat == `FINISH) ? refill_index :
+                        (cache_stat == `FINISH) ? sda_index :
                         (cache_stat == `RECOVER)? sda_index :
                         (data_index_ok && cache_stat==`RUN) ? sin_index : sta_index;
-    assign tagv_wdata = {20{cache_stat == `FINISH}} & refill_tag;
+    assign tagv_wdata = {20{cache_stat == `FINISH}} & sda_tag;
     assign tagv_valid = (cache_stat == `RESET) ? 1'b0 : 1'b1;
 `endif
-    // assign tagv_wen =   (cache_stat == `RESET)  ? 4'b1111 :
-    //                     (cache_stat == `FINISH) ? way : 4'b0000;
-    // assign tagv_index = (cache_stat == `RESET) ? reset_counter :
-    //                     (cache_stat == `FINISH) ? refill_index :
-    //                     (cache_stat == `RECOVER)? sda_index :
-    //                     (data_index_ok && cache_stat==`RUN) ? sin_index : sta_index;
-    // assign tagv_wdata = {20{cache_stat == `FINISH}} & refill_tag;
-    // assign tagv_valid = (cache_stat == `RESET) ? 1'b0 : 1'b1; //TODO CacheOP
 
     generate
         genvar k;
@@ -553,15 +527,18 @@ module dcache_tp(
     assign cache_wen[0] = refill_wen[0] | write_wen[0];
     assign cache_wen[1] = refill_wen[1] | write_wen[1];
     assign cache_wen[2] = refill_wen[2] | write_wen[2];
-    assign cache_wen[3] = refill_wen[3] | write_wen[3]; 
-    assign cache_rindex = (cache_stat ==`RECOVER ) ? sda_index    : //HIT AFTER REFILL
-                          //(deal_cache_op) ?  dcache_addr[11:5] :
-                          (data_index_ok && cache_stat==`RUN) ? sin_index : sta_index; //OTHER STATE
-    assign cache_wdata  = (cache_stat ==`FINISH  ) ? refill_wdata       : //REFILL 
-                          (hit_write)              ? write_buffer_line  : //HIT_WRITE
-                                                     0                  ; //OTHER STATE
-    assign cache_windex = (cache_stat ==`FINISH  ) ? refill_index :
-                          (hit_write) ? sda_index : 0;
+    assign cache_wen[3] = refill_wen[3] | write_wen[3];
+    assign cache_wdata  = (cache_stat ==`FINISH) ? refill_wdata : write_buffer_line  ;
+    assign cache_windex = sda_index;
+`ifdef EN_DCACHE_OP
+    assign cache_rindex = (deal_cache_op     ) ? dcache_addr[11:5] :
+                          (cache_stat ==`IDLE) ? sta_index         : 
+                          (cache_stat==`RUN  ) ? sin_index         : sda_index;
+`else
+    assign cache_rindex = (cache_stat ==`IDLE) ? sta_index :
+                          (cache_stat ==`RUN ) ? sin_index : sda_index;
+`endif
+    
     generate
         for (k=0 ; k < 4 ; k = k + 1) begin
             data_data_tp  Data_Data_TP (
@@ -620,8 +597,10 @@ module dcache_tp(
     end
 
     //dirty位处理
-    assign dirty_loc = {{way[2] | way[3]}, {way[1] | way[3]}};
-    //wire [1:0] ca_dirty_loc = {{ca_dirty_wen[2] |ca_dirty_wen[3]}, {ca_dirty_wen[1] | ca_dirty_wen[3]}};
+    assign dirty_loc = `encoder4_2(way);
+`ifdef EN_DCACHE_OP
+    assign ca_dirty_loc = `encoder4_2(ca_dirty_wen);
+`endif
     always @(posedge clk ) begin
         if (!rst) begin
             for (i = 0; i < 128; i = i+1) begin 
@@ -645,14 +624,12 @@ module dcache_tp(
 
     assign hit_write = sda_req && hit_run && sda_wr;
 
-
-    assign write_wstrb = {28'b0,sda_wstrb};
-    assign sr_wen   = sda_offset[4:2] << 2;
-
-    assign write_wen[0] = (hit_way[0] && hit_write )  ? (write_wstrb   << sr_wen ) : 32'h0;
-    assign write_wen[1] = (hit_way[1] && hit_write )  ? (write_wstrb   << sr_wen ) : 32'h0;
-    assign write_wen[2] = (hit_way[2] && hit_write )  ? (write_wstrb   << sr_wen ) : 32'h0;
-    assign write_wen[3] = (hit_way[3] && hit_write )  ? (write_wstrb   << sr_wen ) : 32'h0;
+    assign sl_wen      = sda_offset[4:2] << 2;
+    assign write_wstrb = {28'b0,sda_wstrb} << sl_wen;
+    assign write_wen[0] = {32{hit_way[0] && hit_write}} & write_wstrb;
+    assign write_wen[1] = {32{hit_way[1] && hit_write}} & write_wstrb;
+    assign write_wen[2] = {32{hit_way[2] && hit_write}} & write_wstrb;
+    assign write_wen[3] = {32{hit_way[3] && hit_write}} & write_wstrb;
     assign write_buffer_line = { 8{sda_wdata}};
 
     //VICTIM BUFFER
@@ -748,11 +725,11 @@ module dcache_tp(
     // 请求完成后，接收cacheop，进入cache_sel状态，阻塞正常请求
     // 完成cacheop，接收sin段请求
 `ifdef EN_DCACHE_OP
-    assign ca_hit[0] = (cache_stat == `CA_SEL) ? (tagv_back[0][0] & tagv_back[0][20:1] == ca_htag_reg) : 1'b0;
-    assign ca_hit[1] = (cache_stat == `CA_SEL) ? (tagv_back[1][0] & tagv_back[1][20:1] == ca_htag_reg) : 1'b0;
-    assign ca_hit[2] = (cache_stat == `CA_SEL) ? (tagv_back[2][0] & tagv_back[2][20:1] == ca_htag_reg) : 1'b0;
-    assign ca_hit[3] = (cache_stat == `CA_SEL) ? (tagv_back[3][0] & tagv_back[3][20:1] == ca_htag_reg) : 1'b0;
-    assign ca_hit_loc = {{ca_hit[2] | ca_hit[3]}, {ca_hit[1] | ca_hit[3]}};
+    assign ca_hit[0] = (cache_stat == `CA_SEL) && (tagv_back[0][0]) && (tagv_back[0][20:1] == ca_htag_reg);
+    assign ca_hit[1] = (cache_stat == `CA_SEL) && (tagv_back[1][0]) && (tagv_back[1][20:1] == ca_htag_reg);
+    assign ca_hit[2] = (cache_stat == `CA_SEL) && (tagv_back[2][0]) && (tagv_back[2][20:1] == ca_htag_reg);
+    assign ca_hit[3] = (cache_stat == `CA_SEL) && (tagv_back[3][0]) && (tagv_back[3][20:1] == ca_htag_reg);
+    assign ca_hit_loc = `encoder4_2(ca_hit);
     assign ca_wb_end = (cache_stat == `CA_WB) && bvalid;
     always @(posedge clk) begin
         if (!rst) begin

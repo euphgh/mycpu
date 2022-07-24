@@ -31,3 +31,5 @@
 `define VIC_AWRITE 4'b0010
 `define VIC_WRITE  4'b0100
 `define VIC_RES    4'b0101
+//FUNCTION
+`define encoder4_2(x) {{x[2] | x[3]}, {x[1] | x[3]}}
