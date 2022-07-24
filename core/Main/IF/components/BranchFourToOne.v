@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/09 09:38
-// Last Modified : 2022/07/15 16:36
+// Last Modified : 2022/07/24 20:14
 // File Name     : BranchFourToOne.v
 // Description   : 根据分支预测器预测的take，选择出正确的Dest和相应的数据
 //         
@@ -36,9 +36,8 @@ module BranchFourToOne(
     assign isFirstBranch[2] = !predTake[0] && !predTake[1] &&  predTake[2];
     assign isFirstBranch[3] = !predTake[0] && !predTake[1] && !predTake[2] && predTake[3];
     wire   [`INST_NUM]      branchEnable;
-    assign branchEnable =   ({4{isFirstBranch[0]}} & 4'b1100)|
-                            ({4{isFirstBranch[1]}} & 4'b1110)|
-                            ({4{isFirstBranch[2]}} & 4'b1111);
+    assign branchEnable =   isFirstBranch[0] ? 4'b0011 : 
+                            isFirstBranch[1] ? 4'b0111 : 4'b1111 ; 
     assign actualEnable_o  = branchEnable & originEnable_i;
     assign firstValidBit = {isFirstBranch[3],isFirstBranch[2],isFirstBranch[1],isFirstBranch[0]};
     wire    [`SINGLE_WORD]   predDest        [3:0];

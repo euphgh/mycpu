@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/23 09:31
+// Last Modified : 2022/07/24 22:12
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -38,6 +38,7 @@ module Arbitrator(
 
     output	wire	[`ISSUE_MODE]               AB_issueMode_w,   // 表示发射类型，同时也可以作为指令使能
     output	wire	[4*`GPR_NUM]                AB_regReadNum_p_w,
+    output	wire	[3:0]                       AB_needRead_p_w,                       
     output	wire	[2*`GPR_NUM]                AB_regWriteNum_p_w
 );
     // 发射规则{{{
@@ -61,6 +62,7 @@ module Arbitrator(
                                 ({5{isNeedRt[0]}} & ReadRt[0]),
                                 ({5{isNeedRs[0]}} & ReadRs[0])};
     assign AB_regWriteNum_p_w = {writeRd[1],writeRd[0]};
+    assign AB_needRead_p_w = {isNeedRt[1],isNeedRs[1],isNeedRt[0],isNeedRs[0]};
     // }}}
     // 解包和压缩包{{{
     wire    [   3*`SINGLE_WORD_LEN+

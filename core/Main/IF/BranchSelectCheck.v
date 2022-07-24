@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/07/23 21:40
+// Last Modified : 2022/07/24 20:15
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -196,7 +196,6 @@ module BranchSelectCheck (
     /*}}}*/
     //FIFO传入逻辑{{{
     assign IF_valid_o = SCT_valid_i && (|actualEnable) && !SCT_isCanceled_i;
-    assign IF_instEnable_o = actualEnable;
     assign IF_hasException_o = SCT_hasException_i;
     assign IF_ExcCode_o = SCT_ExcCode_i;
     assign IF_isRefill_o = SCT_isRefill_i;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/23 20:21
+// Last Modified : 2022/07/24 21:23
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -126,35 +126,40 @@ module InstQueue (
     always @(posedge clk) begin
         if (!ok_toWrite) begin end
         else if (IF_instEnable_i[3]) begin
-            queue[tail+4] <= packedInfo[3];
-            queue[tail+3] <= packedInfo[2];
-            queue[tail+2] <= packedInfo[1];
-            queue[tail+1] <= packedInfo[0];
+            queue[tail+3] <= packedInfo[3];
+            queue[tail+2] <= packedInfo[2];
+            queue[tail+1] <= packedInfo[1];
+            queue[tail+0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[2]) begin
-            queue[tail+3] <= packedInfo[2];
-            queue[tail+2] <= packedInfo[1];
-            queue[tail+1] <= packedInfo[0];
+            queue[tail+2] <= packedInfo[2];
+            queue[tail+1] <= packedInfo[1];
+            queue[tail+0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[1]) begin
-            queue[tail+2] <= packedInfo[1];
-            queue[tail+1] <= packedInfo[0];
+            queue[tail+1] <= packedInfo[1];
+            queue[tail+0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[0]) begin
-            queue[tail+1] <= packedInfo[0];
+            queue[tail+0] <= packedInfo[0];
         end
     end
 /*}}}*/
     //读出逻辑{{{
-    reg     [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  
-    reg     [`SINGLE_WORD]              IQ_inst_up              [1:0];  
-    reg	    [0:0]                       IQ_hasException_up      [1:0];  
-    reg     [`EXCCODE]                  IQ_ExcCode_up           [1:0];  
-    reg     [`SINGLE_WORD]              IQ_predDest_up          [1:0];  
-    reg     [0:0]                       IQ_predTake_up          [1:0];  
-    reg     [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  
-    reg     [0:0]                       IQ_isRefill_up          [1:0];
-    assign enough = IQ_number_w   >= {3'b0,({1'b0,ID_upDateMode_i[0]} + {1'b0,ID_upDateMode_i[1]})};
+    // 多一周期的寄存器写法{{{
+    wire     [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  
+    wire     [`SINGLE_WORD]              IQ_inst_up              [1:0];  
+    wire	 [0:0]                       IQ_hasException_up      [1:0];  
+    wire     [`EXCCODE]                  IQ_ExcCode_up           [1:0];  
+    wire     [`SINGLE_WORD]              IQ_predDest_up          [1:0];  
+    wire     [0:0]                       IQ_predTake_up          [1:0];  
+    wire     [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  
+    wire     [0:0]                       IQ_isRefill_up          [1:0];
+    wire    [2:0] IF_supplyNum = {3{IF_valid_i}} & (  IF_instEnable_i[3] ? 3'd4 :
+                                                IF_instEnable_i[2] ? 3'd3 :
+                                                IF_instEnable_i[1] ? 3'd2 :
+                                                IF_instEnable_i[0] ? 3'd1 : 3'd0);
+    assign enough = (IQ_number_w  + {2'b0,{IF_supplyNum}}) >= {3'b0,({1'b0,ID_upDateMode_i[0]} + {1'b0,ID_upDateMode_i[1]})};
     always @(posedge clk) begin
         if (!rst) begin
             head    <=  'd0;
@@ -168,34 +173,59 @@ module InstQueue (
         end
     end
     generate
-    genvar j;
-    for (j = 0; j < 2; j=j+1)	begin
-        always @(posedge clk) begin
-            if (!rst) begin
-                IQ_VAddr_up[j]              <=  `ZEROWORD;
-                IQ_inst_up[j]               <=  `ZEROWORD;
-                IQ_hasException_up[j]       <=  `FALSE;
-                IQ_ExcCode_up[j]            <=  `NOEXCCODE;
-                IQ_predDest_up[j]           <=  `ZEROWORD;
-                IQ_predTake_up[j]           <=  `FALSE;
-                IQ_checkPoint_up[j]         <=  0;
-                IQ_isRefill_up[j]           <=  `FALSE;
-            end
-            else if (IQ_supplyValid  [j]) begin
-                {
-                    IQ_VAddr_up[j],
-                    IQ_inst_up[j],
-                    IQ_predDest_up[j],
-                    IQ_predTake_up[j],
-                    IQ_checkPoint_up[j],
-                    IQ_hasException_up[j],
-                    IQ_ExcCode_up[j],
-                    IQ_isRefill_up[j]
-                    }   <=  queue[head+j];
-            end
+        for (genvar i = 0; i < 2; i = i+1)	begin
+            assign  {
+                IQ_VAddr_up[i],
+                IQ_inst_up[i],
+                IQ_predDest_up[i],
+                IQ_predTake_up[i],
+                IQ_checkPoint_up[i],
+                IQ_hasException_up[i],
+                IQ_ExcCode_up[i],
+                IQ_isRefill_up[i]
+                }   =  queue[head+i];
         end
-    end
     endgenerate
+    // }}}
+    // 多一周期的寄存器写法{{{
+    /*reg     [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  */
+    /*reg     [`SINGLE_WORD]              IQ_inst_up              [1:0];  */
+    /*reg	    [0:0]                       IQ_hasException_up      [1:0];  */
+    /*reg     [`EXCCODE]                  IQ_ExcCode_up           [1:0];  */
+    /*reg     [`SINGLE_WORD]              IQ_predDest_up          [1:0];  */
+    /*reg     [0:0]                       IQ_predTake_up          [1:0];  */
+    /*reg     [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  */
+    /*reg     [0:0]                       IQ_isRefill_up          [1:0];*/
+    /*generate*/
+    /*genvar j;*/
+    /*for (j = 0; j < 2; j=j+1)	begin*/
+        /*always @(posedge clk) begin*/
+            /*if (!rst) begin*/
+                /*IQ_VAddr_up[j]              <=  `ZEROWORD;*/
+                /*IQ_inst_up[j]               <=  `ZEROWORD;*/
+                /*IQ_hasException_up[j]       <=  `FALSE;*/
+                /*IQ_ExcCode_up[j]            <=  `NOEXCCODE;*/
+                /*IQ_predDest_up[j]           <=  `ZEROWORD;*/
+                /*IQ_predTake_up[j]           <=  `FALSE;*/
+                /*IQ_checkPoint_up[j]         <=  0;*/
+                /*IQ_isRefill_up[j]           <=  `FALSE;*/
+            /*end*/
+            /*else if (IQ_supplyValid  [j]) begin*/
+                /*{*/
+                    /*IQ_VAddr_up[j],*/
+                    /*IQ_inst_up[j],*/
+                    /*IQ_predDest_up[j],*/
+                    /*IQ_predTake_up[j],*/
+                    /*IQ_checkPoint_up[j],*/
+                    /*IQ_hasException_up[j],*/
+                    /*IQ_ExcCode_up[j],*/
+                    /*IQ_isRefill_up[j]*/
+                    /*}   <=  queue[head+j];*/
+            /*end*/
+        /*end*/
+    /*end*/
+    /*endgenerate*/
+    // }}}
     `PACK_ARRAY(`SINGLE_WORD_LEN,2,IQ_VAddr_up,IQ_VAddr_p  )
     `PACK_ARRAY(`SINGLE_WORD_LEN,2,IQ_inst_up,IQ_inst_p  )
     `PACK_ARRAY(1,2,IQ_hasException_up,IQ_hasException_p  )

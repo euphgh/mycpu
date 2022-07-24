@@ -29,7 +29,7 @@
 //cache{{{
 `define CACHE_TAG   31:12
 `define CACHE_TAG_ZERO   20'b0
-`define CACHE_INDEX 12:5
+`define CACHE_INDEX 11:4
 `define CACHE_INDEX_ZERO 8'b0
 `define INST_NUM_LEN 4
 `define INST_NUM    `INST_NUM_LEN-1:0

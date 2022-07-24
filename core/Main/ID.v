@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/23 20:49
+// Last Modified : 2022/07/24 22:10
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -188,6 +188,7 @@ module ID (
     wire [2*`ALL_CHECKPOINT]           AB_checkPoint_p          ;
     wire [`ISSUE_MODE]                 AB_issueMode_w           ;
     wire [4*`GPR_NUM]                  AB_regReadNum_p_w        ;
+    wire [3:0]                         AB_needRead_p_w          ; // WIRE_NEW
     wire [2*`GPR_NUM]                  AB_regWriteNum_p_w       ;
     wire [1:0]                         AB_isRefill_p            ;
     wire [4*`SINGLE_WORD]              readData_p_o             ;
@@ -195,8 +196,6 @@ module ID (
     wire [1:0]                         decorderException_p      ;
     wire [2*`EXTEND_ACTION]            extendAction_p           ;
     wire [2*`EXCCODE]                  decorderExcCode_p        ;
-    //WIRE_DEL: Wire up_writeNumSel has been deleted.
-    //WIRE_DEL: Wire down_writeNumSel has been deleted.
     //End of automatic wire
     //End of automatic define
     wire [`SINGLE_WORD]                instOffset               ;
@@ -258,6 +257,7 @@ module ID (
         .AB_checkPoint_p         (AB_checkPoint_p  [2*`ALL_CHECKPOINT]     ), //output // INST_NEW
         .AB_issueMode_w          (AB_issueMode_w  [`ISSUE_MODE]            ), //output
         .AB_regReadNum_p_w       (AB_regReadNum_p_w  [4*`GPR_NUM]          ), //output
+        .AB_needRead_p_w         (AB_needRead_p_w                          ),
         .AB_regWriteNum_p_w      (AB_regWriteNum_p_w  [2*`GPR_NUM]         ), //output
         /*autoinst*/
         .IQ_isRefill_p          (IQ_isRefill_p[1:0]             ), //input
@@ -294,15 +294,16 @@ module ID (
         .WB_forwardData_w_i     (WB_forwardData_w_i[`SINGLE_WORD]      )  //input
     );
     wire    [`GPR_NUM]      readNum     [1:0][1:0]; // 第一个下标代表流水线，第二个代表rs,rt
+    wire    [0:0]           needRead    [1:0][1:0]; // 第一个下标代表流水线，第二个代表rs,rt
     generate
         for (genvar i = 0; i < 2; i=i+1)	begin
             for (genvar j = 0; j < 2; j=j+1)	begin
                 assign readNum[i][j] = AB_regReadNum_p_w[i*2+j+4:i*2+j];
+                assign needRead[i][j] = AB_needRead_p_w[i*2+j:i*2+j];
+                
             end
         end
     endgenerate
-    wire    [`SINGLE_WORD]  readData_up [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,readData_up,readData_p_o)
     /*}}}*/
     Decorder Decorder_u(/*{{{*/
         .AB_Inst_p                    (AB_Inst_p  [2*`SINGLE_WORD]              ), //input
@@ -393,16 +394,21 @@ module ID (
     generate
         for (genvar l = 0; l < 2; l=l+1)	begin
             for (genvar k = 0; k < 2; k=k+1)	begin
-                assign forwardSel[l][k] =   (EXE_down_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? EXE_down_forwardMode_w_i :
-                                            (EXE_up_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? EXE_up_forwardMode_w_i :
-                                            (PREMEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? PREMEM_forwardMode_w_i :
-                                            (SBA_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? SBA_forwardMode_w_i :
-                                            (MEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? MEM_forwardMode_w_i :
-                                            (REEXE_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? REEXE_forwardMode_w_i : `FORWARD_MODE_NON;
+                 wire [`FORWARD_MODE] segSel =   (EXE_down_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_down_forwardMode_w_i} :
+                                                 (EXE_up_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_up_forwardMode_w_i} :
+                                                 (PREMEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {PREMEM_forwardMode_w_i} :
+                                                 (SBA_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {SBA_forwardMode_w_i} :
+                                                 (MEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {MEM_forwardMode_w_i} :
+                                                 (REEXE_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {REEXE_forwardMode_w_i} : `FORWARD_MODE_NON;
+               assign forwardSel[l][k] = {needRead[l][k],segSel[`FORWARD_MODE_LEN-2:0]};
                assign WAR_conflict_up[l][k] = forwardSel[l][k][`FORWARD_WB_BIT] && (forwardSel[l][k][`FORWARD_MEM_BIT] || forwardSel[l][k][`FORWARD_PREMEM_BIT]); 
             end
         end
     endgenerate
+    assign ID_up_forwardSel0_o[`FORWARD_REG_BIT] = needRead[0][0];
+    assign ID_up_forwardSel1_o[`FORWARD_REG_BIT] = needRead[0][1];
+    assign ID_down_forwardSel0_o[`FORWARD_REG_BIT] = needRead[1][0];
+    assign ID_down_forwardSel1_o[`FORWARD_REG_BIT] = needRead[1][1];
     assign ID_up_data0Ready_o = forwardSel[0][0][`FORWARD_ID_BIT];
     assign ID_up_data1Ready_o = forwardSel[0][1][`FORWARD_ID_BIT];
     assign ID_down_data0Ready_o = forwardSel[1][0][`FORWARD_ID_BIT];
@@ -417,7 +423,7 @@ module ID (
     wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
     wire stop = WAR_conflict || hasDangerous;
     wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && EXE_up_allowin_w_i && !stop);
-    assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : AB_issueMode_w;
+    assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : (AB_issueMode_w==`SINGLE_ISSUE ? `SINGLE_ISSUE : `DUAL_ISSUE);
     assign ID_up_valid_w_o = (AB_issueMode_w[1]) && !stop;
     assign ID_down_valid_w_o = (AB_issueMode_w[0]) && !stop;
 /*}}}*/
