@@ -91,7 +91,7 @@ module inst_uncache(
                 buf_valid <= 1'b1;
             end
         end
-        else if (arready) begin
+        else if (inst_data_ok) begin
             buf_valid    <= 1'b0 ;
             fill_counter <= 2'b0 ; 
         end

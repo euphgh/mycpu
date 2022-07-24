@@ -1,1 +1,4 @@
-/Xilinx_ip
+/Xilinx_ip/axi_crossbar_0/*
+!/Xilinx_ip/axi_crossbar_0/axi_crossbar_0.xci
+/Xilinx_ip/Multiplier/*
+!/Xilinx_ip/Multiplier/Multiplier.xci
