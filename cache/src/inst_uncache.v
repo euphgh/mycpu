@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "./Cacheconst.vh"
+`include "../Cacheconst.vh"
 module inst_uncache(
     input         clk          ,
     input         rst          , 
@@ -84,7 +84,7 @@ module inst_uncache(
             buf_valid    <= 1'b0 ;
             fill_counter <= 2'b0 ;
         end
-        else if ((rid == 4'd4) && rvalid) begin
+        else if ((rid == 4'd0) && rvalid) begin
             buf_rdata[fill_counter] <= rdata           ;
             fill_counter            <= fill_counter + 1;
             if (rlast) begin
@@ -98,7 +98,7 @@ module inst_uncache(
     end
 
     //axi interface
-    assign arid    = 4'd4;
+    assign arid    = 4'd0;
     assign araddr  = last_addr;
     assign arlen   = 4'd3;
     assign arsize  = 3'd2;

@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "./Cacheconst.vh"
+`include "../Cacheconst.vh"
 //`define EN_ICACHE_OP
 module icache_tp(
     input           clk,
@@ -178,7 +178,7 @@ module icache_tp(
     assign inst_uncache_req = !sda_hasException & sda_unCache & sda_req & !sda_uca_addr_ok;
     assign inst_uncache_addr = {sda_tag,sda_index,sda_offset,4'b0000};
     //---------------AXI交互-----------------------
-    assign arid    = (cache_stat == `MISS) ? 4'd3 : 4'd0;
+    assign arid    = (cache_stat == `MISS) ? 4'd1 : 4'd0;
     assign araddr  = {sda_tag , sda_index , sda_offset , 4'b00 };
     assign arvalid = (cache_stat == `MISS);    
     assign arlen   = 4'd7;
@@ -319,7 +319,7 @@ module icache_tp(
                 //如果axi从设备表示已经准备好向cache发送数据，进入REFILL状态
                 `MISS:      cache_stat <= arready ? (`REFILL) : (`MISS);
                 //根据rid，是否读写完成（rlast和rvaild）判断是否装载完成
-                `REFILL:    cache_stat <= (rlast && rvalid && (rid == 3'd3)) ? (`FINISH) : (`REFILL);
+                `REFILL:    cache_stat <= (rlast && rvalid && (rid == 4'd1)) ? (`FINISH) : (`REFILL);
                 //装载完毕
                 `FINISH:    cache_stat <= `RECOVER;
                 //TODO 可能需要一个恢复状态，来获取到之前MISS的行对应的数据
@@ -361,7 +361,7 @@ module icache_tp(
         end
         // 地址握手完成，开始传输，计数器开始自�?
         // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
-        else if (rvalid && (rid == 3'd3)) begin
+        else if (rvalid && (rid == 3'd1)) begin
             refill_counter <= refill_counter + 3'b1;
         end
     end
@@ -372,7 +372,7 @@ module icache_tp(
                 refill_buf_valid[i] <= 1'b0;
             end
         end
-        else if (rvalid && (rid == 3'd3)) begin
+        else if (rvalid && (rid == 3'd1)) begin
             refill_buf_data[refill_counter] <= rdata;
             refill_buf_valid[refill_counter] <= 1'b1;
         end
