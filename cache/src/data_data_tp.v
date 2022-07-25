@@ -1,6 +1,4 @@
 `timescale 1ns / 1ps
-
-
 module data_data_tp(
     input          clk,
     input          en,
@@ -70,12 +68,6 @@ module data_data_tp(
         .dina          (wdata   ),
         .enb           (1'b1    ),
         .addrb         (rindex  ),
-        .doutb         (doutb   ),
-        .injectdbiterra(1'b0    ),
-        .injectsbiterra(1'b0    ),
-        .regceb        (1'b0    ),
-        .sleep         (1'b0    ),
-        .dbiterrb      (        ),
-        .sbiterrb      (        )
+        .doutb         (doutb   )
     );
 endmodule
