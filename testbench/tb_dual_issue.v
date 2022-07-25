@@ -14,7 +14,7 @@
 
 `define FUNC_TEST
 // `define CACHE_HIT_TEST
-`define TRACE_REF_FILE          "../../../../../../../cpu132_gettrace/golden_trace.txt"
+`define TRACE_REF_FILE          "../../../../../../mycpu/trace/golden_trace.txt"
 `define CONFREG_OPEN_TRACE      soc_lite.u_confreg.open_trace
 `define CONFREG_NUM_REG         soc_lite.u_confreg.num_data
 `define CONFREG_NUM_MONITOR     soc_lite.u_confreg.num_monitor
