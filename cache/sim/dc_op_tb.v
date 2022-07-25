@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
-`include "../src/Cacheconst.vh"
-`define DCACHE_ADDR_TRACE_FILE "D:/Code/trycache/golden_trace_dcache_1.txt"
-`define DCACHE_DATA_TRACE_FILE "D:/Code/trycache/golden_trace_dcache_2.txt"
-`define DCACHE_OP_TEST "D:/Code/cache_tp/rtl/sim/trace/dc_op.txt"
+`include "../Cacheconst.vh"
+`define DCACHE_ADDR_TRACE_FILE "D:/nscscc2022_group_v0.01/nscscc-group/func_test_v0.01/soc_axi_func/mycpu/cache/sim/trace/golden_trace_dcache_1.txt"
+`define DCACHE_DATA_TRACE_FILE "D:/nscscc2022_group_v0.01/nscscc-group/func_test_v0.01/soc_axi_func/mycpu/cache/sim/trace/golden_trace_dcache_2.txt"
+`define DCACHE_OP_TEST "D:/nscscc2022_group_v0.01/nscscc-group/func_test_v0.01/soc_axi_func/mycpu/cache/sim/trace/dc_op.txt"
 module dc_op_tb(  );
 
     // 时钟与重置信�?
@@ -534,7 +534,7 @@ module dc_op_tb(  );
         .m_axi_bready         (bready )
     );
 
-    axi_ram u_axi_ram_2         (
+    axi_ram_1 u_axi_ram_2         (
         .s_aresetn                (aresetn),
         .s_aclk                   (aclk   ),
         .s_axi_awid               (awid   ),

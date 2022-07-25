@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "../src/Cacheconst.vh"
+`include "../Cacheconst.vh"
 `define DCACHE_ADDR_TRACE_FILE "D:/Code/trycache/golden_trace_dcache_1.txt"
 `define DCACHE_DATA_TRACE_FILE "D:/Code/trycache/golden_trace_dcache_2.txt"
 module dc_tb(  );
@@ -564,7 +564,7 @@ module dc_tb(  );
         .m_axi_bready         (bready )
     );
 
-    axi_ram u_axi_ram_2         (
+    axi_ram_1 u_axi_ram_2         (
         .s_aresetn                (aresetn),
         .s_aclk                   (aclk   ),
         .s_axi_awid               (awid   ),

@@ -109,12 +109,14 @@ module icache_tp(
     //RESET
     reg [6:0] reset_counter;
     //REFILL
-    reg [2 :0] refill_counter       ;
-    reg [31:0] refill_buf_data [7:0];
-    reg [7 :0] refill_buf_valid     ;
-    //FINISH AND RECOVER
-    wire hit_fin;
-    wire [127:0] hit_fin_data;
+    reg [2 :0] fill_counter       ;
+    reg [31:0] fill_buf_data [7:0];
+    reg [7 :0] fill_buf_valid     ;
+    reg [19:0] fill_tag           ;
+    reg [6 :0] fill_index         ;
+    //HIT FINISH AND REFILL
+    wire         hit_fill     ;
+    wire [127:0] hit_fill_data;
     //PLRU
     reg [2:0] plru [127:0];
     reg [3:0] way         ;  
@@ -161,9 +163,9 @@ module icache_tp(
 `else
     assign inst_index_ok = (cache_stat != `RESET) && sin_req && (!sda_req || inst_data_ok);
 `endif 
-    assign inst_data_ok  = sda_req && (hit_run || hit_fin || inst_uncache_data_ok || sda_hasException);
+    assign inst_data_ok  = sda_req && (hit_run || hit_fill || inst_uncache_data_ok || sda_hasException);
     assign inst_rdata    = sda_unCache ? inst_uncache_rdata :
-                           hit_fin     ? hit_fin_data : hit_run_data;
+                           hit_fill    ? hit_fill_data      : hit_run_data;
     //驱动inst_uncache
     assign inst_uncache_req  = !sda_hasException && sda_unCache && sda_req && !sda_uca_addr_ok;
     assign inst_uncache_addr = {sda_tag, sda_index, sda_offset, 4'b0000};
@@ -331,39 +333,45 @@ module icache_tp(
     //一般持续8个周期
     always @(posedge clk) begin
         if (!rst) begin
-            refill_counter <= 3'b0 ;
+            fill_counter <= 3'b0 ;
+            fill_index   <= 7'b0;
+            fill_tag     <= 20'b0  ;
         end
         else if (cache_stat == `MISS) begin
-            refill_counter <= {sda_offset,2'b00};
+            fill_counter <= {sda_offset,2'b00};
+            fill_index   <= sda_index;
+            fill_tag     <= sda_tag  ;
         end
         // 地址握手完成，开始传输，计数器开始自�?
         // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
         else if (rvalid && (rid == `ICACHE_RID)) begin
-            refill_counter <= refill_counter + 3'b1;
+            fill_counter <= fill_counter + 3'b1;
         end else begin
         end
     end
     always @(posedge clk ) begin
         if (!rst) begin
             for (i = 0; i < 8; i = i+1) begin 
-                refill_buf_data[i]  <= 32'b0;
-                refill_buf_valid[i] <= 1'b0;
+                fill_buf_data[i]  <= 32'b0;
+                fill_buf_valid[i] <= 1'b0;
             end
         end
         else if (rvalid && (rid == `ICACHE_RID)) begin
-            refill_buf_data[refill_counter]  <= rdata;
-            refill_buf_valid[refill_counter] <= 1'b1;
+            fill_buf_data[fill_counter]  <= rdata;
+            fill_buf_valid[fill_counter] <= 1'b1;
         end
         else if (cache_stat == `FINISH) begin
-            refill_buf_valid <= 8'b0;
+            fill_buf_valid <= 8'b0;
         end else begin
         end
     end
-    //REFILL 完成之后的工作
-    //1. 在FINISH状态下，返回sda_index所需要的数据
-    assign hit_fin      = cache_stat==`FINISH;
-    assign hit_fin_data = {128{ sda_offset}} & {refill_buf_data[7],refill_buf_data[6],refill_buf_data[5],refill_buf_data[4]}
-                        | {128{!sda_offset}} & {refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0]};
+    //REFILL下命中
+    assign hit_fill      = fill_index == sda_index && fill_tag == sda_tag 
+                            && (   (&fill_buf_valid[3:0] && !sda_offset) 
+                                || (&fill_buf_valid[7:4] &&  sda_offset)
+                            );  
+    assign hit_fill_data = {128{ sda_offset}} & {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4]}
+                         | {128{!sda_offset}} & {fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     
     //HIT
     assign hit_way[0] = sda_tagv_back[0][0] && sda_tagv_back[0][20:1] == sda_tag;
@@ -371,7 +379,7 @@ module icache_tp(
     assign hit_way[2] = sda_tagv_back[2][0] && sda_tagv_back[2][20:1] == sda_tag;
     assign hit_way[3] = sda_tagv_back[3][0] && sda_tagv_back[3][20:1] == sda_tag;
     assign hit_run = |hit_way && cache_stat==`RUN && !sda_unCache;
-    assign loc = {{hit_way[2] | hit_way[3]}, {hit_way[1] | hit_way[3]}};
+    assign loc = `encoder4_2(hit_way);
     assign hit_run_data = {128{!sda_offset}} & {sda_rdata[loc][127:  0]}
                         | {128{ sda_offset}} & {sda_rdata[loc][255:128]};
     //tagv
@@ -385,13 +393,13 @@ module icache_tp(
                         (cache_stat == `CA_OP  ) ? ca_val_wen :
                         4'b0000;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter     :
-                        (cache_stat == `FINISH ) ? sda_index      :
+                        (cache_stat == `FINISH ) ? fill_index        :
                         (cache_stat == `RECOVER) ? sda_index         :
                         (deal_cache_op         ) ? icache_addr[11:5] :
                         (cache_stat == `CA_OP  ) ? ca_index_reg      :
-                        (inst_index_ok && cache_stat==`RUN) ? sin_index : sta_index;
-    assign tagv_wdata = (cache_stat == `RESET  ) ? 4'b1111    :
-                        (cache_stat == `FINISH ) ? sda_tag : 
+                        (cache_stat ==`RUN     ) ? sin_index : sta_index;
+    assign tagv_wdata = (cache_stat == `RESET  ) ? 20'b0      :
+                        (cache_stat == `FINISH ) ? fill_tag : 
                         (cache_stat == `CA_OP  ) ? ca_wtag_reg : 20'b0;
     assign tagv_valid = (cache_stat == `RESET  ) ? 1'b0    :
                         (cache_stat == `FINISH ) ? 1'b1    : 
@@ -402,9 +410,10 @@ module icache_tp(
     assign val_wen =    (cache_stat == `RESET  ) ? 4'b1111 :
                         (cache_stat == `FINISH ) ? way     : 4'b0000;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
-                        (cache_stat == `RUN    ) ? sin_index :
-                        (cache_stat == `IDLE   ) ? sta_index : sda_index;
-    assign tagv_wdata = sda_tag;
+                        (cache_stat == `FINISH ) ? fill_index    : 
+                        (cache_stat == `RUN    ) ? sin_index     :
+                        (cache_stat == `IDLE   ) ? sta_index     : sda_index;
+    assign tagv_wdata = fill_tag;
     assign tagv_valid = !(cache_stat == `RESET);
 `endif
     generate
@@ -429,10 +438,11 @@ module icache_tp(
     assign data_wen[1] = {32{way[1] && (cache_stat == `FINISH)}};
     assign data_wen[2] = {32{way[2] && (cache_stat == `FINISH)}};
     assign data_wen[3] = {32{way[3] && (cache_stat == `FINISH)}}; 
-    assign data_index  = (cache_stat==`RUN ) ? sin_index : 
+    assign data_index  = (cache_stat == `FINISH ) ? fill_index : 
+                         (cache_stat==`RUN ) ? sin_index : 
                          (cache_stat==`IDLE) ? sta_index : sda_index;
-    assign data_wdata  = {refill_buf_data[7],refill_buf_data[6],refill_buf_data[5],refill_buf_data[4],
-                          refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0]};
+    assign data_wdata  = {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4],
+                          fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     generate
         for (k=0 ; k < 4 ; k = k + 1) begin
             inst_data_tp Inst_Data_TP (

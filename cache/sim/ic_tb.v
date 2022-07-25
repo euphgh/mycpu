@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
-`include "../src/Cacheconst.vh"
-`define ICACHE_ADDR_TRACE_FILE "D:/Code/trycache/golden_trace_icache_1.txt"
-`define ICACHE_DATA_TRACE_FILE "D:/Code/trycache/golden_trace_icache_2.txt"
+`include "../Cacheconst.vh"
+`define ICACHE_ADDR_TRACE_FILE "D:/nscscc2022_group_v0.01/nscscc-group/func_test_v0.01/soc_axi_func/mycpu/cache/sim/trace/golden_trace_icache_1.txt"
+`define ICACHE_DATA_TRACE_FILE "D:/nscscc2022_group_v0.01/nscscc-group/func_test_v0.01/soc_axi_func/mycpu/cache/sim/trace/golden_trace_icache_2.txt"
 
 module ic_tb(  );
 
@@ -249,7 +249,7 @@ module ic_tb(  );
     wire         inst_uncache_bvalid = 0;
     wire         inst_uncache_bready = 0;
 
-    axi_ram u_axi_ram         (
+    axi_ram_1 u_axi_ram         (
         .s_aresetn                (aresetn),
         .s_aclk                   (aclk   ),
         .s_axi_awid               (inst_uncache_awid   ),
@@ -282,7 +282,7 @@ module ic_tb(  );
         .s_axi_rvalid             (inst_uncache_rvalid ),
         .s_axi_rready             (inst_uncache_rready )
     );
-    axi_ram u_axi_ram_1         (
+    axi_ram_1 u_axi_ram_1         (
         .s_aresetn                (aresetn),
         .s_aclk                   (aclk   ),
         .s_axi_awid               (inst_cache_awid   ),
