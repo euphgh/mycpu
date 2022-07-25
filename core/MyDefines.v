@@ -87,6 +87,8 @@
 `define IQ_VALID_DUAL   2'b11
 `define IQ_VALID_NON    2'b00
 `define IQ_CAPABILITY   16
+`define IQ_NUMBER       `IQ_NUMBER_LEN-1:0
+`define IQ_NUMBER_LEN   $clog2(`IQ_CAPABILITY)+1
 `define IQ_GAP          5'd9 
 // ID_demandNum_i表示需要的指令条数
 `define NO_DEMAND       2'b00
@@ -98,9 +100,8 @@
 `define GPR_NUM         `GPR_NUM_LEN-1:0
 `define GPR_NUM_LEN     5
 // EXE段ALU的异常选择{{{
-`define EXCEPRION_SEL_LEN 3
+`define EXCEPRION_SEL_LEN 2
 `define EXCEPRION_SEL `EXCEPRION_SEL_LEN-1:0
-`define EXCEPRION_ST    2
 `define EXCEPRION_OV    1
 `define EXCEPRION_TR    0
 /*}}}*/
@@ -140,7 +141,7 @@
 /*}}}*/
 //前递{{{
 `define FORWARD_MODE        `FORWARD_MODE_LEN-1:0
-`define FORWARD_MODE_LEN    8
+`define FORWARD_MODE_LEN    7
 `define FORWARD_SBA_BIT         0
 `define FORWARD_REEXE_BIT       1
 `define FORWARD_PBA_BIT         2 
@@ -149,14 +150,13 @@
 `define FORWARD_WB_BIT          5       
 // 以上都是前递的寄存器数值
 `define FORWARD_ID_BIT          6       // 指PC+4，立即数，sa等数据
-`define FORWARD_REG_BIT         7       // 表示ALU的操作数选择在EXE
-`define FORWARD_MODE_SBA        8'b00000001
-`define FORWARD_MODE_REEXE      8'b00000010
-`define FORWARD_MODE_PBA        8'b00000100
-`define FORWARD_MODE_PREMEM     8'b00001000
-`define FORWARD_MODE_MEM        8'b00010000
-`define FORWARD_MODE_WB         8'b00100000
-`define FORWARD_MODE_NON        8'b01000000
+`define FORWARD_MODE_SBA        `FORWARD_MODE_LEN'b00000001
+`define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b00000010
+`define FORWARD_MODE_PBA        `FORWARD_MODE_LEN'b00000100
+`define FORWARD_MODE_PREMEM     `FORWARD_MODE_LEN'b00001000
+`define FORWARD_MODE_MEM        `FORWARD_MODE_LEN'b00010000
+`define FORWARD_MODE_WB         `FORWARD_MODE_LEN'b00100000
+`define FORWARD_MODE_ID         `FORWARD_MODE_LEN'b01000000
 /*}}}*/
 //alu运算种类{{{
 `define ALUOP_LEN   14

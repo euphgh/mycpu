@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:23
-// Last Modified : 2022/07/24 19:47
+// Last Modified : 2022/07/25 14:51
 // File Name     : FirstCacheTrace.v
 // Description   : 用于模拟Cache三段流水的过程，掌握Cache取数据的过程
 //         
@@ -66,6 +66,7 @@ module FirstCacheTrace (
 );
     reg hasData;
     assign FCT_valid_o = hasData;
+    wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i);
     // 断言: 在indexok的时候，Cache的第二段寄存器中一定没有数据
     wire myAsset = !(inst_req && inst_index_ok && !SCT_allowin_w_i);
     wire ready_go = hasData && SCT_allowin_w_i;
@@ -100,8 +101,8 @@ module FirstCacheTrace (
             FCT_BTBfifthVAddr_o <=  BTB_fifthVAddr_i; 
             FCT_needDelaySlot_o <=  PCG_needDelaySlot_i; 
         end
-        else if (hasData && !SCT_allowin_w_i) begin
-            FCT_isCanceled_o    <= (BSC_needCancel_w_i||CP0_excOccur_w_i);
+        else if (hasData && needCancel) begin
+            FCT_isCanceled_o    <= `TRUE;
         end
     end
 endmodule

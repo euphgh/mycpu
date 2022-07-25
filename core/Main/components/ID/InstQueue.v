@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/24 21:23
+// Last Modified : 2022/07/25 14:26
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -22,6 +22,10 @@
 module InstQueue (
     input   wire            clk,
     input   wire            rst,
+    // 刷新流水线的信号{{{
+    input	wire	                        SBA_flush_w_i,            
+    input	wire                            CP0_excOccur_w_i,	
+/*}}}*/
     //////////////////////////////////////////////////
     //////////////     寄存器输入      ///////////////{{{
     //////////////////////////////////////////////////
@@ -60,11 +64,12 @@ module InstQueue (
     output  wire                                IQ_full  ,
     output  wire                                IQ_empty  ,
     output	wire	                            ID_stopFetch_o,
-    output  wire    [$clog2(`IQ_CAPABILITY):0]  IQ_number_w  
+    output  wire    [`IQ_NUMBER]                IQ_number_w  
     /*}}}*/
 );
-    reg [$clog2(`IQ_CAPABILITY):0] head;
-    reg [$clog2(`IQ_CAPABILITY):0] tail;
+    reg [$clog2(`IQ_CAPABILITY):0]  head;
+    reg [$clog2(`IQ_CAPABILITY):0]  tail;
+    wire    needClear = SBA_flush_w_i || CP0_excOccur_w_i;
     reg [`IQ_LENTH] queue [`IQ_CAPABILITY:0];
     // 自动定义{{{
     /*autodef*/
@@ -100,7 +105,7 @@ module InstQueue (
     assign IF_instBasePC_up[3] = {IF_instBasePC_i[31:4],IF_instBasePC_i[3:2]+2'b11,IF_instBasePC_i[1:0]};
     //写入逻辑{{{
     always @(posedge clk) begin
-        if(!rst) begin
+        if(!rst || needClear) begin
             tail        <= 'd0;
         end
         else if (IF_valid_i) begin
@@ -146,32 +151,33 @@ module InstQueue (
     end
 /*}}}*/
     //读出逻辑{{{
-    // 多一周期的寄存器写法{{{
-    wire     [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  
-    wire     [`SINGLE_WORD]              IQ_inst_up              [1:0];  
-    wire	 [0:0]                       IQ_hasException_up      [1:0];  
-    wire     [`EXCCODE]                  IQ_ExcCode_up           [1:0];  
-    wire     [`SINGLE_WORD]              IQ_predDest_up          [1:0];  
-    wire     [0:0]                       IQ_predTake_up          [1:0];  
-    wire     [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  
-    wire     [0:0]                       IQ_isRefill_up          [1:0];
     wire    [2:0] IF_supplyNum = {3{IF_valid_i}} & (  IF_instEnable_i[3] ? 3'd4 :
                                                 IF_instEnable_i[2] ? 3'd3 :
                                                 IF_instEnable_i[1] ? 3'd2 :
                                                 IF_instEnable_i[0] ? 3'd1 : 3'd0);
-    assign enough = (IQ_number_w  + {2'b0,{IF_supplyNum}}) >= {3'b0,({1'b0,ID_upDateMode_i[0]} + {1'b0,ID_upDateMode_i[1]})};
+    wire    [`IQ_NUMBER] nextNumber = IQ_number_w + {{(`IQ_NUMBER_LEN-3){1'b0}},IF_supplyNum} - {{(`IQ_NUMBER_LEN-1){1'b0}},ID_upDateMode_i[0]} - {{(`IQ_NUMBER_LEN-1){1'b0}},ID_upDateMode_i[1]};
+    assign enough = nextNumber >= 'd2;
     always @(posedge clk) begin
-        if (!rst) begin
+        if (!rst || needClear) begin
             head    <=  'd0;
             IQ_supplyValid   <= 2'b0;
         end
         else begin
-            head    <=  head + 
-                {{$clog2(`IQ_CAPABILITY){1'b0}},IQ_supplyValid  [0]} + 
-                {{$clog2(`IQ_CAPABILITY){1'b0}},IQ_supplyValid  [1]} ; 
-            IQ_supplyValid   <= enough ? ID_upDateMode_i : IQ_number_w[1:0];
+            head    <=  head +
+                {{$clog2(`IQ_CAPABILITY){1'b0}},ID_upDateMode_i  [0]} +
+                {{$clog2(`IQ_CAPABILITY){1'b0}},ID_upDateMode_i  [1]} ;
+            IQ_supplyValid   <= enough ? `DUAL_ISSUE : nextNumber[1:0];
         end
     end
+    // 少一周期的组合逻辑写法{{{
+    wire    [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  
+    wire    [`SINGLE_WORD]              IQ_inst_up              [1:0];  
+    wire	[0:0]                       IQ_hasException_up      [1:0];  
+    wire    [`EXCCODE]                  IQ_ExcCode_up           [1:0];  
+    wire    [`SINGLE_WORD]              IQ_predDest_up          [1:0];  
+    wire    [0:0]                       IQ_predTake_up          [1:0];  
+    wire    [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  
+    wire    [0:0]                       IQ_isRefill_up          [1:0];
     generate
         for (genvar i = 0; i < 2; i = i+1)	begin
             assign  {

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:41
-// Last Modified : 2022/07/24 19:48
+// Last Modified : 2022/07/25 15:08
 // File Name     : SecondCacheTrace.v
 // Description   : 跟踪Cache的数据流动
 //         
@@ -144,8 +144,8 @@ module SecondCacheTrace (
             SCT_PHT_predTake_p_o    <=  PHT_predTake_p_i    ;
             SCT_PHT_checkPoint_p_o  <=  PHT_checkPoint_p_i  ;
         end
-        else if (hasData && !inst_data_ok) begin
-            SCT_isCanceled_o    <=  needCancel;
+        else if (hasData && needCancel) begin
+            SCT_isCanceled_o    <=  `TRUE;
         end
     end
 endmodule

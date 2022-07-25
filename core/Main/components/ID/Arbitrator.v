@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/24 22:12
+// Last Modified : 2022/07/25 17:04
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -57,18 +57,27 @@ module Arbitrator(
     assign AB_issueMode_w =     ({2{IQ_supplyValid  [1]}} & ((dataConflict || kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE)) |
                                 ({2{IQ_supplyValid  [0]}} & `SINGLE_ISSUE) | `NO_ISSUE;
 
-    assign AB_regReadNum_p_w = {({5{isNeedRt[1]}} & ReadRt[1]),
-                                ({5{isNeedRs[1]}} & ReadRs[1]),
-                                ({5{isNeedRt[0]}} & ReadRt[0]),
-                                ({5{isNeedRs[0]}} & ReadRs[0])};
-    assign AB_regWriteNum_p_w = {writeRd[1],writeRd[0]};
-    assign AB_needRead_p_w = {isNeedRt[1],isNeedRs[1],isNeedRt[0],isNeedRs[0]};
+    wire    [2*`GPR_NUM]    IQ_regReadNum_up    [1:0];
+    wire    [`GPR_NUM]      IQ_regWriteNum_up   [1:0];
+    wire    [1:0]           IQ_needRead_up      [1:0];
+    wire    [2*`GPR_NUM]    AB_regReadNum_up    [1:0];
+    wire    [`GPR_NUM]      AB_regWriteNum_up   [1:0];
+    wire    [1:0]           AB_needRead_up      [1:0];
+    assign  IQ_regReadNum_up[0] = {({5{isNeedRt[0]}} & ReadRt[0]),({5{isNeedRs[0]}} & ReadRs[0])};
+    assign  IQ_regReadNum_up[1] = {({5{isNeedRt[1]}} & ReadRt[1]),({5{isNeedRs[1]}} & ReadRs[1])};
+    assign  IQ_regWriteNum_up[0]= writeRd[0];
+    assign  IQ_regWriteNum_up[1]= writeRd[1];
+    assign  IQ_needRead_up[0]   = {isNeedRt[0],isNeedRs[0]};
+    assign  IQ_needRead_up[1]   = {isNeedRt[1],isNeedRs[1]};
     // }}}
     // 解包和压缩包{{{
     wire    [   3*`SINGLE_WORD_LEN+
                 3*1+
                 `EXCCODE_LEN+
-                `ALL_CHECKPOINT_LEN-1:0]    allInfo_i[1:0] , allInfo_o [1:0];
+                `ALL_CHECKPOINT_LEN + 
+                3*`GPR_NUM_LEN + 
+                2 + 
+                -1:0]    allInfo_i[1:0] , allInfo_o [1:0];
     wire    [`SINGLE_WORD]              AB_VAddr_up           [1:0];  
     wire    [`SINGLE_WORD]              AB_inst_up            [1:0];  
     wire    [0:0]                       AB_hasException_up    [1:0];  
@@ -85,6 +94,9 @@ module Arbitrator(
     `PACK_ARRAY(`ALL_CHECKPOINT_LEN,2,AB_checkPoint_up,AB_checkPoint_p)
     `PACK_ARRAY(`EXCCODE_LEN,2,AB_ExcCode_up,AB_ExcCode_p)
     `PACK_ARRAY(1,2,AB_isRefill_up,AB_isRefill_p)
+    `PACK_ARRAY(2*`GPR_NUM_LEN,2,AB_regReadNum_up,AB_regReadNum_p_w)
+    `PACK_ARRAY(`GPR_NUM_LEN,2,AB_regWriteNum_up,AB_regWriteNum_p_w)
+    `PACK_ARRAY(2,2,AB_needRead_up,AB_needRead_p_w)
     wire    [`SINGLE_WORD]              IQ_VAddr_up           [1:0];  
     wire    [`SINGLE_WORD]              IQ_inst_up            [1:0];  
     wire    [0:0]                       IQ_hasException_up    [1:0];  
@@ -111,7 +123,10 @@ module Arbitrator(
                 IQ_checkPoint_up[i],
                 IQ_hasException_up[i],
                 IQ_ExcCode_up[i],
-                IQ_isRefill_up[i]
+                IQ_isRefill_up[i],
+                IQ_regReadNum_up[i],
+                IQ_regWriteNum_up[i],
+                IQ_needRead_up[i]
                 };
         assign {
                 AB_VAddr_up[i],
@@ -121,7 +136,10 @@ module Arbitrator(
                 AB_checkPoint_up[i],
                 AB_hasException_up[i],
                 AB_ExcCode_up[i],
-                AB_isRefill_up[i]
+                AB_isRefill_up[i],
+                AB_regReadNum_up[i],
+                AB_regWriteNum_up[i],
+                AB_needRead_up[i]
                 } = allInfo_o[i];
     end
     endgenerate

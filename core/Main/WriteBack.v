@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:17
-// Last Modified : 2022/07/23 09:16
+// Last Modified : 2022/07/25 17:34
 // File Name     : WriteBack.v
 // Description   : 回写段，用于数据选择，数据前递和数据写入RegFile
 //         
@@ -88,7 +88,7 @@ module WriteBack (
 	reg	[1:0]			MEM_alignCheck_r_i;
 	reg	[`LOAD_SEL]			MEM_loadSel_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			MEM_writeNum_r_i	<=	'b0;
 			MEM_exceptionRisk_r_i	<=	'b0;
 			MEM_VAddr_r_i	<=	'b0;
@@ -119,7 +119,7 @@ module WriteBack (
     wire ready = 1'b1;
     wire needFlash = 1'b0;
     // 只要有一段有数据就说明有数据
-    wire WB_valid_w_o = hasData && ready;
+    wire WB_valid_w_o = hasData && ready && PBA_allowin_w_i;
     assign WB_allowin_w_o = !hasData || ready;
     wire   ok_to_change = WB_allowin_w_o && PBA_allowin_w_i ;
     assign needUpdata = ok_to_change && MEM_valid_w_i;

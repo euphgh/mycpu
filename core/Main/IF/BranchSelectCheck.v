@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/07/24 20:15
+// Last Modified : 2022/07/25 16:11
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -231,13 +231,14 @@ module BranchSelectCheck (
     // 选择
     wire    [`SINGLE_WORD_LEN + `ALL_CHECKPOINT_LEN + `SINGLE_WORD_LEN + 1 - 1 : 0 ]
             compressedAll_up [3:0];
+    wire    [1:0]   compressedPCSeq;
     generate
     genvar j;
     for (j=0;  j<4; j=j+1)	begin
-    assign compressedAll_up[j] =    instSelect_up[j][0] ? allInfo_up[0] :
+        assign compressedAll_up[j] =instSelect_up[j][0] ? allInfo_up[0] :
                                     instSelect_up[j][1] ? allInfo_up[1] :
                                     instSelect_up[j][2] ? allInfo_up[2] :
-                                    instSelect_up[j][3] ? allInfo_up[3] : 119'b0;
+                                    instSelect_up[j][3] ? allInfo_up[3] : 'b0;
     end
     endgenerate
     // 选择之后的解包
@@ -260,7 +261,10 @@ module BranchSelectCheck (
     `PACK_ARRAY(`ALL_CHECKPOINT_LEN,4,compressedcheckPoint_up,IF_predInfo_p_o)
     `PACK_ARRAY(`SINGLE_WORD_LEN,4,compressedDest_up,IF_predDest_p_o)
     `PACK_ARRAY(1,4,compressedTake_up,IF_predTake_p_o)
-    assign IF_instBasePC_o = SCT_VAddr_i;
+    assign compressedPCSeq =    instSelect_up[0][0] ? 2'b00 :
+                                instSelect_up[0][1] ? 2'b01 :
+                                instSelect_up[0][2] ? 2'b10 : 2'b11; 
+    assign IF_instBasePC_o = {SCT_VAddr_i[31:4],compressedPCSeq,SCT_VAddr_i[1:0]};
 /*}}}*/
     // 分支恢复逻辑{{{
     assign BSC_allCheckPoint_w_o = SBA_flush_w_i ? SBA_checkPoint_w_i : BPU_checkPoint;

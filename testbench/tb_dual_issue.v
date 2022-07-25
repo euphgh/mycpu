@@ -12,11 +12,10 @@
 `timescale 1ns / 1ps
 
 
-// `define FUNC_TEST
+`define FUNC_TEST
 // `define CACHE_HIT_TEST
-`define TRACE_REF_FILE          "../../../../../../golden_trace.txt"
-//`define CONFREG_OPEN_TRACE      soc_lite.u_confreg.open_trace
-`define CONFREG_OPEN_TRACE      1'b0
+`define TRACE_REF_FILE          "../../../../../../../cpu132_gettrace/golden_trace.txt"
+`define CONFREG_OPEN_TRACE      soc_lite.u_confreg.open_trace
 `define CONFREG_NUM_REG         soc_lite.u_confreg.num_data
 `define CONFREG_NUM_MONITOR     soc_lite.u_confreg.num_monitor
 `define CONFREG_UART_DISPLAY    soc_lite.u_confreg.write_uart_valid
@@ -124,7 +123,7 @@ end
 endfunction
 
 reg debug_wb_err;
-
+reg myAssert;
 task compare (
     input [31:0] debug_wb_pc  ,
     input [3 :0] debug_wb_wen ,
@@ -138,7 +137,6 @@ begin
             $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
                     ref_wb_pc, ref_wb_wnum, ref_wb_wdata);
         end
-
         if ((debug_wb_pc !== ref_wb_pc)     ||
             (debug_wb_wnum !== ref_wb_wnum) ||
             (get_valid_wdata(debug_wb_wdata, debug_wb_wen) !== get_valid_wdata(ref_wb_wdata, debug_wb_wen))) begin
@@ -150,6 +148,8 @@ begin
                       debug_wb_pc, debug_wb_wnum, get_valid_wdata(debug_wb_wdata, debug_wb_wen));
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
+            #40;
+            $finish;
         end
     end
 end

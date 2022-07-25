@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 16:52
-// Last Modified : 2022/07/23 10:21
+// Last Modified : 2022/07/25 21:07
 // File Name     : DataMemoryManagementUnit.v
 // Description   :
 //         
@@ -117,10 +117,10 @@ module DataMemoryManagementUnit(
     //End of automatic reg
     //Start of automatic wire
     //Define assign wires here
-    wire                        isKseg0                         ;
-    wire                        isKseg1                         ;
-    wire                        isOther                         ;
-    wire                        kseg0UnCache                    ;
+    reg                         isKseg0                         ;
+    reg                         isKseg1                         ;
+    reg                         isOther                         ;
+    reg                         kseg0UnCache                    ;
     wire                        kseg1UnCache                    ;
     wire                        otherUnCache                    ;
     wire    [`CACHE_TAG]        PCinput                         ;
@@ -129,10 +129,6 @@ module DataMemoryManagementUnit(
     //End of automatic define
     // }}}
     // map操作逻辑{{{
-    assign isKseg0 = PREMEM_VAddr_w_i[31:29]==3'b100;
-    assign isKseg1 = PREMEM_VAddr_w_i[31:29]==3'b101;
-    assign isOther = (!PREMEM_VAddr_w_i[31]) || (|PREMEM_VAddr_w_i[31:30]);
-    assign kseg0UnCache = CP0_Config_w_i[`K0]!=`CACHED;
     assign kseg1UnCache = `TRUE;
     assign otherUnCache = data_c_i!=`CACHED;
     assign PCinput = PREMEM_VAddr_w_i[`CACHE_TAG] & {20{data_index_ok&&data_req}};
@@ -144,11 +140,19 @@ module DataMemoryManagementUnit(
             mapReq      <=  `FALSE;
             mapWR       <=  1'b0;
             unmapTag    <=  `CACHE_TAG_ZERO;
+            isKseg0         <=  `FALSE;
+            isKseg1         <=  `FALSE;
+            isOther         <=  `FALSE;// 0?或者11?
+            kseg0UnCache    <=  'd0;
         end
         else if (data_tlbReq_o) begin
             mapReq      <=  PREMEM_map_w_i;
+            isKseg0         <=  PREMEM_VAddr_w_i[31:29]==3'b100;
+            isKseg1         <=  PREMEM_VAddr_w_i[31:29]==3'b101;
+            isOther         <=  (!PREMEM_VAddr_w_i[31]) || (&PREMEM_VAddr_w_i[31:30]);// 0?或者11?
             mapWR       <=  data_wr;
             unmapTag    <=  {3'b0,PCinput[28:12]};
+            kseg0UnCache    <=  CP0_Config_w_i[`K0]!=`CACHED;
         end
     end
     assign data_vpn2_o = PCinput[31:13];

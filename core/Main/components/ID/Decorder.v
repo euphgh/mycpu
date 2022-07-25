@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/13 09:29
-// Last Modified : 2022/07/22 23:48
+// Last Modified : 2022/07/25 11:35
 // File Name     : Decorder.v
 // Description   : ID段的解码器，用于生成所有的控制信号
 //         

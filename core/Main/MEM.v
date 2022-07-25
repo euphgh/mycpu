@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/23 10:48
+// Last Modified : 2022/07/25 21:11
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -137,11 +137,11 @@ module MEM(
 	reg	[`CP0_POSITION]			PREMEM_positionCp0_r_i;
 	reg	[0:0]			PREMEM_readCp0_r_i;
 	reg	[0:0]			PREMEM_writeCp0_r_i;
-	reg	[0:0]			PREMEM_isCacheInst_r_i; // TODO
-	reg	[`CACHE_OP]			PREMEM_CacheOperator_r_i;// TODO
-	reg	[`SINGLE_WORD]			PREMEM_CacheAddress_r_i;// TODO
+	reg	[0:0]			PREMEM_isCacheInst_r_i;
+	reg	[`CACHE_OP]			PREMEM_CacheOperator_r_i;
+	reg	[`SINGLE_WORD]			PREMEM_CacheAddress_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			PREMEM_writeNum_r_i	<=	'b0;
 			PREMEM_VAddr_r_i	<=	'b0;
 			PREMEM_isDelaySlot_r_i	<=	'b0;
@@ -199,10 +199,10 @@ module MEM(
     assign MEM_VAddr_o = PREMEM_VAddr_r_i;
     // 流水线互锁
     reg hasData;
-    wire ready = PREMEM_memReq_r_i && !data_data_ok;
+    wire ready = (!PREMEM_memReq_r_i) || data_data_ok;
     wire needFlash = CP0_excOccur_w_i ;
     // 只要有一段有数据就说明有数据
-    assign MEM_valid_w_o = hasData && ready;
+    assign MEM_valid_w_o = hasData && ready && REEXE_allowin_w_i;
     assign MEM_allowin_w_o = !hasData || (ready && WB_allowin_w_i);
     wire   ok_to_change = MEM_allowin_w_o && REEXE_allowin_w_i ;
     assign needUpdata = ok_to_change && PREMEM_valid_w_i;

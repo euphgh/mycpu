@@ -1,9 +1,9 @@
-// +FHDR----------------------------------------------------------------------------
+//// +FHDR----------------------------------------------------------------------------
 // Project Name  : IC_Design
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/23 10:53
+// Last Modified : 2022/07/25 17:32
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -109,7 +109,7 @@ module SecondBranchAmend (
 	reg	[`EXCCODE]			EXE_up_ExcCode_r_i;
 	reg	[0:0]			EXE_up_hasException_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			EXE_up_writeNum_r_i	<=	'b0;
 			EXE_up_VAddr_r_i	<=	'b0;
 			EXE_up_aluRes_r_i	<=	'b0;
@@ -148,13 +148,13 @@ module SecondBranchAmend (
     assign SBA_corrDest_w_o = EXE_up_corrDest_r_i;
     assign SBA_corrTake_w_o = EXE_up_corrTake_r_i;
     assign SBA_repairAction_w_o = EXE_up_repairAction_r_i;
-    assign SBA_flush_w_o = !SBA_hasRisk_w_o && EXE_up_repairAction_r_i[`NEED_REPAIR];
+    assign SBA_flush_w_o = !MEM_hasRisk_w_i && !EXE_up_exceptionRisk_r_i && EXE_up_repairAction_r_i[`NEED_REPAIR];
     assign SBA_checkPoint_w_o = EXE_up_checkPoint_r_i;
     assign SBA_nonBlockMark_w_o = EXE_up_nonBlockMark_r_i;
     // 流水线互锁
     reg hasData;
     wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
-    assign SBA_valid_w_o    = hasData && ready;
+    assign SBA_valid_w_o    = hasData && ready && PREMEM_allowin_w_i;
     assign SBA_allowin_w_o  = !hasData || (ready && REEXE_allowin_w_i);
     wire   ok_to_change = SBA_allowin_w_o && PREMEM_allowin_w_i;
     assign needUpdata = ok_to_change && EXE_up_valid_w_i;

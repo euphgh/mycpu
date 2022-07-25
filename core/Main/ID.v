@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/24 22:10
+// Last Modified : 2022/07/25 19:54
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -40,6 +40,9 @@ module ID (
     //////////////////////////////////////////////////
     //////////////     线信号输入      ///////////////{{{
     //////////////////////////////////////////////////
+    //刷新流水线
+    input	wire	SBA_flush_w_i,      
+    input	wire	CP0_excOccur_w_i,   
     // 流水线控制
     input	wire	                        EXE_down_allowin_w_i,        // 逐级互锁信号
     input	wire	                        EXE_up_allowin_w_i,        // 逐级互锁信号
@@ -94,7 +97,9 @@ module ID (
     output	wire	[`GPR_NUM]              ID_up_writeNum_o,             // 回写寄存器数值,0为不回写
     output	wire	[2*`SINGLE_WORD]        ID_up_readData_o,           // 寄存器值rsrt
     //算数,位移
-    output	wire	[`SINGLE_WORD]          ID_up_oprand0_o,            // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
+    output	wire	[`SINGLE_WORD]          ID_up_oprand0_o,            // 经过多路选择,选择指令自带的数据
+    output	wire	                        ID_up_oprand0IsReg_o,       
+    output	wire	                        ID_up_oprand1IsReg_o,       
     output	wire	[`FORWARD_MODE]         ID_up_forwardSel0_o,        // 用于选择前递信号
     output	wire	                        ID_up_data0Ready_o,         // 表示该operand是否可用
     output	wire	[`SINGLE_WORD]          ID_up_oprand1_o,            // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
@@ -123,6 +128,8 @@ module ID (
     output	wire	[`SINGLE_WORD]          ID_down_VAddr_o,            // 用于debug和异常处理
     //算数,位移
     output	wire	[`SINGLE_WORD]          ID_down_oprand0_o,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
+    output	wire	                        ID_down_oprand0IsReg_o,     
+    output	wire	                        ID_down_oprand1IsReg_o,     
     output	wire	[`FORWARD_MODE]         ID_down_forwardSel0_o,      // 用于选择前递信号
     output	wire	                        ID_down_data0Ready_o,       // 表示该operand是否可用
     output	wire	[`SINGLE_WORD]          ID_down_oprand1_o,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
@@ -234,9 +241,11 @@ module ID (
         .IQ_empty               (IQ_empty                                   ), //output
         .ID_stopFetch_o         (ID_stopFetch_o                             ), //output
         .IQ_number_w            (IQ_number_w  [$clog2(`IQ_CAPABILITY):0]    ), //output
-        /*autoinst*/
         .IF_isRefill_i          (IF_isRefill_i                  ), //input
-        .IQ_isRefill_p          (IQ_isRefill_p[1:0]             )  //output
+        .IQ_isRefill_p          (IQ_isRefill_p[1:0]             ), //output
+        /*autoinst*/
+        .SBA_flush_w_i          (SBA_flush_w_i                  ), //input
+        .CP0_excOccur_w_i       (CP0_excOccur_w_i               )  //input
     );
     /*}}}*/
     Arbitrator Arbitrator_u (/*{{{*/
@@ -298,7 +307,7 @@ module ID (
     generate
         for (genvar i = 0; i < 2; i=i+1)	begin
             for (genvar j = 0; j < 2; j=j+1)	begin
-                assign readNum[i][j] = AB_regReadNum_p_w[i*2+j+4:i*2+j];
+                assign readNum[i][j] = AB_regReadNum_p_w[i*10+j*5+4:i*10+j*5];
                 assign needRead[i][j] = AB_needRead_p_w[i*2+j:i*2+j];
                 
             end
@@ -377,6 +386,11 @@ module ID (
     wire    [`OPRAND_SEL]   up_oprand1_sel;
     wire    [`OPRAND_SEL]   down_oprand0_sel;
     wire    [`OPRAND_SEL]   down_oprand1_sel;
+    wire    [`OPRAND_SEL]   oprand_sel  [1:0][1:0];
+    assign oprand_sel[0][0] = up_oprand0_sel;
+    assign oprand_sel[0][1] = up_oprand1_sel;
+    assign oprand_sel[1][0] = down_oprand0_sel;
+    assign oprand_sel[1][1] = down_oprand1_sel;
     assign instOffset = {extendedRes_up[0][29:0],2'b0};
     wire   [`SINGLE_WORD]   partialDelaySlot = extendAction_up[0][`ZERO_EXTEND_INDEX] ? {AB_VAddr_up[0][31:28],28'b0} : (AB_VAddr_up[0] + 3'd4);
     assign ID_up_oprand0_o =    up_oprand0_sel[`SEL_DELAYSLOT_PC]   ?   partialDelaySlot: saField_up[0];
@@ -386,7 +400,7 @@ module ID (
     assign ID_up_writeNum_o =   AB_regWriteNum_p_w[4:0];
                                 
     assign ID_down_writeNum_o = AB_regWriteNum_p_w[9:5]; 
-    assign {ID_up_readData_o,ID_down_readData_o} = readData_p_o;
+    assign {ID_down_readData_o,ID_up_readData_o} = readData_p_o;
     /*}}}*/
     // 前递选择子的获取{{{
     wire [`FORWARD_MODE]    forwardSel      [1:0][1:0];   //第一个参数代表两条流水线，后一个代表rs，rt
@@ -394,21 +408,17 @@ module ID (
     generate
         for (genvar l = 0; l < 2; l=l+1)	begin
             for (genvar k = 0; k < 2; k=k+1)	begin
-                 wire [`FORWARD_MODE] segSel =   (EXE_down_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_down_forwardMode_w_i} :
-                                                 (EXE_up_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_up_forwardMode_w_i} :
-                                                 (PREMEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {PREMEM_forwardMode_w_i} :
-                                                 (SBA_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {SBA_forwardMode_w_i} :
-                                                 (MEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {MEM_forwardMode_w_i} :
-                                                 (REEXE_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {REEXE_forwardMode_w_i} : `FORWARD_MODE_NON;
-               assign forwardSel[l][k] = {needRead[l][k],segSel[`FORWARD_MODE_LEN-2:0]};
-               assign WAR_conflict_up[l][k] = forwardSel[l][k][`FORWARD_WB_BIT] && (forwardSel[l][k][`FORWARD_MEM_BIT] || forwardSel[l][k][`FORWARD_PREMEM_BIT]); 
+                 assign forwardSel[l][k] =      (EXE_down_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_down_forwardMode_w_i} :
+                                                (EXE_up_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_up_forwardMode_w_i} :
+                                                (PREMEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {PREMEM_forwardMode_w_i} :
+                                                (SBA_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {SBA_forwardMode_w_i} :
+                                                (MEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {MEM_forwardMode_w_i} :
+                                                (REEXE_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {REEXE_forwardMode_w_i} : `FORWARD_MODE_ID;
+                // 必须要暂停的load写后读
+                assign WAR_conflict_up[l][k] = forwardSel[l][k][`FORWARD_WB_BIT] && (forwardSel[l][k][`FORWARD_MEM_BIT] || forwardSel[l][k][`FORWARD_PREMEM_BIT]); 
             end
         end
     endgenerate
-    assign ID_up_forwardSel0_o[`FORWARD_REG_BIT] = needRead[0][0];
-    assign ID_up_forwardSel1_o[`FORWARD_REG_BIT] = needRead[0][1];
-    assign ID_down_forwardSel0_o[`FORWARD_REG_BIT] = needRead[1][0];
-    assign ID_down_forwardSel1_o[`FORWARD_REG_BIT] = needRead[1][1];
     assign ID_up_data0Ready_o = forwardSel[0][0][`FORWARD_ID_BIT];
     assign ID_up_data1Ready_o = forwardSel[0][1][`FORWARD_ID_BIT];
     assign ID_down_data0Ready_o = forwardSel[1][0][`FORWARD_ID_BIT];
@@ -417,13 +427,17 @@ module ID (
     assign ID_up_forwardSel1_o = forwardSel[0][1];
     assign ID_down_forwardSel0_o = forwardSel[1][0];
     assign ID_down_forwardSel1_o = forwardSel[1][1];
+    assign ID_up_oprand0IsReg_o = oprand_sel[0][0][`SEL_RS_DATA];
+    assign ID_up_oprand1IsReg_o = oprand_sel[0][1][`SEL_RT_DATA];
+    assign ID_down_oprand0IsReg_o = oprand_sel[1][0][`SEL_RS_DATA];
+    assign ID_down_oprand1IsReg_o = oprand_sel[1][1][`SEL_RT_DATA];
 /*}}}*/
     // 流水暂停控制{{{ 
     wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[1][1]);
     wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
     wire stop = WAR_conflict || hasDangerous;
     wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && EXE_up_allowin_w_i && !stop);
-    assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : (AB_issueMode_w==`SINGLE_ISSUE ? `SINGLE_ISSUE : `DUAL_ISSUE);
+    assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : AB_issueMode_w;
     assign ID_up_valid_w_o = (AB_issueMode_w[1]) && !stop;
     assign ID_down_valid_w_o = (AB_issueMode_w[0]) && !stop;
 /*}}}*/

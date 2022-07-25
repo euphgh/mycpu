@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/23 09:22
+// Last Modified : 2022/07/25 21:21
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -68,6 +68,8 @@ module EXEDOWN(
     input	wire	[`SINGLE_WORD]          ID_down_VAddr_i,            // 用于debug和异常处理}}}
     //算数,位移{{{
     input	wire	[`SINGLE_WORD]          ID_down_oprand0_i,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
+    input	wire	                        ID_down_oprand0IsReg_i,     
+    input	wire	                        ID_down_oprand1IsReg_i,     
     input	wire	[`FORWARD_MODE]         ID_down_forwardSel0_i,      // 用于选择前递信号
     input	wire	                        ID_down_data0Ready_i,       // 表示该operand是否可用
     input	wire	[`SINGLE_WORD]          ID_down_oprand1_i,       // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
@@ -178,6 +180,8 @@ module EXEDOWN(
 	reg	[0:0]			ID_down_isDangerous_r_i;
 	reg	[`SINGLE_WORD]			ID_down_VAddr_r_i;
 	reg	[`SINGLE_WORD]			ID_down_oprand0_r_i;
+	reg	[0:0]			ID_down_oprand0IsReg_r_i;
+	reg	[0:0]			ID_down_oprand1IsReg_r_i;
 	reg	[`FORWARD_MODE]			ID_down_forwardSel0_r_i;
 	reg	[0:0]			ID_down_data0Ready_r_i;
 	reg	[`SINGLE_WORD]			ID_down_oprand1_r_i;
@@ -206,13 +210,15 @@ module EXEDOWN(
 	reg	[0:0]			ID_down_isCacheInst_r_i;
 	reg	[`CACHE_OP]			ID_down_CacheOperator_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			ID_down_writeNum_r_i	<=	'b0;
 			ID_down_readData_r_i	<=	'b0;
 			ID_down_isDelaySlot_r_i	<=	'b0;
 			ID_down_isDangerous_r_i	<=	'b0;
 			ID_down_VAddr_r_i	<=	'b0;
 			ID_down_oprand0_r_i	<=	'b0;
+			ID_down_oprand0IsReg_r_i	<=	'b0;
+			ID_down_oprand1IsReg_r_i	<=	'b0;
 			ID_down_forwardSel0_r_i	<=	'b0;
 			ID_down_data0Ready_r_i	<=	'b0;
 			ID_down_oprand1_r_i	<=	'b0;
@@ -248,6 +254,8 @@ module EXEDOWN(
 			ID_down_isDangerous_r_i	<=	ID_down_isDangerous_i;
 			ID_down_VAddr_r_i	<=	ID_down_VAddr_i;
 			ID_down_oprand0_r_i	<=	ID_down_oprand0_i;
+			ID_down_oprand0IsReg_r_i	<=	ID_down_oprand0IsReg_i;
+			ID_down_oprand1IsReg_r_i	<=	ID_down_oprand1IsReg_i;
 			ID_down_forwardSel0_r_i	<=	ID_down_forwardSel0_i;
 			ID_down_data0Ready_r_i	<=	ID_down_data0Ready_i;
 			ID_down_oprand1_r_i	<=	ID_down_oprand1_i;
@@ -289,7 +297,7 @@ module EXEDOWN(
     wire ready;
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
-    assign EXE_down_valid_w_o = hasData && ready;
+    assign EXE_down_valid_w_o = hasData && ready && EXE_up_allowin_w_i;
     assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
     wire   ok_to_change = EXE_down_allowin_w_o && EXE_up_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_down_valid_w_i;
@@ -323,16 +331,19 @@ module EXEDOWN(
     wire        [`SINGLE_WORD]      readData_up     [1:0];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,readData_up,ID_down_readData_r_i)
     wire        [`SINGLE_WORD]      updataRegFile_up[1:0];
+    wire        [0:0]               srcIsReg        [1:0];
+    assign srcIsReg[0] = ID_down_oprand0IsReg_r_i;
+    assign srcIsReg[1] = ID_down_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
-            assign updataRegFile_up[i] = ({32{ID_down_forwardSel_up[i][`FORWARD_REG_BIT]}} & readData_up[i]) |
+            assign updataRegFile_up[i] = ({32{ID_down_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i]) |
                             ({32{ID_down_forwardSel_up[i][`FORWARD_SBA_BIT]}} & SBA_forwardData_w_i)|
                             ({32{ID_down_forwardSel_up[i][`FORWARD_PREMEM_BIT]}} & PREMEM_forwardData_w_i)|
                             ({32{ID_down_forwardSel_up[i][`FORWARD_REEXE_BIT]}} & REEXE_forwardData_w_i)|
                             ({32{ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]}} & MEM_forwardData_w_i)|
                             ({32{ID_down_forwardSel_up[i][`FORWARD_PBA_BIT]}} & PBA_forwardData_w_i)|
                             ({32{ID_down_forwardSel_up[i][`FORWARD_WB_BIT] }} & WB_forwardData_w_i) ;
-            assign scr[i] = ID_down_forwardSel_up[i][`FORWARD_ID_BIT] ? ID_down_oprand_up[i] : updataRegFile_up[i];
+            assign scr[i] = !srcIsReg[i] ? ID_down_oprand_up[i] : updataRegFile_up[i];
         end
     endgenerate
 /*}}}*/
@@ -388,10 +399,10 @@ module EXEDOWN(
                                     ({32{ID_down_storeMode_r_i[`STORE_MODE_SWR]}} & swr_data) ;
     /*}}}*/
     // ALU 异常处理{{{
-    wire storeException = (ID_down_storeMode_r_i[`STORE_MODE_SH] && alignCheck[0]!=1'b0) ||
-                          (ID_down_storeMode_r_i[`STORE_MODE_SW] && (alignCheck[1:0]!=2'b00)) && ID_down_memReq_r_i;
-    wire loadException  = ((ID_down_loadMode_r_i[`LOAD_MODE_LH_BIT]||ID_down_loadMode_r_i[`LOAD_MODE_LHU_BIT]) && alignCheck[0]!=1'b0) || 
-                          (ID_down_loadMode_r_i[`LOAD_MODE_LW_BIT]) && alignCheck[1:0]!=2'b00;
+    wire storeException = ((ID_down_storeMode_r_i[`STORE_MODE_SH] && alignCheck[0]!=1'b0) ||
+                          (ID_down_storeMode_r_i[`STORE_MODE_SW] && (alignCheck[1:0]!=2'b00))) && ID_down_memReq_r_i;
+    wire loadException  = (((ID_down_loadMode_r_i[`LOAD_MODE_LH_BIT]||ID_down_loadMode_r_i[`LOAD_MODE_LHU_BIT]) && alignCheck[0]!=1'b0) || 
+                          ((ID_down_loadMode_r_i[`LOAD_MODE_LW_BIT]) && alignCheck[1:0]!=2'b00)) && ID_down_memReq_r_i;
     wire tlbRisk = (aluso[31:29]!=3'b101) && (aluso[31:29]!=3'b100) && ID_down_memReq_r_i;
     wire equals = !(|aluso);
     wire hasTrap =  ID_down_trapKind_r_i[`TRAP_EQUAL]      ? equals    :

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/24 22:12
+// Last Modified : 2022/07/25 21:07
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -50,6 +50,8 @@ module EXEUP(
     input	wire	[2*`SINGLE_WORD]        ID_up_readData_i,           // 寄存器值rsrt
     // 算数,位移
     input	wire	[`SINGLE_WORD]          ID_up_oprand0_i,            
+    input	wire	                        ID_up_oprand0IsReg_i,       
+    input	wire	                        ID_up_oprand1IsReg_i,       
     input	wire	[`FORWARD_MODE]         ID_up_forwardSel0_i,        // 用于选择前递信号
     input	wire	                        ID_up_data0Ready_i,         // 表示该operand是否可用
     input	wire	[`SINGLE_WORD]          ID_up_oprand1_i,            
@@ -128,6 +130,8 @@ module EXEUP(
 	reg	[`GPR_NUM]			ID_up_writeNum_r_i;
 	reg	[2*`SINGLE_WORD]			ID_up_readData_r_i;
 	reg	[`SINGLE_WORD]			ID_up_oprand0_r_i;
+	reg	[0:0]			ID_up_oprand0IsReg_r_i;
+	reg	[0:0]			ID_up_oprand1IsReg_r_i;
 	reg	[`FORWARD_MODE]			ID_up_forwardSel0_r_i;
 	reg	[0:0]			ID_up_data0Ready_r_i;
 	reg	[`SINGLE_WORD]			ID_up_oprand1_r_i;
@@ -147,10 +151,12 @@ module EXEUP(
 	reg	[`SINGLE_WORD]			ID_up_predDest_r_i;
 	reg	[0:0]			ID_up_predTake_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			ID_up_writeNum_r_i	<=	'b0;
 			ID_up_readData_r_i	<=	'b0;
 			ID_up_oprand0_r_i	<=	'b0;
+			ID_up_oprand0IsReg_r_i	<=	'b0;
+			ID_up_oprand1IsReg_r_i	<=	'b0;
 			ID_up_forwardSel0_r_i	<=	'b0;
 			ID_up_data0Ready_r_i	<=	'b0;
 			ID_up_oprand1_r_i	<=	'b0;
@@ -174,6 +180,8 @@ module EXEUP(
 			ID_up_writeNum_r_i	<=	ID_up_writeNum_i;
 			ID_up_readData_r_i	<=	ID_up_readData_i;
 			ID_up_oprand0_r_i	<=	ID_up_oprand0_i;
+			ID_up_oprand0IsReg_r_i	<=	ID_up_oprand0IsReg_i;
+			ID_up_oprand1IsReg_r_i	<=	ID_up_oprand1IsReg_i;
 			ID_up_forwardSel0_r_i	<=	ID_up_forwardSel0_i;
 			ID_up_data0Ready_r_i	<=	ID_up_data0Ready_i;
 			ID_up_oprand1_r_i	<=	ID_up_oprand1_i;
@@ -202,7 +210,7 @@ module EXEUP(
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
-    assign EXE_up_valid_w_o = hasData && ready;
+    assign EXE_up_valid_w_o = hasData && ready && EXE_down_allowin_w_i;
     assign EXE_up_allowin_w_o = !hasData || (ready && SBA_allowin_w_i);
     wire   ok_to_change = EXE_up_allowin_w_o && EXE_down_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_up_valid_w_i;
@@ -238,16 +246,19 @@ module EXEUP(
     wire        [`SINGLE_WORD]      readData_up     [1:0];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,readData_up,ID_up_readData_r_i)
     wire        [`SINGLE_WORD]      updataRegFile_up[1:0];
+    wire        [0:0]               srcIsReg        [1:0];
+    assign srcIsReg[0] = ID_up_oprand0IsReg_r_i;
+    assign srcIsReg[1] = ID_up_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
-            assign updataRegFile_up[i] = ({32{ID_up_forwardSel_up[i][`FORWARD_REG_BIT]}} & readData_up[i]) |
+            assign updataRegFile_up[i] = ({32{ID_up_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i]) |
                             ({32{ID_up_forwardSel_up[i][`FORWARD_SBA_BIT]}} & SBA_forwardData_w_i)|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_PREMEM_BIT]}} & PREMEM_forwardData_w_i)|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_REEXE_BIT]}} & REEXE_forwardData_w_i)|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]}} & MEM_forwardData_w_i)|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_PBA_BIT]}} & PBA_forwardData_w_i)|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_WB_BIT] }} & WB_forwardData_w_i) ;
-            assign scr[i] = ID_up_forwardSel_up[i][`FORWARD_ID_BIT] ? ID_up_oprand_up[i] : updataRegFile_up[i];
+            assign scr[i] = srcIsReg[i] ? updataRegFile_up[i] : ID_up_oprand_up[i];
         end
     endgenerate
 /*}}}*/
@@ -280,10 +291,9 @@ module EXEUP(
                                 ID_up_branchKind_r_i[`BRANCH_GE]    ? bge_take : 1'b1;
     wire isLink = ID_up_repairAction_r_i[`NEED_REPAIR] && |(ID_up_writeNum_r_i);
     assign EXE_up_corrDest_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;
-    assign EXE_up_repairAction_o = ID_up_repairAction_r_i;
+    assign EXE_up_repairAction_o = {EXE_up_branchRisk_o,ID_up_repairAction_r_i[`REPAIR_ACTION_LEN-2:0]};
     assign EXE_up_checkPoint_o   = ID_up_checkPoint_r_i;
-    assign EXE_up_repairAction_o[`NEED_REPAIR] = EXE_up_branchRisk_o;
-    assign EXE_up_branchRisk_o   = (EXE_up_corrTake_o==ID_up_predTake_r_i) && (EXE_up_corrDest_o==ID_up_predDest_r_i);
+    assign EXE_up_branchRisk_o   = ((EXE_up_corrTake_o!=ID_up_predTake_r_i) || (EXE_up_corrDest_o!=ID_up_predDest_r_i)) && ID_up_repairAction_r_i[`NEED_REPAIR];
 /*}}}*/
     // 非阻塞乘除{{{
     assign EXE_up_nonBlockMark_o = EXE_down_nonBlockMark_w_o;

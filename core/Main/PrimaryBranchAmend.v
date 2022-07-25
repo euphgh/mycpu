@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:47
-// Last Modified : 2022/07/23 09:16
+// Last Modified : 2022/07/25 17:34
 // File Name     : PrimaryBranchAmend.v
 // Description   :
 //         
@@ -72,7 +72,7 @@ module PrimaryBranchAmend(
 	reg	[`SINGLE_WORD]			REEXE_VAddr_r_i;
 	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			REEXE_writeNum_r_i	<=	'b0;
 			REEXE_exceptionRisk_r_i	<=	'b0;
 			REEXE_VAddr_r_i	<=	'b0;
@@ -95,7 +95,7 @@ module PrimaryBranchAmend(
     wire ready = 1'b1;
     wire needFlash = 1'b0;
     // 只要有一段有数据就说明有数据
-    wire PBA_valid_w_o = hasData && ready;
+    wire PBA_valid_w_o = hasData && ready && WB_allowin_w_i;
     assign PBA_allowin_w_o = !hasData || ready;
     wire   ok_to_change = PBA_allowin_w_o && WB_allowin_w_i ;
     assign needUpdata = ok_to_change && REEXE_valid_w_i;

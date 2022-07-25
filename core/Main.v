@@ -99,6 +99,7 @@ module Main(
     output	wire	[`SINGLE_WORD]  debug_wb_rf_wdata1
 /*}}}*/
 );
+ 
     /////////////////////////////////////////////////////////////////////
     ////////////////        autoConnect Code Start       ////////////////{{{
     /////////////////////////////////////////////////////////////////////
@@ -117,6 +118,10 @@ module Main(
 	assign	ID_up_readData_i	=	ID_up_readData_o;
 	wire	[31:0]	ID_up_oprand0_o;	wire	[31:0]	ID_up_oprand0_i;
 	assign	ID_up_oprand0_i	=	ID_up_oprand0_o;
+	wire	[0:0]	ID_up_oprand0IsReg_o;	wire	[0:0]	ID_up_oprand0IsReg_i;
+	assign	ID_up_oprand0IsReg_i	=	ID_up_oprand0IsReg_o;
+	wire	[0:0]	ID_up_oprand1IsReg_o;	wire	[0:0]	ID_up_oprand1IsReg_i;
+	assign	ID_up_oprand1IsReg_i	=	ID_up_oprand1IsReg_o;
 	wire	[7:0]	ID_up_forwardSel0_o;	wire	[7:0]	ID_up_forwardSel0_i;
 	assign	ID_up_forwardSel0_i	=	ID_up_forwardSel0_o;
 	wire	[0:0]	ID_up_data0Ready_o;	wire	[0:0]	ID_up_data0Ready_i;
@@ -137,7 +142,7 @@ module Main(
 	assign	ID_up_hasException_i	=	ID_up_hasException_o;
 	wire	[0:0]	ID_up_exceptionRisk_o;	wire	[0:0]	ID_up_exceptionRisk_i;
 	assign	ID_up_exceptionRisk_i	=	ID_up_exceptionRisk_o;
-	wire	[2:0]	ID_up_exceptionSel_o;	wire	[2:0]	ID_up_exceptionSel_i;
+	wire	[1:0]	ID_up_exceptionSel_o;	wire	[1:0]	ID_up_exceptionSel_i;
 	assign	ID_up_exceptionSel_i	=	ID_up_exceptionSel_o;
 	wire	[3:0]	ID_up_trapKind_o;	wire	[3:0]	ID_up_trapKind_i;
 	assign	ID_up_trapKind_i	=	ID_up_trapKind_o;
@@ -165,6 +170,10 @@ module Main(
 	assign	ID_down_VAddr_i	=	ID_down_VAddr_o;
 	wire	[31:0]	ID_down_oprand0_o;	wire	[31:0]	ID_down_oprand0_i;
 	assign	ID_down_oprand0_i	=	ID_down_oprand0_o;
+	wire	[0:0]	ID_down_oprand0IsReg_o;	wire	[0:0]	ID_down_oprand0IsReg_i;
+	assign	ID_down_oprand0IsReg_i	=	ID_down_oprand0IsReg_o;
+	wire	[0:0]	ID_down_oprand1IsReg_o;	wire	[0:0]	ID_down_oprand1IsReg_i;
+	assign	ID_down_oprand1IsReg_i	=	ID_down_oprand1IsReg_o;
 	wire	[7:0]	ID_down_forwardSel0_o;	wire	[7:0]	ID_down_forwardSel0_i;
 	assign	ID_down_forwardSel0_i	=	ID_down_forwardSel0_o;
 	wire	[0:0]	ID_down_data0Ready_o;	wire	[0:0]	ID_down_data0Ready_i;
@@ -185,7 +194,7 @@ module Main(
 	assign	ID_down_writeHiLo_i	=	ID_down_writeHiLo_o;
 	wire	[4:0]	ID_down_ExcCode_o;	wire	[4:0]	ID_down_ExcCode_i;
 	assign	ID_down_ExcCode_i	=	ID_down_ExcCode_o;
-	wire	[2:0]	ID_down_exceptionSel_o;	wire	[2:0]	ID_down_exceptionSel_i;
+	wire	[1:0]	ID_down_exceptionSel_o;	wire	[1:0]	ID_down_exceptionSel_i;
 	assign	ID_down_exceptionSel_i	=	ID_down_exceptionSel_o;
 	wire	[0:0]	ID_down_hasException_o;	wire	[0:0]	ID_down_hasException_i;
 	assign	ID_down_hasException_i	=	ID_down_hasException_o;
@@ -705,6 +714,8 @@ ID  u_ID (
     .IF_hasException_i          ( IF_hasException_i           ),
     .IF_ExcCode_i               ( IF_ExcCode_i                ),
     .IF_isRefill_i              ( IF_isRefill_i               ),
+    .SBA_flush_w_i              ( SBA_flush_w_i               ),
+    .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
     .EXE_down_allowin_w_i       ( EXE_down_allowin_w_i        ),
     .EXE_up_allowin_w_i         ( EXE_up_allowin_w_i          ),
     .PBA_writeEnable_w_i        ( PBA_writeEnable_w_i         ),
@@ -737,6 +748,8 @@ ID  u_ID (
     .ID_up_writeNum_o           ( ID_up_writeNum_o            ),
     .ID_up_readData_o           ( ID_up_readData_o            ),
     .ID_up_oprand0_o            ( ID_up_oprand0_o             ),
+    .ID_up_oprand0IsReg_o       ( ID_up_oprand0IsReg_o        ),
+    .ID_up_oprand1IsReg_o       ( ID_up_oprand1IsReg_o        ),
     .ID_up_forwardSel0_o        ( ID_up_forwardSel0_o         ),
     .ID_up_data0Ready_o         ( ID_up_data0Ready_o          ),
     .ID_up_oprand1_o            ( ID_up_oprand1_o             ),
@@ -761,6 +774,8 @@ ID  u_ID (
     .ID_down_isDangerous_o      ( ID_down_isDangerous_o       ),
     .ID_down_VAddr_o            ( ID_down_VAddr_o             ),
     .ID_down_oprand0_o          ( ID_down_oprand0_o           ),
+    .ID_down_oprand0IsReg_o     ( ID_down_oprand0IsReg_o      ),
+    .ID_down_oprand1IsReg_o     ( ID_down_oprand1IsReg_o      ),
     .ID_down_forwardSel0_o      ( ID_down_forwardSel0_o       ),
     .ID_down_data0Ready_o       ( ID_down_data0Ready_o        ),
     .ID_down_oprand1_o          ( ID_down_oprand1_o           ),
@@ -1212,6 +1227,8 @@ EXEUP  u_EXEUP (
     .ID_up_writeNum_i           ( ID_up_writeNum_i            ),
     .ID_up_readData_i           ( ID_up_readData_i            ),
     .ID_up_oprand0_i            ( ID_up_oprand0_i             ),
+    .ID_up_oprand0IsReg_i       ( ID_up_oprand0IsReg_i        ),
+    .ID_up_oprand1IsReg_i       ( ID_up_oprand1IsReg_i        ),
     .ID_up_forwardSel0_i        ( ID_up_forwardSel0_i         ),
     .ID_up_data0Ready_i         ( ID_up_data0Ready_i          ),
     .ID_up_oprand1_i            ( ID_up_oprand1_i             ),
@@ -1273,6 +1290,8 @@ EXEDOWN  u_EXEDOWN (
     .ID_down_isDangerous_i       ( ID_down_isDangerous_i        ),
     .ID_down_VAddr_i             ( ID_down_VAddr_i              ),
     .ID_down_oprand0_i           ( ID_down_oprand0_i            ),
+    .ID_down_oprand0IsReg_i      ( ID_down_oprand0IsReg_i       ),
+    .ID_down_oprand1IsReg_i      ( ID_down_oprand1IsReg_i       ),
     .ID_down_forwardSel0_i       ( ID_down_forwardSel0_i        ),
     .ID_down_data0Ready_i        ( ID_down_data0Ready_i         ),
     .ID_down_oprand1_i           ( ID_down_oprand1_i            ),
@@ -1422,4 +1441,5 @@ PREMEM  u_PREMEM (
     /////////////////////////////////////////////////////////////////////
     ////////////////        autoConnect Code end         ////////////////}}}
     /////////////////////////////////////////////////////////////////////
+
 endmodule

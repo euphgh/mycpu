@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:35
-// Last Modified : 2022/07/23 10:47
+// Last Modified : 2022/07/25 21:20
 // File Name     : REEXE.v
 // Description   : 延迟执行段，先阶段只用于数据前递
 //         
@@ -96,7 +96,7 @@ module REEXE(
 	reg	[`EXCCODE]			SBA_ExcCode_r_i;
 	reg	[0:0]			SBA_hasExceprion_r_i;
     always @(posedge clk) begin
-        if (!rst && needClear) begin
+        if (!rst || needClear) begin
 			SBA_writeNum_r_i	<=	'b0;
 			SBA_VAddr_r_i	<=	'b0;
 			SBA_nonBlockMark_r_i	<=	'b0;
@@ -126,7 +126,7 @@ module REEXE(
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
-    assign REEXE_valid_w_o    = hasData && ready;
+    assign REEXE_valid_w_o    = hasData && ready && MEM_allowin_w_i;
     assign REEXE_allowin_w_o  = !hasData || (ready && PBA_allowin_w_i);
     wire   ok_to_change = REEXE_allowin_w_o && MEM_allowin_w_i;
     assign needUpdata = ok_to_change && SBA_valid_w_i;
