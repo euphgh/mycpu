@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-
+`include "../Cacheconst.vh"
 module data_uncache (
     input         clk          ,
     input         rst       ,
@@ -65,7 +65,7 @@ module data_uncache (
     reg         last_wvalid;
 
     assign data_addr_ok = data_req && (last_req ? data_data_ok : 1'b1);
-    assign data_data_ok = last_req && (last_op ? (bid == 4'd0) && bvalid : (rid == 4'd0) && rvalid);
+    assign data_data_ok = last_req && (last_op ? (bid == `DUNCA_BID) && bvalid : (rid ==`DUNCA_RID) && rvalid);
     assign data_rdata = rdata;
 
     always @(posedge clk ) begin
@@ -157,7 +157,7 @@ module data_uncache (
 
 
     // AXI Signals
-    assign arid    = 4'd0;
+    assign arid    = `DUNCA_ARID;
     assign araddr  = last_addr;
     assign arlen   = 4'd0;
     assign arsize  = 3'b010;
@@ -169,7 +169,7 @@ module data_uncache (
 
     assign rready  = 1'b1;
 
-    assign awid    = 4'd0;
+    assign awid    = `DUNCA_AWID;
     assign awaddr  = last_addr;
     assign awlen   = 4'd0;
     assign awsize  = 3'b010;
@@ -179,7 +179,7 @@ module data_uncache (
     assign awprot  = 3'd0;
     assign awvalid = last_awvalid;
 
-    assign wid     = 4'd0;
+    assign wid     = `DUNCA_WID;
     assign wdata   = last_wdata;
     assign wstrb   = last_wstrb;
     assign wlast   = 1'd1;

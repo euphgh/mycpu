@@ -33,3 +33,21 @@
 `define VIC_RES    4'b0101
 //FUNCTION
 `define encoder4_2(x) {{x[2] | x[3]}, {x[1] | x[3]}}
+//AXI_ID
+`define ICACHE_ARID 4'd0
+`define ICACHE_RID  4'd0
+
+`define IUNCA_ARID  4'd0
+`define IUNCA_RID   4'd0
+
+`define DCACHE_ARID 4'd0
+`define DCACHE_RID  4'd0
+`define DCACHE_AWID 4'd1
+`define DCACHE_WID  4'd1
+`define DCACHE_BID  4'd1 
+
+`define DUNCA_ARID  4'd0
+`define DUNCA_RID   4'd0
+`define DUNCA_AWID  4'd1
+`define DUNCA_WID   4'd1
+`define DUNCA_BID   4'd1

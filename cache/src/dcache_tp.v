@@ -209,7 +209,7 @@ module dcache_tp(
 `else
     assign data_index_ok = (cache_stat != `RESET) && sin_req & (!sda_req | data_data_ok);    
 `endif
-    assign data_data_ok  = sda_req & (hit_run | data_uncache_data_ok);
+    assign data_data_ok  = sda_req & (hit_run | data_uncache_data_ok | sda_hasException);
     assign data_rdata    = sda_unCache ? data_uncache_rdata : 
                            sda_raw_col ? {raw_data[3],raw_data[2],raw_data[1],raw_data[0]} : hit_run_data;
     assign raw_data[0] = sda_raw_wstrb[0] ? sda_raw_data[0] : hit_run_data[7 : 0];
@@ -225,7 +225,7 @@ module dcache_tp(
     assign data_uncache_wdata = sda_wdata;
     
     // AXI 读
-    assign arid    = (cache_stat == `MISS) ? 4'd2 : 4'd0;
+    assign arid    = `DCACHE_ARID;
     assign araddr  = {sda_tag , sda_index , sda_offset[4:2] , 2'b00 };
     assign arvalid = ok_send_arv;   
     assign arlock  = 2'd0;
@@ -237,7 +237,7 @@ module dcache_tp(
     assign rready  = (cache_stat == `REFILL);
 
     //AXI 写
-    assign awid     = (victim_stat == `VIC_AWRITE) ? 4'd3 : 4'd0;
+    assign awid     = `DCACHE_AWID;
     assign awlen    = 4'd7;
     assign awburst  = 2'b01;
     assign awsize   = 3'd2;
@@ -249,7 +249,7 @@ module dcache_tp(
 
     assign wdata    = victim_buffer_data[victim_counter];
     assign wvalid   = victim_stat == `VIC_WRITE;
-    assign wid      = (victim_stat == `VIC_WRITE) ? 4'd3: 4'd0;
+    assign wid      = `DCACHE_AWID;
     assign wlast    = victim_counter == 3'd7;
     assign wstrb    = 4'b1111;
 
@@ -338,7 +338,7 @@ module dcache_tp(
             sda_rdata[1]     <= cache_rdata[1]  ;
             sda_rdata[2]     <= cache_rdata[2]  ;
             sda_rdata[3]     <= cache_rdata[3]  ;
-            sda_uca_addr_ok  <= !sta_unCache    ;
+            sda_uca_addr_ok  <= !sta_unCache && sta_hasException   ;
             sda_wb_addr_ok   <= !sta_wr         ;
             sda_raw_col      <= (sta_index == sda_index) && 
                                 (sta_offset[4:2] == sda_offset[4:2]) &&
@@ -385,17 +385,17 @@ module dcache_tp(
                 //如果发生了不命中，进入MISS状态
 `ifdef EN_DCACHE_OP
                 `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
-                                          (sda_req && !sda_unCache &&!hit_run) ? `MISS : `RUN;
+                                          (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
                 `CA_SEL:    cache_stat <= `CA_OP;
                 `CA_OP :    cache_stat <= ca_need_wb && victim_stat == `VIC_IDLE ? `CA_WB  : `RUN;
                 `CA_WB :    cache_stat <= ca_wb_end  ? `RUN    : `CA_WB;
 `else
-                `RUN:       cache_stat <=  (sda_req && !sda_unCache &&!hit_run) ? `MISS : `RUN;
+                `RUN:       cache_stat <=  (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
 `endif
                 //如果axi从设备表示已经准备好向cache发送数据，进入REFILL状态
                 `MISS:      cache_stat <= arready && arvalid ? (`REFILL) : (`MISS);
                 //根据rid，是否读写完成（rlast和rvaild）判断是否装载完成
-                `REFILL:    cache_stat <= (rlast && rvalid && (rid == 4'd2)) ? (`FINISH) : (`REFILL);
+                `REFILL:    cache_stat <= (rlast && rvalid && (rid == `DCACHE_RID)) ? (`FINISH) : (`REFILL);
                 //装载完毕
                 `FINISH:    cache_stat <= `RECOVER;
                 //TODO 可能需要一个恢复状态，来获取到之前MISS的行对应的数据
@@ -431,7 +431,7 @@ module dcache_tp(
         end
         // 地址握手完成，开始传输，计数器开始自�?
         // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
-        else if (rvalid && (rid == 4'd2)) begin
+        else if (rvalid && (rid == `DCACHE_RID)) begin
             refill_counter <= refill_counter + 3'b1;
         end
     end
@@ -442,7 +442,7 @@ module dcache_tp(
                 refill_buf_valid[i] <= 1'b0;
             end
         end
-        else if (rvalid && (rid == 4'd2)) begin
+        else if (rvalid && (rid == `DCACHE_RID)) begin
             refill_buf_data[refill_counter] <= rdata;
             refill_buf_valid[refill_counter] <= 1'b1;
         end
@@ -703,7 +703,7 @@ module dcache_tp(
         else if (victim_stat == `VIC_AWRITE) begin
             victim_counter <= 3'd0;
         end
-        else if (victim_stat == `VIC_WRITE && wready && (wid == 3'd3)) begin
+        else if (victim_stat == `VIC_WRITE && wready) begin
             victim_counter <= victim_counter + 3'd1;
         end
     end
