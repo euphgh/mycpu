@@ -87,12 +87,22 @@ module dc_tb(  );
         end
     end
     //TRACE比对
+    reg real_data_ok;
+    always @(posedge aclk ) begin
+        if (!aresetn) begin
+            real_data_ok <= 1'b0;
+        end else if (data_data_ok) begin
+            real_data_ok <= 1'b1;
+        end else begin
+            real_data_ok <= 1'b0;
+        end
+    end
     always @(posedge aclk) begin
         #2;
         if (!aresetn) begin
             test_err <= 1'b0;
         end
-        else if (!test_end && data_data_ok) begin
+        else if (!test_end && real_data_ok) begin
             data_cnt <= data_cnt + 1'b1;
             if (ref_data_wr) begin
                 
