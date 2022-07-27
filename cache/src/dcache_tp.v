@@ -198,6 +198,18 @@ module dcache_tp(
     reg ok_send_arv;//是否允许开始AXI读
     ////////////////////////////////////////////////////////
 
+    //TODO ADD
+    wire [31:0] sda_data_rdata;
+    reg [31:0] real_rdata ;
+    always @(posedge clk ) begin
+        if (!rst) begin
+            real_rdata <= 32'b0;
+        end
+        else if (data_data_ok) begin
+            real_rdata <= sda_data_rdata;
+        end else begin
+        end 
+    end
     ////////////////////////////////////////////////////////
     //TODO 与CPU交互
 `ifdef EN_DCACHE_OP
@@ -210,13 +222,14 @@ module dcache_tp(
     assign data_index_ok = (cache_stat != `RESET) && sin_req & (!sda_req | data_data_ok);    
 `endif
     assign data_data_ok  = sda_req & (hit_run | data_uncache_data_ok | sda_hasException);
-    assign data_rdata    = sda_unCache ? data_uncache_rdata : 
-                           sda_raw_col ? {raw_data[3],raw_data[2],raw_data[1],raw_data[0]} : hit_run_data;
+    assign data_rdata    = real_rdata;
+    assign sda_data_rdata    =  sda_unCache ? data_uncache_rdata : 
+                                sda_raw_col ? {raw_data[3],raw_data[2],raw_data[1],raw_data[0]} : hit_run_data;
     assign raw_data[0] = sda_raw_wstrb[0] ? sda_raw_data[0] : hit_run_data[7 : 0];
     assign raw_data[1] = sda_raw_wstrb[1] ? sda_raw_data[1] : hit_run_data[15: 8];
     assign raw_data[2] = sda_raw_wstrb[2] ? sda_raw_data[2] : hit_run_data[23:16];
     assign raw_data[3] = sda_raw_wstrb[3] ? sda_raw_data[3] : hit_run_data[31:24];
-
+    
     //驱动data_uncache
     assign data_uncache_req   = !sda_hasException & sda_unCache & sda_req & !sda_uca_addr_ok;
     assign data_uncache_addr  = {sda_tag,sda_index,sda_offset};
