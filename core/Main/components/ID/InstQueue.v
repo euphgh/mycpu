@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/26 19:18
+// Last Modified : 2022/07/27 15:25
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -91,7 +91,7 @@ module InstQueue (
     assign IQ_empty         =   tail == head;
     assign IQ_full          =   (tail[`IQ_NUMBER] == head[`IQ_NUMBER]) && 
                                 (tail[`IQ_POINT_SIGN]!=head[`IQ_POINT_SIGN]);
-    assign ID_stopFetch_o   =   (tail + 1 + `IQ_GAP) == head;
+    assign ID_stopFetch_o   =   (IQ_number_w>=`IQ_NUMBER_BIT 5) && !needClear;
     wire    [`SINGLE_WORD]          IF_inst_up          [3:0];
     wire    [`SINGLE_WORD]          IF_predDest_up      [3:0];
     wire    [0:0]                   IF_predTake_up      [3:0];

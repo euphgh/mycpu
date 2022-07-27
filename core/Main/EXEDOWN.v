@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/27 11:47
+// Last Modified : 2022/07/27 15:25
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -322,9 +322,7 @@ module EXEDOWN(
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
     assign EXE_down_valid_w_o = hasData && ready && EXE_up_allowin_w_i;
-    //assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
-    // 前递要求
-    assign EXE_down_allowin_w_o = (!hasData || ready) && PREMEM_allowin_w_i;
+    assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
     wire   ok_to_change = EXE_down_allowin_w_o && EXE_up_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_down_valid_w_i;
     assign needClear  = (!ID_down_valid_w_i&&ok_to_change) || needFlash;
@@ -499,7 +497,7 @@ module EXEDOWN(
     assign MDU_oprand = ID_down_readData_r_i;
     assign MDU_HiLoData = {regHiLo[1],regHiLo[0]} ;
     wire isMduWrite = |ID_down_mduOperator_r_i[6:0];     
-    assign mulrReq = ID_down_readData_r_i[`MDU_MULR];
+    assign mulrReq = ID_down_mduOperator_r_i[`MDU_MULR];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,MDU_writeData,MDU_writeData_p)/*}}}*/
     // MDU和指令流水线之间的交互{{{
     reg                 isAccepted;     // 该指令是否被MDU接受

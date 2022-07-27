@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/27 11:48
+// Last Modified : 2022/07/27 14:41
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -231,7 +231,7 @@ module EXEUP(
     assign EXE_up_forwardMode_w_o = hasData && ready;
     assign EXE_up_valid_w_o = hasData && ready && EXE_down_allowin_w_i;
     // 前递的要求
-    assign EXE_up_allowin_w_o = (!hasData || ready) && SBA_allowin_w_i;
+    assign EXE_up_allowin_w_o = !hasData || (ready && SBA_allowin_w_i);
     wire   ok_to_change = EXE_up_allowin_w_o && EXE_down_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_up_valid_w_i;
     // TODO 是否需要在清空流水线的时候allowin
