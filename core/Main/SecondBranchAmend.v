@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/27 11:34
+// Last Modified : 2022/07/27 17:41
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -44,6 +44,7 @@ module SecondBranchAmend (
     // 数据前递模式控制
     output	wire	                        SBA_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              SBA_writeNum_w_o,    
+    output	wire                            SBA_exceptionRisk_w_o,      // 该指令存在异常
     // 错误刷新
     output  wire                            SBA_flush_w_o,              //  表示分支错误，需要刷新流水线
     output  wire    [`SINGLE_WORD]          SBA_erroVAddr_w_o,          //  分支错误PC
@@ -139,6 +140,7 @@ module SecondBranchAmend (
     ///*}}}*/
     // 线信号处理{{{
     assign SBA_hasRisk_w_o      = EXE_up_exceptionRisk_r_i || EXE_up_branchRisk_r_i || MEM_hasRisk_w_i;
+    assign SBA_exceptionRisk_w_o= EXE_up_exceptionRisk_r_i;
     assign SBA_writeNum_w_o     = EXE_up_writeNum_r_i;
     assign SBA_erroVAddr_w_o = EXE_up_VAddr_r_i;
     assign SBA_corrDest_w_o = EXE_up_corrDest_r_i;
@@ -151,19 +153,19 @@ module SecondBranchAmend (
     reg hasData;
     wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
     assign SBA_forwardMode_w_o  = ready && hasData;
-    assign SBA_valid_w_o    = hasData && ready && PREMEM_allowin_w_i;
+    assign SBA_valid_w_o    = hasData && ready && (PREMEM_allowin_w_i || SBA_flush_w_o);
     assign SBA_allowin_w_o  = !hasData || (ready && REEXE_allowin_w_i);
     wire   ok_to_change = SBA_allowin_w_o && PREMEM_allowin_w_i;
     assign needUpdata = ok_to_change && EXE_up_valid_w_i;
     // TODO 是否需要在清空流水线的时候allowin
-    wire needFlush = SBA_flush_w_o || CP0_excOccur_w_i;
+    wire needFlush = CP0_excOccur_w_i || SBA_flush_w_o;
     assign needClear  = (!EXE_up_valid_w_i&&ok_to_change) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
-            hasData <=  1'b0;
+            hasData     <=  1'b0;
         end
         else if (ok_to_change)
-            hasData <=  EXE_up_valid_w_i;
+            hasData     <=  EXE_up_valid_w_i ;
     end
     // }}}
     // 寄存器输出{{{

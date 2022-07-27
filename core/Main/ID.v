@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/27 11:19
+// Last Modified : 2022/07/27 16:42
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -438,7 +438,7 @@ module ID (
     assign ID_down_oprand1IsReg_o = oprand_sel[1][1][`SEL_RT_DATA];
 /*}}}*/
     // 流水暂停控制{{{ 
-    wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[1][1]);
+    wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
     wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
     wire stop = WAR_conflict || hasDangerous;
     wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && EXE_up_allowin_w_i && !stop);

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/27 11:36
+// Last Modified : 2022/07/27 17:15
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -27,6 +27,7 @@ module PREMEM (
     input	wire	                        SBA_allowin_w_i,
     // 异常互锁
     input	wire                            SBA_hasRisk_w_i, 
+    input	wire	                        SBA_exceptionRisk_w_i,
     // 流水线刷新
     input	wire	                        CP0_excOccur_w_i,
     input	wire	                        SBA_flush_w_i,
@@ -243,14 +244,14 @@ module PREMEM (
     // }}}
     // 线信号处理{{{
     assign PREMEM_VAddr_w_o  = EXE_down_aluRes_r_i;
-    wire   ok_to_req_tlb     = !SBA_hasRisk_w_i && !PREMEM_hasException_o && MEM_allowin_w_i;
+    wire   ok_to_req_tlb     = !SBA_exceptionRisk_w_i && !PREMEM_hasException_o && MEM_allowin_w_i;
     assign PREMEM_search_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLP];
     assign PREMEM_writeI_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWI];
     assign PREMEM_writeR_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
     assign PREMEM_read_w_o   = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
     assign PREMEM_map_w_o    = EXE_down_memReq_r_i;
     wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
-    wire   store_conflict  = EXE_down_memReq_r_i && SBA_hasRisk_w_i;
+    wire   store_conflict  = EXE_down_memReq_r_i && SBA_exceptionRisk_w_i;
     wire   tlb_conflict    = EXE_down_isTLBInst_r_i && PREMEM_hasRisk_w_o;
     assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || SBA_hasRisk_w_i;
     assign PREMEM_writeNum_w_o = EXE_down_writeNum_r_i;
@@ -259,19 +260,21 @@ module PREMEM (
     reg hasData;
     wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
     assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i;
-    wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
+    wire needFlash = CP0_excOccur_w_i;
     // 只要有一段有数据就说明有数据
+    wire   pre_valid;   // 前一段的数据是否有效
+    assign pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
     assign PREMEM_valid_w_o = hasData && ready && SBA_allowin_w_i;
     assign PREMEM_allowin_w_o = !hasData || (ready && MEM_allowin_w_i);
-    wire   ok_to_change = PREMEM_allowin_w_o && SBA_allowin_w_i ;
-    assign needUpdata = ok_to_change && EXE_down_valid_w_i;
-    assign needClear  = (!EXE_down_valid_w_i&&ok_to_change) || needFlash;
+    wire   ok_to_change = PREMEM_allowin_w_o && SBA_allowin_w_i;
+    assign needUpdata = ok_to_change && pre_valid;
+    assign needClear  = (!pre_valid&&ok_to_change) || needFlash;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
         else if (ok_to_change)
-            hasData <=  EXE_down_valid_w_i;
+            hasData <=  pre_valid;
     end
     /*}}}*/
     // 总线信号{{{

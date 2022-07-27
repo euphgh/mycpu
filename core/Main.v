@@ -468,6 +468,8 @@ module Main(
 	assign	SBA_forwardMode_w_i	=	SBA_forwardMode_w_o;
 	wire	[4:0]	SBA_writeNum_w_o;	wire	[4:0]	SBA_writeNum_w_i;
 	assign	SBA_writeNum_w_i	=	SBA_writeNum_w_o;
+	wire	[0:0]	SBA_exceptionRisk_w_o;	wire	[0:0]	SBA_exceptionRisk_w_i;
+	assign	SBA_exceptionRisk_w_i	=	SBA_exceptionRisk_w_o;
 	wire	[0:0]	SBA_flush_w_o;	wire	[0:0]	SBA_flush_w_i;
 	assign	SBA_flush_w_i	=	SBA_flush_w_o;
 	wire	[31:0]	SBA_erroVAddr_w_o;	wire	[31:0]	SBA_erroVAddr_w_i;
@@ -1139,6 +1141,7 @@ SecondBranchAmend  u_SecondBranchAmend (
     .SBA_valid_w_o           ( SBA_valid_w_o            ),
     .SBA_forwardMode_w_o     ( SBA_forwardMode_w_o      ),
     .SBA_writeNum_w_o        ( SBA_writeNum_w_o         ),
+    .SBA_exceptionRisk_w_o   ( SBA_exceptionRisk_w_o    ),
     .SBA_flush_w_o           ( SBA_flush_w_o            ),
     .SBA_erroVAddr_w_o       ( SBA_erroVAddr_w_o        ),
     .SBA_corrDest_w_o        ( SBA_corrDest_w_o         ),
@@ -1359,6 +1362,7 @@ PREMEM  u_PREMEM (
     .EXE_down_valid_w_i          ( EXE_down_valid_w_i           ),
     .SBA_allowin_w_i             ( SBA_allowin_w_i              ),
     .SBA_hasRisk_w_i             ( SBA_hasRisk_w_i              ),
+    .SBA_exceptionRisk_w_i       ( SBA_exceptionRisk_w_i        ),
     .CP0_excOccur_w_i            ( CP0_excOccur_w_i             ),
     .SBA_flush_w_i               ( SBA_flush_w_i                ),
     .data_index_ok               ( data_index_ok                ),
