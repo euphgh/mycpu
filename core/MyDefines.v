@@ -147,22 +147,22 @@
 //前递{{{
 `define FORWARD_MODE        `FORWARD_MODE_LEN-1:0
 `define FORWARD_MODE_LEN    7
-`define FORWARD_SBA_BIT         0
+`define FORWARD_EXE_DOWN_BIT    6       
+`define FORWARD_EXE_UP_BIT      5
+`define FORWARD_PREMEM_BIT      4
+`define FORWARD_SBA_BIT         3 
+`define FORWARD_MEM_BIT         2
 `define FORWARD_REEXE_BIT       1
-`define FORWARD_PBA_BIT         2 
-`define FORWARD_PREMEM_BIT      3
-`define FORWARD_MEM_BIT         4
-`define FORWARD_WB_BIT          5       
-`define FORWARD_ID_BIT          6   // 寄存器中有数据，无需前递
+`define FORWARD_ID_BIT          0   // 寄存器中有数据，无需前递
 // 以上都是前递的寄存器数值
-`define FORWARD_MODE_SBA        `FORWARD_MODE_LEN'b00000001
-`define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b00000010
-`define FORWARD_MODE_PBA        `FORWARD_MODE_LEN'b00000100
-`define FORWARD_MODE_PREMEM     `FORWARD_MODE_LEN'b00001000
-`define FORWARD_MODE_MEM        `FORWARD_MODE_LEN'b00010000
-`define FORWARD_MODE_WB         `FORWARD_MODE_LEN'b00100000
-`define FORWARD_MODE_ID         `FORWARD_MODE_LEN'b01000000
-/*}}}*/
+`define FORWARD_MODE_EXE_DOWN   `FORWARD_MODE_LEN'b1000000
+`define FORWARD_MODE_EXE_UP     `FORWARD_MODE_LEN'b0100000
+`define FORWARD_MODE_PREMEM     `FORWARD_MODE_LEN'b0010000
+`define FORWARD_MODE_SBA        `FORWARD_MODE_LEN'b0001000
+`define FORWARD_MODE_MEM        `FORWARD_MODE_LEN'b0000100
+`define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b0000010
+`define FORWARD_MODE_ID         `FORWARD_MODE_LEN'b0000001
+
 //alu运算种类{{{
 `define ALUOP_LEN   14
 `define ALUOP `ALUOP_LEN-1:0  

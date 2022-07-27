@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/26 17:15
+// Last Modified : 2022/07/27 12:10
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -68,8 +68,8 @@ module Arbitrator(
     wire    [1:0]           AB_needRead_up      [1:0];
     assign  IQ_regReadNum_up[0] = {({5{isNeedRt[0]}} & ReadRt[0]),({5{isNeedRs[0]}} & ReadRs[0])};
     assign  IQ_regReadNum_up[1] = {({5{isNeedRt[1]}} & ReadRt[1]),({5{isNeedRs[1]}} & ReadRs[1])};
-    assign  IQ_regWriteNum_up[0]= writeRd[0];
-    assign  IQ_regWriteNum_up[1]= writeRd[1];
+    assign  IQ_regWriteNum_up[0]= {5{isNeedRd[0]}} & writeRd[0];
+    assign  IQ_regWriteNum_up[1]= {5{isNeedRd[1]}} & writeRd[1];
     assign  IQ_needRead_up[0]   = {isNeedRt[0],isNeedRs[0]};
     assign  IQ_needRead_up[1]   = {isNeedRt[1],isNeedRs[1]};
     // }}}

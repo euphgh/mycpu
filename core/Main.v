@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 15:29
-// Last Modified : 2022/07/23 14:27
+// Last Modified : 2022/07/27 11:10
 // File Name     : Main.v
 // Description   :封装成修改过后的类sram接口的CPU
 //         
@@ -340,9 +340,7 @@ module Main(
 	assign	REEXE_allowin_w_i	=	REEXE_allowin_w_o;
 	wire	[0:0]	REEXE_valid_w_o;	wire	[0:0]	REEXE_valid_w_i;
 	assign	REEXE_valid_w_i	=	REEXE_valid_w_o;
-	wire	[31:0]	REEXE_forwardData_w_o;	wire	[31:0]	REEXE_forwardData_w_i;
-	assign	REEXE_forwardData_w_i	=	REEXE_forwardData_w_o;
-	wire	[6:0]	REEXE_forwardMode_w_o;	wire	[6:0]	REEXE_forwardMode_w_i;
+	wire	[0:0]	REEXE_forwardMode_w_o;	wire	[0:0]	REEXE_forwardMode_w_i;
 	assign	REEXE_forwardMode_w_i	=	REEXE_forwardMode_w_o;
 	wire	[4:0]	REEXE_writeNum_w_o;	wire	[4:0]	REEXE_writeNum_w_i;
 	assign	REEXE_writeNum_w_i	=	REEXE_writeNum_w_o;
@@ -394,7 +392,7 @@ module Main(
 	assign	r_pfn1_i	=	r_pfn1_o;
 	wire	[4:0]	r_flags1_o;	wire	[4:0]	r_flags1_i;
 	assign	r_flags1_i	=	r_flags1_o;
-	wire	[6:0]	MEM_forwardMode_w_o;	wire	[6:0]	MEM_forwardMode_w_i;
+	wire	[0:0]	MEM_forwardMode_w_o;	wire	[0:0]	MEM_forwardMode_w_i;
 	assign	MEM_forwardMode_w_i	=	MEM_forwardMode_w_o;
 	wire	[4:0]	MEM_writeNum_w_o;	wire	[4:0]	MEM_writeNum_w_i;
 	assign	MEM_writeNum_w_i	=	MEM_writeNum_w_o;
@@ -406,8 +404,6 @@ module Main(
 	assign	MEM_allowin_w_i	=	MEM_allowin_w_o;
 	wire	[0:0]	MEM_valid_w_o;	wire	[0:0]	MEM_valid_w_i;
 	assign	MEM_valid_w_i	=	MEM_valid_w_o;
-	wire	[31:0]	MEM_forwardData_w_o;	wire	[31:0]	MEM_forwardData_w_i;
-	assign	MEM_forwardData_w_i	=	MEM_forwardData_w_o;
 	wire	[4:0]	MEM_ExcCode_w_o;	wire	[4:0]	MEM_ExcCode_w_i;
 	assign	MEM_ExcCode_w_i	=	MEM_ExcCode_w_o;
 	wire	[0:0]	MEM_hasException_w_o;	wire	[0:0]	MEM_hasException_w_i;
@@ -468,9 +464,7 @@ module Main(
 	assign	SBA_allowin_w_i	=	SBA_allowin_w_o;
 	wire	[0:0]	SBA_valid_w_o;	wire	[0:0]	SBA_valid_w_i;
 	assign	SBA_valid_w_i	=	SBA_valid_w_o;
-	wire	[31:0]	SBA_forwardData_w_o;	wire	[31:0]	SBA_forwardData_w_i;
-	assign	SBA_forwardData_w_i	=	SBA_forwardData_w_o;
-	wire	[6:0]	SBA_forwardMode_w_o;	wire	[6:0]	SBA_forwardMode_w_i;
+	wire	[0:0]	SBA_forwardMode_w_o;	wire	[0:0]	SBA_forwardMode_w_i;
 	assign	SBA_forwardMode_w_i	=	SBA_forwardMode_w_o;
 	wire	[4:0]	SBA_writeNum_w_o;	wire	[4:0]	SBA_writeNum_w_i;
 	assign	SBA_writeNum_w_i	=	SBA_writeNum_w_o;
@@ -530,7 +524,7 @@ module Main(
 	assign	inst_oddPage_i	=	inst_oddPage_o;
 	wire	[7:0]	inst_asid_o;	wire	[7:0]	inst_asid_i;
 	assign	inst_asid_i	=	inst_asid_o;
-	wire	[6:0]	EXE_up_forwardMode_w_o;	wire	[6:0]	EXE_up_forwardMode_w_i;
+	wire	[0:0]	EXE_up_forwardMode_w_o;	wire	[0:0]	EXE_up_forwardMode_w_i;
 	assign	EXE_up_forwardMode_w_i	=	EXE_up_forwardMode_w_o;
 	wire	[4:0]	EXE_up_writeNum_w_o;	wire	[4:0]	EXE_up_writeNum_w_i;
 	assign	EXE_up_writeNum_w_i	=	EXE_up_writeNum_w_o;
@@ -564,7 +558,7 @@ module Main(
 	assign	EXE_up_ExcCode_i	=	EXE_up_ExcCode_o;
 	wire	[0:0]	EXE_up_hasException_o;	wire	[0:0]	EXE_up_hasException_i;
 	assign	EXE_up_hasException_i	=	EXE_up_hasException_o;
-	wire	[6:0]	EXE_down_forwardMode_w_o;	wire	[6:0]	EXE_down_forwardMode_w_i;
+	wire	[0:0]	EXE_down_forwardMode_w_o;	wire	[0:0]	EXE_down_forwardMode_w_i;
 	assign	EXE_down_forwardMode_w_i	=	EXE_down_forwardMode_w_o;
 	wire	[4:0]	EXE_down_writeNum_w_o;	wire	[4:0]	EXE_down_writeNum_w_i;
 	assign	EXE_down_writeNum_w_i	=	EXE_down_writeNum_w_o;
@@ -632,7 +626,7 @@ module Main(
 	assign	EXE_down_isCacheInst_i	=	EXE_down_isCacheInst_o;
 	wire	[4:0]	EXE_down_CacheOperator_o;	wire	[4:0]	EXE_down_CacheOperator_i;
 	assign	EXE_down_CacheOperator_i	=	EXE_down_CacheOperator_o;
-	wire	[6:0]	PREMEM_forwardMode_w_o;	wire	[6:0]	PREMEM_forwardMode_w_i;
+	wire	[0:0]	PREMEM_forwardMode_w_o;	wire	[0:0]	PREMEM_forwardMode_w_i;
 	assign	PREMEM_forwardMode_w_i	=	PREMEM_forwardMode_w_o;
 	wire	[4:0]	PREMEM_writeNum_w_o;	wire	[4:0]	PREMEM_writeNum_w_i;
 	assign	PREMEM_writeNum_w_i	=	PREMEM_writeNum_w_o;
@@ -644,8 +638,6 @@ module Main(
 	assign	PREMEM_allowin_w_i	=	PREMEM_allowin_w_o;
 	wire	[0:0]	PREMEM_valid_w_o;	wire	[0:0]	PREMEM_valid_w_i;
 	assign	PREMEM_valid_w_i	=	PREMEM_valid_w_o;
-	wire	[31:0]	PREMEM_forwardData_w_o;	wire	[31:0]	PREMEM_forwardData_w_i;
-	assign	PREMEM_forwardData_w_i	=	PREMEM_forwardData_w_o;
 	wire	[0:0]	PREMEM_search_w_o;	wire	[0:0]	PREMEM_search_w_i;
 	assign	PREMEM_search_w_i	=	PREMEM_search_w_o;
 	wire	[0:0]	PREMEM_read_w_o;	wire	[0:0]	PREMEM_read_w_i;
@@ -727,17 +719,17 @@ ID  u_ID (
     .WB_writeNum_w_i            ( WB_writeNum_w_i             ),
     .WB_forwardData_w_i         ( WB_forwardData_w_i          ),
     .EXE_up_writeNum_w_i        ( EXE_up_writeNum_w_i         ),
-    .EXE_up_forwardMode_w_i     ( EXE_up_forwardMode_w_i      ),
-    .MEM_writeNum_w_i           ( MEM_writeNum_w_i            ),
-    .MEM_forwardMode_w_i        ( MEM_forwardMode_w_i         ),
-    .EXE_down_forwardMode_w_i   ( EXE_down_forwardMode_w_i    ),
     .EXE_down_writeNum_w_i      ( EXE_down_writeNum_w_i       ),
     .SBA_writeNum_w_i           ( SBA_writeNum_w_i            ),
-    .SBA_forwardMode_w_i        ( SBA_forwardMode_w_i         ),
+    .MEM_writeNum_w_i           ( MEM_writeNum_w_i            ),
+    .REEXE_writeNum_w_i         ( REEXE_writeNum_w_i          ),
     .PREMEM_writeNum_w_i        ( PREMEM_writeNum_w_i         ),
+    .EXE_up_forwardMode_w_i     ( EXE_up_forwardMode_w_i      ),
+    .MEM_forwardMode_w_i        ( MEM_forwardMode_w_i         ),
+    .EXE_down_forwardMode_w_i   ( EXE_down_forwardMode_w_i    ),
+    .SBA_forwardMode_w_i        ( SBA_forwardMode_w_i         ),
     .PREMEM_forwardMode_w_i     ( PREMEM_forwardMode_w_i      ),
     .REEXE_forwardMode_w_i      ( REEXE_forwardMode_w_i       ),
-    .REEXE_writeNum_w_i         ( REEXE_writeNum_w_i          ),
     .EXE_down_hasDangerous_w_i  ( EXE_down_hasDangerous_w_i   ),
     .MEM_hasDangerous_w_i       ( MEM_hasDangerous_w_i        ),
     .PREMEM_hasDangerous_w_i    ( PREMEM_hasDangerous_w_i     ),
@@ -979,7 +971,6 @@ REEXE  u_REEXE (
     .REEXE_hasRisk_w_o         ( REEXE_hasRisk_w_o          ),
     .REEXE_allowin_w_o         ( REEXE_allowin_w_o          ),
     .REEXE_valid_w_o           ( REEXE_valid_w_o            ),
-    .REEXE_forwardData_w_o     ( REEXE_forwardData_w_o      ),
     .REEXE_forwardMode_w_o     ( REEXE_forwardMode_w_o      ),
     .REEXE_writeNum_w_o        ( REEXE_writeNum_w_o         ),
     .REEXE_writeNum_o          ( REEXE_writeNum_o           ),
@@ -1048,6 +1039,7 @@ MEM  u_MEM (
     .DMMU_ExcCode_i           ( DMMU_ExcCode_i            ),
     .CP0_Cause_w_i            ( CP0_Cause_w_i             ),
     .CP0_Status_w_i           ( CP0_Status_w_i            ),
+    .data_data_ok             ( data_data_ok              ),
     .PREMEM_writeNum_i        ( PREMEM_writeNum_i         ),
     .PREMEM_VAddr_i           ( PREMEM_VAddr_i            ),
     .PREMEM_isDelaySlot_i     ( PREMEM_isDelaySlot_i      ),
@@ -1076,7 +1068,6 @@ MEM  u_MEM (
     .MEM_hasRisk_w_o          ( MEM_hasRisk_w_o           ),
     .MEM_allowin_w_o          ( MEM_allowin_w_o           ),
     .MEM_valid_w_o            ( MEM_valid_w_o             ),
-    .MEM_forwardData_w_o      ( MEM_forwardData_w_o       ),
     .MEM_ExcCode_w_o          ( MEM_ExcCode_w_o           ),
     .MEM_hasException_w_o     ( MEM_hasException_w_o      ),
     .MEM_isDelaySlot_w_o      ( MEM_isDelaySlot_w_o       ),
@@ -1146,7 +1137,6 @@ SecondBranchAmend  u_SecondBranchAmend (
     .SBA_hasRisk_w_o         ( SBA_hasRisk_w_o          ),
     .SBA_allowin_w_o         ( SBA_allowin_w_o          ),
     .SBA_valid_w_o           ( SBA_valid_w_o            ),
-    .SBA_forwardData_w_o     ( SBA_forwardData_w_o      ),
     .SBA_forwardMode_w_o     ( SBA_forwardMode_w_o      ),
     .SBA_writeNum_w_o        ( SBA_writeNum_w_o         ),
     .SBA_flush_w_o           ( SBA_flush_w_o            ),
@@ -1220,12 +1210,6 @@ EXEUP  u_EXEUP (
     .EXE_down_allowin_w_i       ( EXE_down_allowin_w_i        ),
     .SBA_flush_w_i              ( SBA_flush_w_i               ),
     .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
-    .SBA_forwardData_w_i        ( SBA_forwardData_w_i         ),
-    .PREMEM_forwardData_w_i     ( PREMEM_forwardData_w_i      ),
-    .REEXE_forwardData_w_i      ( REEXE_forwardData_w_i       ),
-    .MEM_forwardData_w_i        ( MEM_forwardData_w_i         ),
-    .PBA_forwardData_w_i        ( PBA_forwardData_w_i         ),
-    .WB_forwardData_w_i         ( WB_forwardData_w_i          ),
     .PREMEM_hasRisk_w_i         ( PREMEM_hasRisk_w_i          ),
     .EXE_down_nonBlockMark_w_o  ( EXE_down_nonBlockMark_w_o   ),
     .ID_up_writeNum_i           ( ID_up_writeNum_i            ),
@@ -1251,6 +1235,12 @@ EXEUP  u_EXEUP (
     .ID_up_checkPoint_i         ( ID_up_checkPoint_i          ),
     .ID_up_predDest_i           ( ID_up_predDest_i            ),
     .ID_up_predTake_i           ( ID_up_predTake_i            ),
+    .EXE_up_aluRes_i            ( EXE_up_aluRes_i             ),
+    .EXE_down_aluRes_i          ( EXE_down_aluRes_i           ),
+    .SBA_aluRes_i               ( SBA_aluRes_i                ),
+    .REEXE_regData_i            ( REEXE_regData_i             ),
+    .PREMEM_preliminaryRes_i    ( PREMEM_preliminaryRes_i     ),
+    .MEM_finalRes_i             ( MEM_finalRes_i              ),
 
     .EXE_up_forwardMode_w_o     ( EXE_up_forwardMode_w_o      ),
     .EXE_up_writeNum_w_o        ( EXE_up_writeNum_w_o         ),
@@ -1277,12 +1267,6 @@ EXEDOWN  u_EXEDOWN (
     .ID_down_valid_w_i           ( ID_down_valid_w_i            ),
     .EXE_up_allowin_w_i          ( EXE_up_allowin_w_i           ),
     .PREMEM_allowin_w_i          ( PREMEM_allowin_w_i           ),
-    .SBA_forwardData_w_i         ( SBA_forwardData_w_i          ),
-    .PREMEM_forwardData_w_i      ( PREMEM_forwardData_w_i       ),
-    .REEXE_forwardData_w_i       ( REEXE_forwardData_w_i        ),
-    .MEM_forwardData_w_i         ( MEM_forwardData_w_i          ),
-    .PBA_forwardData_w_i         ( PBA_forwardData_w_i          ),
-    .WB_forwardData_w_i          ( WB_forwardData_w_i           ),
     .EXE_up_hasRisk_w_i          ( EXE_up_hasRisk_w_i           ),
     .SBA_nonBlockMark_w_i        ( SBA_nonBlockMark_w_i         ),
     .CP0_nonBlockMark_w_i        ( CP0_nonBlockMark_w_i         ),
@@ -1323,6 +1307,12 @@ EXEDOWN  u_EXEDOWN (
     .ID_down_TLBInstOperator_i   ( ID_down_TLBInstOperator_i    ),
     .ID_down_isCacheInst_i       ( ID_down_isCacheInst_i        ),
     .ID_down_CacheOperator_i     ( ID_down_CacheOperator_i      ),
+    .EXE_up_aluRes_i             ( EXE_up_aluRes_i              ),
+    .EXE_down_aluRes_i           ( EXE_down_aluRes_i            ),
+    .SBA_aluRes_i                ( SBA_aluRes_i                 ),
+    .REEXE_regData_i             ( REEXE_regData_i              ),
+    .PREMEM_preliminaryRes_i     ( PREMEM_preliminaryRes_i      ),
+    .MEM_finalRes_i              ( MEM_finalRes_i               ),
 
     .EXE_down_forwardMode_w_o    ( EXE_down_forwardMode_w_o     ),
     .EXE_down_writeNum_w_o       ( EXE_down_writeNum_w_o        ),
@@ -1405,7 +1395,6 @@ PREMEM  u_PREMEM (
     .PREMEM_hasRisk_w_o          ( PREMEM_hasRisk_w_o           ),
     .PREMEM_allowin_w_o          ( PREMEM_allowin_w_o           ),
     .PREMEM_valid_w_o            ( PREMEM_valid_w_o             ),
-    .PREMEM_forwardData_w_o      ( PREMEM_forwardData_w_o       ),
     .data_index                  ( data_index                   ),
     .data_req                    ( data_req                     ),
     .data_wr                     ( data_wr                      ),

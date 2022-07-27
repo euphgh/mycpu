@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:17
-// Last Modified : 2022/07/26 21:38
+// Last Modified : 2022/07/27 11:55
 // File Name     : WriteBack.v
 // Description   : 回写段，用于数据选择，数据前递和数据写入RegFile
 //         
@@ -121,7 +121,7 @@ module WriteBack (
     assign WB_hasDangerous_w_o = MEM_isDangerous_r_i;
     // 流水线互锁
     reg hasData;
-    wire ready = !MEM_memReq_r_i || data_data_ok;
+    wire ready = 1'b1;
     wire needFlash = 1'b0;
     // 只要有一段有数据就说明有数据
     wire WB_valid_w_o = hasData && ready && PBA_allowin_w_i;
@@ -162,12 +162,12 @@ module WriteBack (
                                                                         {MEM_rtData_r_i[31:24],data_rdata  [31:8 ]} ;
     wire    lwr_sel = MEM_loadSel_r_i[`LOAD_R1_BIT] || MEM_loadSel_r_i[`LOAD_R2_BIT] || MEM_loadSel_r_i[`LOAD_R3_BIT];
     wire    not_load = !MEM_memReq_r_i;
-    assign WB_forwardData_w_o = ({32{lb_sel}} & lb_data) |
-                            ({32{lh_sel}} & lh_data) |
-                            ({32{lw_sel}} & lw_data) |
-                            ({32{lwl_sel}}& lwl_data)|
-                            ({32{lwr_sel}}& lwr_data)|
-                            ({32{not_load}}& MEM_finalRes_r_i);
+    assign WB_forwardData_w_o = not_load ? MEM_finalRes_r_i :
+                               (({32{lb_sel}} & lb_data) |
+                                ({32{lh_sel}} & lh_data) |
+                                ({32{lw_sel}} & lw_data) |
+                                ({32{lwl_sel}}& lwl_data)|
+                                ({32{lwr_sel}}& lwr_data));
     /*}}}*/
     // 传递数值{{{
     assign WB_writeEnable_w_o = |MEM_writeNum_r_i && WB_valid_w_o;

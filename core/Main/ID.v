@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/26 19:18
+// Last Modified : 2022/07/27 11:19
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -54,24 +54,20 @@ module ID (
     input	wire	[`GPR_NUM]              WB_writeNum_w_i,    
     input	wire	[`SINGLE_WORD]          WB_forwardData_w_i, 
 
-    // 其他段的指令ID送回ID段,更新寄存器状态，回写段不需要
+    // 其他段写寄存器状态送回回写段,用于数据前递
     input	wire	[`GPR_NUM]              EXE_up_writeNum_w_i,    
-    input	wire	[`FORWARD_MODE]         EXE_up_forwardMode_w_i,    
-
-    input	wire	[`GPR_NUM]              MEM_writeNum_w_i,       
-    input	wire	[`FORWARD_MODE]         MEM_forwardMode_w_i,       
-
-    input	wire	[`FORWARD_MODE]         EXE_down_forwardMode_w_i,  
     input	wire	[`GPR_NUM]              EXE_down_writeNum_w_i,  
-
     input	wire	[`GPR_NUM]              SBA_writeNum_w_i,       
-    input	wire	[`FORWARD_MODE]         SBA_forwardMode_w_i,       
-
-    input	wire	[`GPR_NUM]              PREMEM_writeNum_w_i,    
-    input	wire	[`FORWARD_MODE]         PREMEM_forwardMode_w_i,    
-
-    input	wire	[`FORWARD_MODE]         REEXE_forwardMode_w_i,     
+    input	wire	[`GPR_NUM]              MEM_writeNum_w_i,       
     input	wire	[`GPR_NUM]              REEXE_writeNum_w_i,     
+    input	wire	[`GPR_NUM]              PREMEM_writeNum_w_i,    
+
+    input	wire	                        EXE_up_forwardMode_w_i,    
+    input	wire	                        MEM_forwardMode_w_i,       
+    input	wire	                        EXE_down_forwardMode_w_i,  
+    input	wire	                        SBA_forwardMode_w_i,       
+    input	wire	                        PREMEM_forwardMode_w_i,    
+    input	wire	                        REEXE_forwardMode_w_i,     
     // 如果下端流水线存在危险指令,全部暂停
     input	wire	                        EXE_down_hasDangerous_w_i,  
     input	wire	                        MEM_hasDangerous_w_i,       
@@ -403,30 +399,39 @@ module ID (
     assign {ID_down_readData_o,ID_up_readData_o} = readData_p_o;
     /*}}}*/
     // 前递选择子的获取{{{
-    wire [`FORWARD_MODE]    forwardSel      [1:0][1:0];   //第一个参数代表两条流水线，后一个代表rs，rt
-    wire [0:0]              WAR_conflict_up [1:0][1:0];  // 同上
+    wire [`FORWARD_MODE]    forwardReady    [1:0][1:0];     
+    wire [`FORWARD_MODE]    forwardWhich    [1:0][1:0];     
+    wire [`FORWARD_MODE]    forwardSel      [1:0][1:0];     
+    // 数据是否可以在下一个周期使用,如果需要被前递,前递段的数据是否计算完成
+    wire [0:0]              WAR_conflict_up [1:0][1:0];     // 同上
     generate
-        for (genvar l = 0; l < 2; l=l+1)	begin
-            for (genvar k = 0; k < 2; k=k+1)	begin
-                 assign forwardSel[l][k] =      (EXE_down_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_down_forwardMode_w_i} :
-                                                (EXE_up_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {EXE_up_forwardMode_w_i} :
-                                                (PREMEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {PREMEM_forwardMode_w_i} :
-                                                (SBA_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {SBA_forwardMode_w_i} :
-                                                (MEM_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {MEM_forwardMode_w_i} :
-                                                (REEXE_writeNum_w_i==readNum[l][k] && |readNum[l][k]) ? {REEXE_forwardMode_w_i} : `FORWARD_MODE_ID;
-                // 必须要暂停的load写后读
-                assign WAR_conflict_up[l][k] = forwardSel[l][k][`FORWARD_WB_BIT] && (forwardSel[l][k][`FORWARD_MEM_BIT] || forwardSel[l][k][`FORWARD_PREMEM_BIT]); 
+        for (genvar i = 0; i < 2; i=i+1)	begin
+            for (genvar j = 0; j < 2; j=j+1)	begin
+                wire   notZero = |readNum[i][j];
+                assign forwardWhich[i][j] = (EXE_down_writeNum_w_i==readNum[i][j]   && notZero) ? `FORWARD_MODE_EXE_DOWN :
+                                            (EXE_up_writeNum_w_i==readNum[i][j]     && notZero) ? `FORWARD_MODE_EXE_UP: 
+                                            (PREMEM_writeNum_w_i==readNum[i][j]     && notZero) ? `FORWARD_MODE_PREMEM : 
+                                            (SBA_writeNum_w_i==readNum[i][j]        && notZero) ? `FORWARD_MODE_SBA : 
+                                            (MEM_writeNum_w_i==readNum[i][j]        && notZero) ? `FORWARD_MODE_MEM : 
+                                            (REEXE_writeNum_w_i==readNum[i][j]      && notZero) ? `FORWARD_MODE_REEXE : `FORWARD_MODE_ID;
+                assign forwardReady[i][j] = { EXE_down_forwardMode_w_i,
+                                              EXE_up_forwardMode_w_i,
+                                              PREMEM_forwardMode_w_i,
+                                              SBA_forwardMode_w_i,
+                                              MEM_forwardMode_w_i,
+                                              REEXE_forwardMode_w_i,
+                                              1'b1};
+                assign forwardSel[i][j]   = forwardWhich[i][j] & forwardReady[i][j];
+                assign WAR_conflict_up[i][j] = needRead[i][j] && !(|forwardSel[i][j]); 
             end
         end
     endgenerate
-    assign ID_up_data0Ready_o = forwardSel[0][0][`FORWARD_ID_BIT];
-    assign ID_up_data1Ready_o = forwardSel[0][1][`FORWARD_ID_BIT];
-    assign ID_down_data0Ready_o = forwardSel[1][0][`FORWARD_ID_BIT];
-    assign ID_down_data1Ready_o = forwardSel[1][1][`FORWARD_ID_BIT];
+
     assign ID_up_forwardSel0_o = forwardSel[0][0];
     assign ID_up_forwardSel1_o = forwardSel[0][1];
     assign ID_down_forwardSel0_o = forwardSel[1][0];
     assign ID_down_forwardSel1_o = forwardSel[1][1];
+
     assign ID_up_oprand0IsReg_o = oprand_sel[0][0][`SEL_RS_DATA];
     assign ID_up_oprand1IsReg_o = oprand_sel[0][1][`SEL_RT_DATA];
     assign ID_down_oprand0IsReg_o = oprand_sel[1][0][`SEL_RS_DATA];

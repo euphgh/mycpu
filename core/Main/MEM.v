@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/26 21:27
+// Last Modified : 2022/07/27 11:09
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -38,12 +38,14 @@ module MEM(
     input	wire	[`EXCCODE]              DMMU_ExcCode_i,     //包括TLB异常以及非对齐异常
     input	wire	[`SINGLE_WORD]          CP0_Cause_w_i,
     input	wire	[`SINGLE_WORD]          CP0_Status_w_i,
+    // 总线信号
+    input	wire	                        data_data_ok,
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////     线信号输出      ///////////////{{{
     //////////////////////////////////////////////////
     // ID阶段前递控制
-    output	wire	[`FORWARD_MODE]         MEM_forwardMode_w_o,    
+    output	wire	                        MEM_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              MEM_writeNum_w_o,    
     //危险暂停信号
     output	wire	                        MEM_hasDangerous_w_o,   // mul,clo,clz,madd,msub,cache,tlb等危险指令
@@ -52,8 +54,6 @@ module MEM(
     // 流水线互锁信号 
     output	wire	                        MEM_allowin_w_o,        // 逐级互锁信号
     output	wire	                        MEM_valid_w_o,          // 给下一级流水线决定是否采样
-    // 数据前递信号
-    output	wire	[`SINGLE_WORD]          MEM_forwardData_w_o,    // EXE计算结果前递
     // 用于CP0进行异常处理的信号
     output	wire    [`EXCCODE]              MEM_ExcCode_w_o,          // 异常信号
     output	wire	                        MEM_hasException_w_o,     // 存在异常
@@ -192,14 +192,13 @@ module MEM(
     // 线信号处理{{{
     assign MEM_hasRisk_w_o  = PREMEM_exceptionRisk_r_i || REEXE_hasRisk_w_i;
     assign MEM_writeNum_w_o = PREMEM_writeNum_r_i;
-    assign MEM_forwardMode_w_o = `FORWARD_MODE_WB ;
-    assign MEM_forwardData_w_o  = PREMEM_readCp0_r_i ? CP0_readData_w_i : PREMEM_preliminaryRes_r_i;
     assign MEM_hasDangerous_w_o = PREMEM_isDangerous_r_i;
     assign MEM_rtData_o = PREMEM_rtData_r_i;
     assign MEM_VAddr_o = PREMEM_VAddr_r_i;
     // 流水线互锁
     reg hasData;
-    wire ready = 1'b1;
+    wire ready = !PREMEM_memReq_r_i || data_data_ok;
+    assign MEM_forwardMode_w_o = hasData && ready && !PREMEM_memReq_r_i;
     wire needFlash = CP0_excOccur_w_i ;
     // 只要有一段有数据就说明有数据
     assign MEM_valid_w_o = hasData && ready && REEXE_allowin_w_i;
@@ -220,7 +219,7 @@ module MEM(
     assign MEM_loadSel_o  = PREMEM_loadSel_r_i;
     assign MEM_isDelaySlot_w_o = PREMEM_isDelaySlot_i;
     assign MEM_isDangerous_o = PREMEM_isDangerous_r_i;
-    assign MEM_finalRes_o = MEM_forwardData_w_o;
+    assign MEM_finalRes_o = PREMEM_readCp0_r_i ? CP0_readData_w_i : PREMEM_preliminaryRes_r_i;
     assign MEM_alignCheck_o = PREMEM_alignCheck_r_i;
     assign MEM_exceptionRisk_o = 1'b0;
     assign MEM_memReq_o = PREMEM_memReq_r_i;

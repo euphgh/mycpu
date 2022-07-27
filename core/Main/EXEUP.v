@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/26 21:17
+// Last Modified : 2022/07/27 11:48
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -29,15 +29,9 @@ module EXEUP(
     // 刷新流水线的信号
     input	wire	                        SBA_flush_w_i,            
     input	wire	                        CP0_excOccur_w_i,            
-    // 运算数据前递
-    input	wire	[`SINGLE_WORD]          SBA_forwardData_w_i,       
-    input	wire	[`SINGLE_WORD]          PREMEM_forwardData_w_i,    
-    input	wire	[`SINGLE_WORD]          REEXE_forwardData_w_i,     
-    input	wire	[`SINGLE_WORD]          MEM_forwardData_w_i,       
-    input	wire	[`SINGLE_WORD]          PBA_forwardData_w_i,  
-    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,    
     // 异常互锁
     input	wire	                        PREMEM_hasRisk_w_i,
+    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,
     // 非阻塞乘除法
     input	wire	                        EXE_down_nonBlockMark_w_o,
 
@@ -72,12 +66,19 @@ module EXEUP(
     input	wire	[`ALL_CHECKPOINT]       ID_up_checkPoint_i,         // 检查点信息
     input	wire	[`SINGLE_WORD]          ID_up_predDest_i,           // 预测的分支地址
     input	wire	                        ID_up_predTake_i,           // 预测的分支跳转
+    // 运算数据前递
+    input	wire	[`SINGLE_WORD]          EXE_up_aluRes_i,
+    input	wire	[`SINGLE_WORD]          EXE_down_aluRes_i,
+    input	wire	[`SINGLE_WORD]          SBA_aluRes_i,
+    input	wire	[`SINGLE_WORD]          REEXE_regData_i,
+    input	wire	[`SINGLE_WORD]          PREMEM_preliminaryRes_i,
+    input	wire	[`SINGLE_WORD]          MEM_finalRes_i,
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      线信号输出     //////////////{{{
     /////////////////////////////////////////////////
     // ID指令阶段控制
-    output	wire	[`FORWARD_MODE]         EXE_up_forwardMode_w_o,    
+    output	wire	                        EXE_up_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              EXE_up_writeNum_w_o,    
     // 流水线控制
     output	wire	                        EXE_up_allowin_w_o, // 只有上才有allowin，代表上下两端都可进
@@ -150,6 +151,12 @@ module EXEUP(
 	reg	[`ALL_CHECKPOINT]			ID_up_checkPoint_r_i;
 	reg	[`SINGLE_WORD]			ID_up_predDest_r_i;
 	reg	[0:0]			ID_up_predTake_r_i;
+	reg	[`SINGLE_WORD]			EXE_up_aluRes_r_i;
+	reg	[`SINGLE_WORD]			EXE_down_aluRes_r_i;
+	reg	[`SINGLE_WORD]			SBA_aluRes_r_i;
+	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
+	reg	[`SINGLE_WORD]			PREMEM_preliminaryRes_r_i;
+	reg	[`SINGLE_WORD]			MEM_finalRes_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			ID_up_writeNum_r_i	<=	'b0;
@@ -175,6 +182,12 @@ module EXEUP(
 			ID_up_checkPoint_r_i	<=	'b0;
 			ID_up_predDest_r_i	<=	'b0;
 			ID_up_predTake_r_i	<=	'b0;
+			EXE_up_aluRes_r_i	<=	'b0;
+			EXE_down_aluRes_r_i	<=	'b0;
+			SBA_aluRes_r_i	<=	'b0;
+			REEXE_regData_r_i	<=	'b0;
+			PREMEM_preliminaryRes_r_i	<=	'b0;
+			MEM_finalRes_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			ID_up_writeNum_r_i	<=	ID_up_writeNum_i;
@@ -200,16 +213,22 @@ module EXEUP(
 			ID_up_checkPoint_r_i	<=	ID_up_checkPoint_i;
 			ID_up_predDest_r_i	<=	ID_up_predDest_i;
 			ID_up_predTake_r_i	<=	ID_up_predTake_i;
+			EXE_up_aluRes_r_i	<=	EXE_up_aluRes_i;
+			EXE_down_aluRes_r_i	<=	EXE_down_aluRes_i;
+			SBA_aluRes_r_i	<=	SBA_aluRes_i;
+			REEXE_regData_r_i	<=	REEXE_regData_i;
+			PREMEM_preliminaryRes_r_i	<=	PREMEM_preliminaryRes_i;
+			MEM_finalRes_r_i	<=	MEM_finalRes_i;
         end
     end
     /*}}}*/
 //  线信号处理{{{
     assign EXE_up_hasRisk_w_o  = ID_up_exceptionRisk_r_i || ID_up_branchRisk_r_i || PREMEM_hasRisk_w_i;
     assign EXE_up_writeNum_w_o = ID_up_writeNum_r_i;
-    assign EXE_up_forwardMode_w_o = `FORWARD_MODE_SBA;
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
+    assign EXE_up_forwardMode_w_o = hasData && ready;
     assign EXE_up_valid_w_o = hasData && ready && EXE_down_allowin_w_i;
     // 前递的要求
     assign EXE_up_allowin_w_o = (!hasData || ready) && SBA_allowin_w_i;
@@ -239,7 +258,6 @@ module EXEUP(
     // 前递选择 {{{
     wire	    [`SINGLE_WORD]          ID_up_oprand_up     [1:0];            
     wire	    [`FORWARD_MODE]         ID_up_forwardSel_up [1:0];        // 用于选择前递信号
-    wire	                            ID_up_dataReady_up  [1:0];        // 表示该operand是否可用
     assign ID_up_oprand_up[0] = ID_up_oprand0_r_i;
     assign ID_up_oprand_up[1] = ID_up_oprand1_r_i;
     assign ID_up_forwardSel_up[0] = ID_up_forwardSel0_r_i;
@@ -252,13 +270,13 @@ module EXEUP(
     assign srcIsReg[1] = ID_up_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
-            assign updataRegFile_up[i] = ({32{ID_up_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i]) |
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_SBA_BIT]}} & SBA_forwardData_w_i)|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_PREMEM_BIT]}} & PREMEM_forwardData_w_i)|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_REEXE_BIT]}} & REEXE_forwardData_w_i)|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]}} & MEM_forwardData_w_i)|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_PBA_BIT]}} & PBA_forwardData_w_i)|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_WB_BIT] }} & WB_forwardData_w_i) ;
+            assign updataRegFile_up[i] = ({32{ID_up_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i])|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_SBA_BIT]}}         & SBA_aluRes_r_i            )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_PREMEM_BIT]}}      & PREMEM_preliminaryRes_r_i )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_REEXE_BIT]}}       & REEXE_regData_r_i         )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]}}         & WB_forwardData_w_i        )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_EXE_UP_BIT]}}      & EXE_up_aluRes_r_i         )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_EXE_DOWN_BIT] }}   & EXE_down_aluRes_r_i       );
             assign scr[i] = srcIsReg[i] ? updataRegFile_up[i] : ID_up_oprand_up[i];
         end
     endgenerate

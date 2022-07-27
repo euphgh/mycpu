@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/26 21:17
+// Last Modified : 2022/07/27 11:47
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -25,13 +25,6 @@ module EXEDOWN(
     input	wire	                        ID_down_valid_w_i,
     input	wire	                        EXE_up_allowin_w_i,        // allowin共用一个，代表上下两端都可进
     input	wire	                        PREMEM_allowin_w_i,
-    // 运算数据前递
-    input	wire	[`SINGLE_WORD]          SBA_forwardData_w_i,       
-    input	wire	[`SINGLE_WORD]          PREMEM_forwardData_w_i,    
-    input	wire	[`SINGLE_WORD]          REEXE_forwardData_w_i,     
-    input	wire	[`SINGLE_WORD]          MEM_forwardData_w_i,       
-    input	wire	[`SINGLE_WORD]          PBA_forwardData_w_i,  
-    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,    
     // 异常互锁
     input	wire	                        EXE_up_hasRisk_w_i,
     // 非阻塞乘除
@@ -40,12 +33,13 @@ module EXEDOWN(
     // 流水线刷新
     input	wire	                        SBA_flush_w_i,
     input	wire	                        CP0_excOccur_w_i,
+    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////    线信号的输出    ///////////////{{{
     /////////////////////////////////////////////////
     // ID指令阶段控制
-    output	wire	[`FORWARD_MODE]         EXE_down_forwardMode_w_o,    
+    output	wire	                        EXE_down_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              EXE_down_writeNum_w_o,    
     // 流水线控制
     output	wire	                        EXE_down_valid_w_o,     // 该周期数据是否有效，后段决定是否采样
@@ -102,6 +96,14 @@ module EXEDOWN(
     // Cache指令
     input	wire	                        ID_down_isCacheInst_i,      // 表示是Cache指令
     input	wire	[`CACHE_OP]             ID_down_CacheOperator_i,    // Cache指令op}}}
+    // 运算数据前递{{{
+    input	wire	[`SINGLE_WORD]          EXE_up_aluRes_i,
+    input	wire	[`SINGLE_WORD]          EXE_down_aluRes_i,
+    input	wire	[`SINGLE_WORD]          SBA_aluRes_i,
+    input	wire	[`SINGLE_WORD]          REEXE_regData_i,
+    input	wire	[`SINGLE_WORD]          PREMEM_preliminaryRes_i,
+    input	wire	[`SINGLE_WORD]          MEM_finalRes_i,
+    // }}}
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      寄存器输出     //////////////{{{
@@ -209,6 +211,12 @@ module EXEDOWN(
 	reg	[`TLB_INST]			ID_down_TLBInstOperator_r_i;
 	reg	[0:0]			ID_down_isCacheInst_r_i;
 	reg	[`CACHE_OP]			ID_down_CacheOperator_r_i;
+	reg	[`SINGLE_WORD]			EXE_up_aluRes_r_i;
+	reg	[`SINGLE_WORD]			EXE_down_aluRes_r_i;
+	reg	[`SINGLE_WORD]			SBA_aluRes_r_i;
+	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
+	reg	[`SINGLE_WORD]			PREMEM_preliminaryRes_r_i;
+	reg	[`SINGLE_WORD]			MEM_finalRes_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			ID_down_writeNum_r_i	<=	'b0;
@@ -246,6 +254,12 @@ module EXEDOWN(
 			ID_down_TLBInstOperator_r_i	<=	'b0;
 			ID_down_isCacheInst_r_i	<=	'b0;
 			ID_down_CacheOperator_r_i	<=	'b0;
+			EXE_up_aluRes_r_i	<=	'b0;
+			EXE_down_aluRes_r_i	<=	'b0;
+			SBA_aluRes_r_i	<=	'b0;
+			REEXE_regData_r_i	<=	'b0;
+			PREMEM_preliminaryRes_r_i	<=	'b0;
+			MEM_finalRes_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			ID_down_writeNum_r_i	<=	ID_down_writeNum_i;
@@ -283,18 +297,28 @@ module EXEDOWN(
 			ID_down_TLBInstOperator_r_i	<=	ID_down_TLBInstOperator_i;
 			ID_down_isCacheInst_r_i	<=	ID_down_isCacheInst_i;
 			ID_down_CacheOperator_r_i	<=	ID_down_CacheOperator_i;
+			EXE_up_aluRes_r_i	<=	EXE_up_aluRes_i;
+			EXE_down_aluRes_r_i	<=	EXE_down_aluRes_i;
+			SBA_aluRes_r_i	<=	SBA_aluRes_i;
+			REEXE_regData_r_i	<=	REEXE_regData_i;
+			PREMEM_preliminaryRes_r_i	<=	PREMEM_preliminaryRes_i;
+			MEM_finalRes_r_i	<=	MEM_finalRes_i;
         end
     end
     /*}}}*/
 //  线信号处理{{{
     wire EXE_down_hasRisk_w_o  = ID_down_exceptionRisk_r_i || EXE_up_hasRisk_w_i;
     assign EXE_down_writeNum_w_o = ID_down_writeNum_r_i;
-    wire   [`FORWARD_MODE] memforward = ID_down_memReq_r_i ? `FORWARD_MODE_WB : 'd0;
-    assign EXE_down_forwardMode_w_o  = `FORWARD_MODE_PREMEM | memforward;
+    wire    isAluInst = !ID_down_memReq_r_i &&
+                        !ID_down_mduOperator_r_i[`MDU_CLO] &&
+                        !ID_down_mduOperator_r_i[`MDU_CLZ] &&
+                        !(|ID_down_readCp0_r_i) && 
+                        !(|ID_down_readHiLo_r_i);
     assign EXE_down_hasDangerous_w_o = ID_down_isDangerous_r_i;
     // 流水线互锁
     reg hasData;
     wire ready;
+    assign EXE_down_forwardMode_w_o  = hasData && ready && !ID_down_memReq_r_i && isAluInst;
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
     assign EXE_down_valid_w_o = hasData && ready && EXE_up_allowin_w_i;
@@ -338,13 +362,13 @@ module EXEDOWN(
     assign srcIsReg[1] = ID_down_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
-            assign updataRegFile_up[i] = ({32{ID_down_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i]) |
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_SBA_BIT]}} & SBA_forwardData_w_i)|
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_PREMEM_BIT]}} & PREMEM_forwardData_w_i)|
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_REEXE_BIT]}} & REEXE_forwardData_w_i)|
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]}} & MEM_forwardData_w_i)|
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_PBA_BIT]}} & PBA_forwardData_w_i)|
-                            ({32{ID_down_forwardSel_up[i][`FORWARD_WB_BIT] }} & WB_forwardData_w_i) ;
+            assign updataRegFile_up[i] = ({32{ID_down_forwardSel_up[i][`FORWARD_ID_BIT]}}&readData_up[i])|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_SBA_BIT]}}& SBA_aluRes_r_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_PREMEM_BIT]}}& PREMEM_preliminaryRes_r_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_REEXE_BIT]}}& REEXE_regData_r_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]}}& WB_forwardData_w_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_EXE_UP_BIT]}}& EXE_up_aluRes_r_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_EXE_DOWN_BIT] }}& EXE_down_aluRes_r_i);
             assign scr[i] = !srcIsReg[i] ? ID_down_oprand_up[i] : updataRegFile_up[i];
         end
     endgenerate

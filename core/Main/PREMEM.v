@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/25 23:23
+// Last Modified : 2022/07/27 11:36
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -37,7 +37,7 @@ module PREMEM (
     //////////////     线输出信号      ///////////////{{{
     //////////////////////////////////////////////////
     // ID阶段前递控制
-    output	wire	[`FORWARD_MODE]         PREMEM_forwardMode_w_o,    
+    output	wire	                        PREMEM_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              PREMEM_writeNum_w_o,    
     //危险暂停信号
     output	wire	                        PREMEM_hasDangerous_w_o,    // mul,clo,clz,madd,msub,cache,tlb等危险指令
@@ -45,9 +45,7 @@ module PREMEM (
     output	wire	                        PREMEM_hasRisk_w_o,         
     // 流水线互锁信号 
     output	wire	                        PREMEM_allowin_w_o,         // 逐级互锁信号
-    output	wire	                        PREMEM_valid_w_o,           // 该信号可以用于给下一级流水线决定是否采样            
-    // 数据前递信号
-    output	wire	[`SINGLE_WORD]          PREMEM_forwardData_w_o,     // EXE计算结果前递
+    output	wire	                        PREMEM_valid_w_o,           // 用于给下一级流水线决定是否采样
     // 总线
     output	wire	[11:0]                  data_index,
     output	wire	                        data_req,
@@ -251,22 +249,16 @@ module PREMEM (
     assign PREMEM_writeR_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
     assign PREMEM_read_w_o   = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
     assign PREMEM_map_w_o    = EXE_down_memReq_r_i;
-    wire    cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
-    wire    store_conflict  = EXE_down_memReq_r_i && SBA_hasRisk_w_i;
-    wire    tlb_conflict    = EXE_down_isTLBInst_r_i && PREMEM_hasRisk_w_o;
-    assign PREMEM_forwardData_w_o = ({32{EXE_down_mathResSel_r_i[`MATH_ALU]}} & EXE_down_aluRes_r_i) |
-                                    ({32{EXE_down_mathResSel_r_i[`MATH_MULR]}}& EXE_down_mulRes_r_i) |
-                                    ({32{EXE_down_mathResSel_r_i[`MATH_CL]}}  & {27'b0,EXE_down_clRes_r_i})|
-                                    ({32{isSCinst                         }}  & {31'b0,LLbit}) | 
-                                    ({32{EXE_down_mathResSel_r_i[`MATH_MDU]}} & EXE_down_mduRes_r_i);
+    wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
+    wire   store_conflict  = EXE_down_memReq_r_i && SBA_hasRisk_w_i;
+    wire   tlb_conflict    = EXE_down_isTLBInst_r_i && PREMEM_hasRisk_w_o;
     assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || SBA_hasRisk_w_i;
     assign PREMEM_writeNum_w_o = EXE_down_writeNum_r_i;
-    wire    [`FORWARD_MODE] memforward = EXE_down_memReq_r_i ? `FORWARD_MODE_WB : 'b0;
-    assign PREMEM_forwardMode_w_o = `FORWARD_MODE_MEM | memforward ;
     assign PREMEM_hasDangerous_w_o = EXE_down_isDangerous_r_i;
     // 流水线互锁
     reg hasData;
     wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
+    assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i;
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
     assign PREMEM_valid_w_o = hasData && ready && SBA_allowin_w_i;
@@ -301,7 +293,11 @@ module PREMEM (
     assign PREMEM_alignCheck_o      = EXE_down_aluRes_r_i[1:0];
     assign PREMEM_loadSel_o         = EXE_down_loadSel_r_i;
     assign PREMEM_memReq_o          = EXE_down_memReq_r_i;
-    assign PREMEM_preliminaryRes_o  = PREMEM_forwardData_w_o;
+    assign PREMEM_preliminaryRes_o =({32{EXE_down_mathResSel_r_i[`MATH_ALU]}} & EXE_down_aluRes_r_i) |
+                                    ({32{EXE_down_mathResSel_r_i[`MATH_MULR]}}& EXE_down_mulRes_r_i) |
+                                    ({32{EXE_down_mathResSel_r_i[`MATH_CL]}}  & {27'b0,EXE_down_clRes_r_i})|
+                                    ({32{isSCinst                         }}  & {31'b0,LLbit}) | 
+                                    ({32{EXE_down_mathResSel_r_i[`MATH_MDU]}} & EXE_down_mduRes_r_i);
     assign PREMEM_nonBlockMark_o    = EXE_down_nonBlockMark_r_i;
     assign PREMEM_rtData_o          = data_wdata;
 /*}}}*/

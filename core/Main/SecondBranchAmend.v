@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/25 17:32
+// Last Modified : 2022/07/27 11:34
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -41,10 +41,8 @@ module SecondBranchAmend (
     // 流水线控制
     output	wire	                        SBA_allowin_w_o,            // 逐级互锁信号
     output	wire	                        SBA_valid_w_o,              // 该信号可以用于给下一级流水线决定是否采样          
-    // 数据前递
-    output	wire	[`SINGLE_WORD]          SBA_forwardData_w_o,        // 将上一周期的运算结果前递
     // 数据前递模式控制
-    output	wire	[`FORWARD_MODE]         SBA_forwardMode_w_o,    
+    output	wire	                        SBA_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              SBA_writeNum_w_o,    
     // 错误刷新
     output  wire                            SBA_flush_w_o,              //  表示分支错误，需要刷新流水线
@@ -142,8 +140,6 @@ module SecondBranchAmend (
     // 线信号处理{{{
     assign SBA_hasRisk_w_o      = EXE_up_exceptionRisk_r_i || EXE_up_branchRisk_r_i || MEM_hasRisk_w_i;
     assign SBA_writeNum_w_o     = EXE_up_writeNum_r_i;
-    assign SBA_forwardMode_w_o  = `FORWARD_MODE_REEXE;
-    assign SBA_forwardData_w_o  = EXE_up_aluRes_r_i;
     assign SBA_erroVAddr_w_o = EXE_up_VAddr_r_i;
     assign SBA_corrDest_w_o = EXE_up_corrDest_r_i;
     assign SBA_corrTake_w_o = EXE_up_corrTake_r_i;
@@ -154,6 +150,7 @@ module SecondBranchAmend (
     // 流水线互锁
     reg hasData;
     wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
+    assign SBA_forwardMode_w_o  = ready && hasData;
     assign SBA_valid_w_o    = hasData && ready && PREMEM_allowin_w_i;
     assign SBA_allowin_w_o  = !hasData || (ready && REEXE_allowin_w_i);
     wire   ok_to_change = SBA_allowin_w_o && PREMEM_allowin_w_i;

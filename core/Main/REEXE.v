@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:35
-// Last Modified : 2022/07/25 21:20
+// Last Modified : 2022/07/27 11:07
 // File Name     : REEXE.v
 // Description   : 延迟执行段，先阶段只用于数据前递
 //         
@@ -49,10 +49,8 @@ module REEXE(
     // 流水线控制
     output	wire	                        REEXE_allowin_w_o,            // 逐级互锁信号
     output	wire	                        REEXE_valid_w_o,              // 给下一级流水线决定是否采样
-    // 数据前递
-    output	wire	[`SINGLE_WORD]          REEXE_forwardData_w_o,        // 将上一周期的运算结果前递
     // 前递模式控制
-    output	wire	[`FORWARD_MODE]         REEXE_forwardMode_w_o,    
+    output	wire	                        REEXE_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              REEXE_writeNum_w_o,    
 /*}}}*/
     ///////////////////////////////////////////////////
@@ -120,12 +118,11 @@ module REEXE(
     //非延迟模型下WB不可能有风险
     assign REEXE_hasRisk_w_o      = SBA_exceptionRisk_r_i || WB_hasRisk_w_i;
     assign REEXE_writeNum_w_o     = SBA_writeNum_r_i;
-    assign REEXE_forwardMode_w_o  = `FORWARD_MODE_PBA;
-    assign REEXE_forwardData_w_o  = SBA_aluRes_r_i;
     assign REEXE_nonBlockMark_w_o = SBA_nonBlockMark_r_i;
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
+    assign REEXE_forwardMode_w_o  = hasData && ready;
     assign REEXE_valid_w_o    = hasData && ready && MEM_allowin_w_i;
     assign REEXE_allowin_w_o  = !hasData || (ready && PBA_allowin_w_i);
     wire   ok_to_change = REEXE_allowin_w_o && MEM_allowin_w_i;
