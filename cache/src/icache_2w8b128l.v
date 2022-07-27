@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "../Cacheconst.vh"
 //`define EN_ICACHE_OP
-module icache_tp(
+module icache_2w8b128l(
     input           clk,
     input           rst,
 
@@ -76,92 +76,81 @@ module icache_tp(
     input          inst_uncache_data_ok
 );
     ////////////////////////////////////////////////////////
-    //PARAM
-    parameter WAY  = 4;
-    parameter BLOCK = 32;
-    parameter BLOCKNUM = 8;
-    parameter LINESIZE = BLOCK * BLOCKNUM;
-    parameter DATAWEN_LEN = LINESIZE / 8;
-    parameter LINENUM  = 128;
-    parameter INDEX_LEN = $clog2(LINENUM);
-    parameter OFFSET_LEN = $clog2(BLOCKNUM) - 2;
-    //INDEX_LEN + OFFSET_LEN = 8
-    ////////////////////////////////////////////////////////
     // Signal Define
     //三段流水
     //index -> tag -> data
     //sin_ ... sta_ ... sda_ ...
     //sin段
-    wire                        sin_req                     ;
-    wire [1                 :0] sin_size                    ;
-    wire [INDEX_LEN -1      :0] sin_index                   ;
-    wire [OFFSET_LEN-1      :0] sin_offset                  ;
+    wire        sin_req   ;
+    wire [1 :0] sin_size  ;
+    wire [6 :0] sin_index ;
+    wire        sin_offset;
     //sta段
-    reg                         sta_req                     ;
-    reg  [1                 :0] sta_size                    ;
-    reg  [INDEX_LEN -1      :0] sta_index                   ;
-    reg  [OFFSET_LEN-1      :0] sta_offset                  ;
-    wire [19                :0] sta_tag                     ;
-    wire                        sta_hasException            ;
-    wire                        sta_unCache                 ;
+    reg         sta_req         ;
+    reg  [1 :0] sta_size        ;
+    reg  [6 :0] sta_index       ;
+    reg         sta_offset      ;
+    wire [19:0] sta_tag         ;
+    wire        sta_hasException;
+    wire        sta_unCache     ;
     //sda段
-    reg                         sda_req                     ;
-    reg  [1                 :0] sda_size                    ;
-    reg  [INDEX_LEN -1      :0] sda_index                   ;
-    reg  [OFFSET_LEN-1      :0] sda_offset                  ;
-    reg  [19                :0] sda_tag                     ;
-    reg                         sda_hasException            ;
-    reg                         sda_unCache                 ;
-    reg  [20                :0] sda_tagv_back      [WAY-1:0];
-    reg  [LINESIZE-1        :0] sda_rdata          [WAY-1:0];
-    reg                         sda_uca_addr_ok             ;
+    reg         sda_req            ;
+    reg [1  :0] sda_size           ;
+    reg [6  :0] sda_index          ;
+    reg         sda_offset         ;
+    reg [19 :0] sda_tag            ;
+    reg         sda_hasException   ;
+    reg         sda_unCache        ;
+    reg [20 :0] sda_tagv_back [1:0];
+    reg [255:0] sda_rdata     [1:0];
+    reg         sda_uca_addr_ok    ;
     //主自动机状态
-    reg  [3                 :0] cache_stat                  ;
+    reg [3:0] cache_stat;
     //RESET
-    reg  [INDEX_LEN-1       :0] reset_counter               ;
+    reg [6:0] reset_counter;
     //REFILL
-    reg  [$clog2(BLOCKNUM)-1:0] fill_counter                ;
-    reg  [BLOCK-1           :0] fill_buf_data [BLOCKNUM-1:0];
-    reg  [BLOCKNUM-1        :0] fill_buf_valid              ;
-    reg  [19                :0] fill_tag                    ;
-    reg  [INDEX_LEN-1       :0] fill_index                  ;
+    reg [2 :0] fill_counter       ;
+    reg [31:0] fill_buf_data [7:0];
+    reg [7 :0] fill_buf_valid     ;
+    reg [19:0] fill_tag           ;
+    reg [6 :0] fill_index         ;
     //HIT FINISH AND REFILL
-    wire                        hit_fill                    ;
-    wire [127               :0] hit_fill_data               ;
-    //PLRU
-    reg  [$clog2(WAY)       :0] plru [LINENUM-1:0]          ;
-    reg  [WAY-1             :0] way                         ;  
+    wire         hit_fill     ;
+    wire [127:0] hit_fill_data;
+    //TODO LRU
+    reg [2:0] plru [127:0];
+    reg [1:0] way         ;  
     // 初始化使用的循环控制变量
-    integer i                                               ;
+    integer i;
     // 命中信号
-    wire [WAY-1             :0] hit_way                     ;
-    wire                        hit_run                     ;
-    wire [$clog2(WAY)-1     :0] loc                         ;
-    wire [127               :0] hit_run_data                ;
+    wire [1  :0] hit_way     ;
+    wire         hit_run     ;
+    wire         loc         ;
+    wire [127:0] hit_run_data;
     // tagv块
-    wire [WAY-1             :0] tag_wen                     ;
-    wire [WAY-1             :0] val_wen                     ;
-    wire [INDEX_LEN-1       :0] tagv_index                  ;
-    wire [19                :0] tagv_wdata                  ;
-    wire                        tagv_valid                  ;
-    wire [20                :0] tagv_back [WAY-1:0]         ;
+    wire [1 :0] tag_wen        ;
+    wire [1 :0] val_wen        ;
+    wire [6 :0] tagv_index     ;
+    wire [19:0] tagv_wdata     ;
+    wire        tagv_valid     ;
+    wire [20:0] tagv_back [1:0];
     // data块
-    wire [DATAWEN_LEN-1     :0] data_wen   [WAY-1:0]        ;
-    wire [INDEX_LEN-1       :0] data_index                  ;
-    wire [LINESIZE -1       :0] data_wdata                  ;
-    wire [LINESIZE -1       :0] data_rdata [WAY-1:0]        ;
+    wire [31 :0] data_wen   [1:0];
+    wire [6  :0] data_index      ;
+    wire [255:0] data_wdata      ;
+    wire [255:0] data_rdata [1:0];
     // icacheop
 `ifdef EN_ICACHE_OP
-    reg  [4                 :0] ca_op_reg                   ;//操作类型
-    reg  [$clog2(WAY)-1     :0] ca_way_reg                  ;//输入信号中包含的路信息
-    reg  [WAY-1             :0] ca_tag_wen                  ;//tag写使能
-    reg  [19                :0] ca_htag_reg                 ;//HIT比对
-    reg  [19                :0] ca_wtag_reg                 ;//写入的数据
-    reg  [INDEX_LEN-1       :0] ca_index_reg                ;//行号
-    reg  [WAY-1             :0] ca_val_wen                  ;//valid写使能
-    reg                         ca_val_reg                  ;//valid写数据
-    wire [WAY-1             :0] ca_hit                      ;//是否命中
-    wire                        deal_cache_op               ;
+    reg  [4 :0] ca_op_reg    ;//操作类型
+    reg         ca_way_reg   ;//输入信号中包含的路信息
+    reg  [1 :0] ca_tag_wen   ;//tag写使能
+    reg  [19:0] ca_htag_reg  ;//HIT比对
+    reg  [19:0] ca_wtag_reg  ;//写入的数据
+    reg  [6 :0] ca_index_reg ;//行号
+    reg  [1 :0] ca_val_wen   ;//valid写使能
+    reg         ca_val_reg   ;//valid写数据
+    wire [1 :0] ca_hit       ;//是否命中
+    wire        deal_cache_op;
 `endif
     ////////////////////////////////////////////////////////
 
@@ -184,7 +173,7 @@ module icache_tp(
     assign arid    = `ICACHE_ARID;
     assign araddr  = {sda_tag, sda_index ,sda_offset ,4'b0000};
     assign arvalid = (cache_stat == `MISS);    
-    assign arlen   = BLOCKNUM -1 ;
+    assign arlen   = 4'd7 ;
     assign arsize  = 3'd2 ;
     assign arburst = 2'b10;//Wrap Mode
     assign arlock  = 2'd0 ;
@@ -208,8 +197,8 @@ module icache_tp(
     assign sin_req    = inst_req        ;
     assign sin_wr     = inst_wr         ;
     assign sin_size   = inst_size       ;
-    assign sin_index  = inst_index [7-: INDEX_LEN];
-    assign sin_offset = inst_index [0+:OFFSET_LEN];
+    assign sin_index  = inst_index [7:1];
+    assign sin_offset = inst_index [0]  ;
     assign sin_wdata  = inst_wdata      ;
    
 
@@ -221,8 +210,8 @@ module icache_tp(
         if (!rst) begin
             sta_req    <= 1'b0;
             sta_size   <= 2'b0;
-            sta_index  <= { INDEX_LEN{1'b0}};
-            sta_offset <= {OFFSET_LEN{1'b0}};
+            sta_index  <= 7'b0;
+            sta_offset <= 1'b0;
         end
         //接收cache请求信号
         else if (inst_index_ok) begin
@@ -233,8 +222,8 @@ module icache_tp(
         end else if (!sda_req) begin
             sta_req    <= 1'b0;
             sta_size   <= 2'b0;
-            sta_index  <= { INDEX_LEN{1'b0}};
-            sta_offset <= {OFFSET_LEN{1'b0}};
+            sta_index  <= 7'b0;
+            sta_offset <= 1'b0;
         end else begin
         end
     end
@@ -244,14 +233,14 @@ module icache_tp(
         if (!rst) begin
             sda_req          <= 1'b0 ;
             sda_size         <= 2'b0 ;
-            sda_index        <= { INDEX_LEN{1'b0}};
-            sda_offset       <= {OFFSET_LEN{1'b0}};
+            sda_index        <= 7'b0 ;
+            sda_offset       <= 1'b0 ;
             sda_tag          <= 20'b0;
             sda_hasException <= 1'b0 ;
             sda_unCache      <= 1'b0 ;
-            for (i = 0; i < WAY; i = i+1) begin 
-                sda_tagv_back[i] <= 21'b0           ;
-                sda_rdata[i]     <= {LINESIZE{1'b0}};
+            for (i = 0; i < 2; i = i+1) begin 
+                sda_tagv_back[i] <= 21'b0 ;
+                sda_rdata[i]     <= 255'b0;
             end
         end
         else if (inst_index_ok | !sda_req) begin
@@ -263,13 +252,14 @@ module icache_tp(
             sda_hasException <= sta_hasException;
             sda_unCache      <= sta_unCache     ;
             sda_uca_addr_ok  <= !sta_unCache  && sta_hasException  ; // 如果存在异常，不请求uncache
-            for (i = 0; i < WAY; i = i+1) begin 
+            for (i = 0; i < 2; i = i+1) begin 
                 sda_tagv_back[i] <= tagv_back[i] ;
                 sda_rdata[i]     <= data_rdata[i];
             end
+            
         end
         else if (cache_stat == `IDLE) begin
-            for (i = 0; i < WAY; i = i+1) begin 
+            for (i = 0; i < 2; i = i+1) begin 
                 sda_tagv_back[i] <= tagv_back[i] ;
                 sda_rdata[i]     <= data_rdata[i];
             end
@@ -315,7 +305,7 @@ module icache_tp(
                 //返回装入的数据    读取下一个请求的数据   保存到sda段寄存器   对比TAG
                 `RECOVER:   cache_stat <= `IDLE;
                 //初始装载
-                `RESET:     cache_stat <= (reset_counter == (LINENUM - 1)) ? `IDLE : `RESET; 
+                `RESET:     cache_stat <= (reset_counter == 127) ? `IDLE : `RESET; 
                 default:    cache_stat <= `IDLE;
             endcase
         end
@@ -325,19 +315,19 @@ module icache_tp(
     //持续128个周期，每个周期将一行tag置为无效
     always @(posedge clk) begin
         if (!rst) begin 
-            reset_counter <= {INDEX_LEN{1'b0}};
+            reset_counter <= 7'b0;//初始化为0，重置信号拉高后开始计数
         end 
         else begin
-            reset_counter <= reset_counter + {{(INDEX_LEN-1){1'b0}},1'b1};
-        end
+            reset_counter <= reset_counter + 7'b1;
+        end 
     end
 
     //REFILL相关
     //一般持续8个周期
     always @(posedge clk) begin
         if (!rst) begin
-            fill_counter <= {$clog2(BLOCKNUM){1'b0}} ;
-            fill_index   <= {INDEX_LEN{1'b0}};
+            fill_counter <= 3'b0 ;
+            fill_index   <= 7'b0;
             fill_tag     <= 20'b0  ;
         end
         else if (cache_stat == `MISS) begin
@@ -348,14 +338,14 @@ module icache_tp(
         // 地址握手完成，开始传输，计数器开始自�?
         // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
         else if (rvalid && (rid == `ICACHE_RID)) begin
-            fill_counter <= fill_counter + {{($clog2(BLOCKNUM)-1){1'b0}},1'b1};
+            fill_counter <= fill_counter + 3'b1;
         end else begin
         end
     end
     always @(posedge clk ) begin
         if (!rst) begin
-            for (i = 0; i < BLOCKNUM; i = i+1) begin 
-                fill_buf_data[i]  <= {BLOCK{1'b0}};
+            for (i = 0; i < 8; i = i+1) begin 
+                fill_buf_data[i]  <= 32'b0;
                 fill_buf_valid[i] <= 1'b0;
             end
         end
@@ -364,11 +354,11 @@ module icache_tp(
             fill_buf_valid[fill_counter] <= 1'b1;
         end
         else if (cache_stat == `FINISH) begin
-            fill_buf_valid <= {BLOCKNUM{1'b0}};
+            fill_buf_valid <= 8'b0;
         end else begin
         end
     end
-    //TODO REFILL下命中
+    //REFILL下命中
     assign hit_fill      = fill_index == sda_index && fill_tag == sda_tag 
                             && (   (&fill_buf_valid[3:0] && !sda_offset) 
                                 || (&fill_buf_valid[7:4] &&  sda_offset)
@@ -376,25 +366,23 @@ module icache_tp(
     assign hit_fill_data = {128{ sda_offset}} & {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4]}
                          | {128{!sda_offset}} & {fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     
-    //TODO HIT
+    //HIT
     assign hit_way[0] = sda_tagv_back[0][0] && sda_tagv_back[0][20:1] == sda_tag;
     assign hit_way[1] = sda_tagv_back[1][0] && sda_tagv_back[1][20:1] == sda_tag;
-    assign hit_way[2] = sda_tagv_back[2][0] && sda_tagv_back[2][20:1] == sda_tag;
-    assign hit_way[3] = sda_tagv_back[3][0] && sda_tagv_back[3][20:1] == sda_tag;
     assign hit_run = |hit_way && cache_stat==`RUN && !sda_unCache;
-    assign loc = `encoder4_2(hit_way);
+    assign loc = `encoder2_1(hit_way);
     assign hit_run_data = {128{!sda_offset}} & {sda_rdata[loc][127:  0]}
                         | {128{ sda_offset}} & {sda_rdata[loc][255:128]};
     //tagv
 `ifdef EN_ICACHE_OP
-    assign tag_wen =    (cache_stat == `RESET  ) ? 4'b1111    :
+    assign tag_wen =    (cache_stat == `RESET  ) ? 2'b11      :
                         (cache_stat == `FINISH ) ? way        :
                         (cache_stat == `CA_OP  ) ? ca_tag_wen :
-                        4'b0000;
-    assign val_wen =    (cache_stat == `RESET  ) ? 4'b1111    :
+                        2'b00;
+    assign val_wen =    (cache_stat == `RESET  ) ? 2'b11      :
                         (cache_stat == `FINISH ) ? way        :
                         (cache_stat == `CA_OP  ) ? ca_val_wen :
-                        4'b0000;
+                        2'b00;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter     :
                         (cache_stat == `FINISH ) ? fill_index        :
                         (cache_stat == `RECOVER) ? sda_index         :
@@ -408,10 +396,10 @@ module icache_tp(
                         (cache_stat == `FINISH ) ? 1'b1    : 
                         (cache_stat == `CA_OP  ) ? ca_val_reg : 1'b0;
 `else 
-    assign tag_wen =    (cache_stat == `RESET  ) ? 4'b1111 :
-                        (cache_stat == `FINISH ) ? way     : 4'b0000;
-    assign val_wen =    (cache_stat == `RESET  ) ? 4'b1111 :
-                        (cache_stat == `FINISH ) ? way     : 4'b0000;
+    assign tag_wen =    (cache_stat == `RESET  ) ? 2'b11   :
+                        (cache_stat == `FINISH ) ? way     : 4'b00;
+    assign val_wen =    (cache_stat == `RESET  ) ? 2'b11   :
+                        (cache_stat == `FINISH ) ? way     : 4'b00;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
                         (cache_stat == `FINISH ) ? fill_index    : 
                         (cache_stat == `RUN    ) ? sin_index     :
@@ -421,7 +409,7 @@ module icache_tp(
 `endif
     generate
         genvar k;
-        for (k=0;k<4;k=k+1) begin
+        for (k=0;k<2;k=k+1) begin
             inst_tagv_tp Inst_TagV_TP (
                 .clk    (clk         ),
                 .en     (1'b1        ),
@@ -439,15 +427,13 @@ module icache_tp(
     // data
     assign data_wen[0] = {32{way[0] && (cache_stat == `FINISH)}};
     assign data_wen[1] = {32{way[1] && (cache_stat == `FINISH)}};
-    assign data_wen[2] = {32{way[2] && (cache_stat == `FINISH)}};
-    assign data_wen[3] = {32{way[3] && (cache_stat == `FINISH)}}; 
     assign data_index  = (cache_stat == `FINISH ) ? fill_index : 
                          (cache_stat==`RUN ) ? sin_index : 
                          (cache_stat==`IDLE) ? sta_index : sda_index;
     assign data_wdata  = {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4],
                           fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     generate
-        for (k=0 ; k < 4 ; k = k + 1) begin
+        for (k=0 ; k < 2 ; k = k + 1) begin
             inst_data_tp Inst_Data_TP (
                 .clk    (clk          ),
                 .en     (1'b1         ),
@@ -460,10 +446,10 @@ module icache_tp(
     endgenerate
     //end
 
-    //PLRU选路以及更新
+    //LRU选路以及更新
     always @(posedge clk ) begin
         if (!rst) begin
-            way <= 4'b0;
+            way <= 2'b0;
         end
         else if (cache_stat == `RUN && sda_req && !hit_run) begin
             case (plru[sda_index])
