@@ -3,7 +3,7 @@
 // Device        :  Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/12 19:37
-// Last Modified : 2022/07/15 16:36
+// Last Modified : 2022/07/26 00:17
 // File Name     : RegFile.v
 // Description   : 多端口的寄存器堆,支持4读2写,且前递数据优先读出
 //         
@@ -50,7 +50,7 @@ module RegFile(
     wire	[`SINGLE_WORD]  readData        [3:0];
     wire    [1:0]           hasForward      [3:0];
     wire    [`SINGLE_WORD]  writeData       [1:0];
-    wire	                writeEnable     [1:0];
+    wire	[1:0]           writeEnable     ;
     wire	[`GPR_NUM]      writeNum        [1:0]; 
 
 
@@ -84,6 +84,9 @@ module RegFile(
     endgenerate
     /*}}}*/
     // 写逻辑{{{
+    wire double_write = &writeEnable && !WAW_coflict;
+    wire single_write_first  = writeEnable[0] && !writeEnable[1];
+    wire single_write_second = (writeEnable[1] && !writeEnable[0]) || (&writeEnable && WAW_coflict);
     integer t;
     always @(posedge clk) begin
         if (!rst) begin
@@ -91,11 +94,15 @@ module RegFile(
                 regfile[t]  <=  `ZEROWORD; 
             end
         end
-        else if (writeEnable[1]) begin
+        else if (double_write) begin
             regfile[writeNum[1]]    <=  writeData[1]; 
-        end
-        else if (writeEnable[0] && !WAW_coflict) begin
             regfile[writeNum[0]]    <=  writeData[0];
+        end
+        else if (single_write_first) begin
+            regfile[writeNum[0]]    <=  writeData[0];
+        end
+        else if (single_write_second) begin
+            regfile[writeNum[1]]    <=  writeData[1]; 
         end
     end
 /*}}}*/

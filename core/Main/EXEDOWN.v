@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/25 21:21
+// Last Modified : 2022/07/26 21:17
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -298,7 +298,9 @@ module EXEDOWN(
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
     assign EXE_down_valid_w_o = hasData && ready && EXE_up_allowin_w_i;
-    assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
+    //assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
+    // 前递要求
+    assign EXE_down_allowin_w_o = (!hasData || ready) && PREMEM_allowin_w_i;
     wire   ok_to_change = EXE_down_allowin_w_o && EXE_up_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_down_valid_w_i;
     assign needClear  = (!ID_down_valid_w_i&&ok_to_change) || needFlash;
@@ -348,7 +350,7 @@ module EXEDOWN(
     endgenerate
 /*}}}*/
     // 访存处理{{{
-    wire [1:0]  alignCheck = readData_up[0][1:0] + ID_down_oprand1_r_i[1:0];
+    wire [1:0]  alignCheck = updataRegFile_up[0][1:0] + ID_down_oprand1_r_i[1:0];
     wire [3:0]  loadEnable = 4'b1111;
     wire [3:0]  storeByteEnable =   alignCheck==2'b00 ? 4'b0001 :
                                     alignCheck==2'b01 ? 4'b0010 :
@@ -378,23 +380,23 @@ module EXEDOWN(
                                 ID_down_loadMode_r_i == `LOAD_MODE_LW  ? `LOAD_SEL_LW :
                                 ID_down_loadMode_r_i == `LOAD_MODE_LWL ? lwl_sel : lwr_sel;
     assign EXE_down_memEnable_o = ID_down_memWR_r_i ? storeEnable : loadEnable;
-    wire [`SINGLE_WORD] sb_data = {4{readData_up[1][7:0]}};
-    wire [`SINGLE_WORD] sh_data = {2{readData_up[1][15:0]}};
+    wire [`SINGLE_WORD] sb_data = {4{updataRegFile_up[1][7:0]}};
+    wire [`SINGLE_WORD] sh_data = {2{updataRegFile_up[1][15:0]}};
     wire [`SINGLE_WORD] combination [2:0];
-    assign combination[0] = {readData_up[1][23:0],readData_up[1][31:24]};
-    assign combination[1] = {readData_up[1][15:0],readData_up[1][31:16]};
-    assign combination[2] = {readData_up[1][7:0],readData_up[1][31:8]};
+    assign combination[0] = {updataRegFile_up[1][23:0],updataRegFile_up[1][31:24]};
+    assign combination[1] = {updataRegFile_up[1][15:0],updataRegFile_up[1][31:16]};
+    assign combination[2] = {updataRegFile_up[1][7:0],updataRegFile_up[1][31:8]};
     wire [`SINGLE_WORD] swl_data =  ({32{alignCheck==2'b00}} & combination[0]) |
                                     ({32{alignCheck==2'b01}} & combination[1]) |
                                     ({32{alignCheck==2'b10}} & combination[2]) |
-                                    ({32{alignCheck==2'b10}} & readData_up[1]) ;
-    wire [`SINGLE_WORD] swr_data =  ({32{alignCheck==2'b00}} & readData_up[1]) |
+                                    ({32{alignCheck==2'b10}} & updataRegFile_up[1]) ;
+    wire [`SINGLE_WORD] swr_data =  ({32{alignCheck==2'b00}} & updataRegFile_up[1]) |
                                     ({32{alignCheck==2'b01}} & combination[2]) |
                                     ({32{alignCheck==2'b10}} & combination[1]) |
                                     ({32{alignCheck==2'b10}} & combination[0]) ;
     assign EXE_down_storeData_o =   ({32{ID_down_storeMode_r_i[`STORE_MODE_SB]}} & sb_data) |
                                     ({32{ID_down_storeMode_r_i[`STORE_MODE_SH]}} & sh_data) |
-                                    ({32{ID_down_storeMode_r_i[`STORE_MODE_SW]}} & readData_up[1]) |
+                                    ({32{ID_down_storeMode_r_i[`STORE_MODE_SW]}} & updataRegFile_up[1]) |
                                     ({32{ID_down_storeMode_r_i[`STORE_MODE_SWL]}} & swl_data) |
                                     ({32{ID_down_storeMode_r_i[`STORE_MODE_SWR]}} & swr_data) ;
     /*}}}*/
@@ -534,8 +536,8 @@ module EXEDOWN(
         end
         else if (clReq) begin
             clRes   <=  clRes + (
-                (readData_up[0][position]==countOne) ? 
-                ((readData_up[0][position+1]==countOne) ? 'd2 : 'd1) : 'd0
+                (updataRegFile_up[0][position]==countOne) ? 
+                ((updataRegFile_up[0][position+1]==countOne) ? 'd2 : 'd1) : 'd0
             );
             position    <=  position - 'd2;
             cl_data_ok  <=  position=='d1;

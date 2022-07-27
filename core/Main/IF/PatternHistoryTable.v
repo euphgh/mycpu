@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 08:40
-// Last Modified : 2022/07/21 19:03
+// Last Modified : 2022/07/26 16:49
 // File Name     : PatternHistoryTable.v
 // Description   : 用于预测条件跳转指令的方向
 //

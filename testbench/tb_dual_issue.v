@@ -38,7 +38,7 @@ wire [7 :0] switch_inv;
 wire [3 :0] btn_key_col;
 wire [3 :0] btn_key_row;
 wire [1 :0] btn_step;
-assign switch_inv  = 8'h03;
+assign switch_inv  = 8'h00;
 assign switch      = ~switch_inv;
 assign btn_key_row = 4'd0;
 assign btn_step    = 2'd3;

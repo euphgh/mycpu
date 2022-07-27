@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/09 10:18
-// Last Modified : 2022/07/09 21:03
+// Last Modified : 2022/07/26 16:22
 // File Name     : DelaySlotProcessor.v
 // Description   : 根据BSC和BTB的分支预测结果选择合适的PC送入PC寄存器
 //         

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/25 21:07
+// Last Modified : 2022/07/26 21:17
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -211,7 +211,8 @@ module EXEUP(
     reg hasData;
     wire ready = 1'b1;
     assign EXE_up_valid_w_o = hasData && ready && EXE_down_allowin_w_i;
-    assign EXE_up_allowin_w_o = !hasData || (ready && SBA_allowin_w_i);
+    // 前递的要求
+    assign EXE_up_allowin_w_o = (!hasData || ready) && SBA_allowin_w_i;
     wire   ok_to_change = EXE_up_allowin_w_o && EXE_down_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_up_valid_w_i;
     // TODO 是否需要在清空流水线的时候allowin
@@ -269,7 +270,6 @@ module EXEUP(
                     ID_up_trapKind_r_i[`TRAP_GE_GEU]     ? !aluso[0] : !equals;
     assign EXE_up_hasException_o =  (ID_up_exceptionSel_r_i[`EXCEPRION_OV] ? overflow : 
                                     ID_up_exceptionSel_r_i[`EXCEPRION_TR] ? hasTrap  :  1'b0) || ID_up_hasException_r_i;
-    assign EXE_up_aluRes_o = aluso;
     assign EXE_up_writeNum_o = ID_up_writeNum_r_i;
     assign EXE_up_ExcCode_o = ID_up_ExcCode_r_i;
     // 该信号用于下一段前递，表示这周期的运算结果是否有风险，可以慢
@@ -277,23 +277,26 @@ module EXEUP(
     assign EXE_up_VAddr_o = ID_up_VAddr_r_i;
 /*}}}*/
     // 分支预测计算{{{
-    wire beq_take = readData_up[0]==readData_up[1];
+    wire beq_take = updataRegFile_up[0]==updataRegFile_up[1];
     wire bne_take = !beq_take;
-    wire blt_take = readData_up[0][31];
+    wire blt_take = updataRegFile_up[0][31];
     wire bge_take = !blt_take;
-    wire bgt_take = (!readData_up[0][31]) && |(readData_up[0][30:0]);
+    wire bgt_take = (!updataRegFile_up[0][31]) && |(updataRegFile_up[0][30:0]);
     wire ble_take = !bgt_take;
     assign EXE_up_corrTake_o =  ID_up_branchKind_r_i[`BRANCH_EQUAL] ? beq_take : 
                                 ID_up_branchKind_r_i[`BRANCH_NEQ]   ? bne_take :
                                 ID_up_branchKind_r_i[`BRANCH_LT]    ? blt_take :
                                 ID_up_branchKind_r_i[`BRANCH_LE]    ? ble_take :
                                 ID_up_branchKind_r_i[`BRANCH_GT]    ? bgt_take :
-                                ID_up_branchKind_r_i[`BRANCH_GE]    ? bge_take : 1'b1;
+                                ID_up_branchKind_r_i[`BRANCH_GE]    ? bge_take : ID_up_branchRisk_r_i;
     wire isLink = ID_up_repairAction_r_i[`NEED_REPAIR] && |(ID_up_writeNum_r_i);
-    assign EXE_up_corrDest_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;
+    assign EXE_up_aluRes_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;
+    assign EXE_up_corrDest_o = aluso;
     assign EXE_up_repairAction_o = {EXE_up_branchRisk_o,ID_up_repairAction_r_i[`REPAIR_ACTION_LEN-2:0]};
     assign EXE_up_checkPoint_o   = ID_up_checkPoint_r_i;
-    assign EXE_up_branchRisk_o   = ((EXE_up_corrTake_o!=ID_up_predTake_r_i) || (EXE_up_corrDest_o!=ID_up_predDest_r_i)) && ID_up_repairAction_r_i[`NEED_REPAIR];
+    assign EXE_up_branchRisk_o   =  ((EXE_up_corrTake_o != ID_up_predTake_r_i) ||
+                                    ((EXE_up_corrDest_o!=ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i)) &&
+                                    ID_up_branchRisk_r_i;
 /*}}}*/
     // 非阻塞乘除{{{
     assign EXE_up_nonBlockMark_o = EXE_down_nonBlockMark_w_o;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:41
-// Last Modified : 2022/07/25 15:08
+// Last Modified : 2022/07/26 16:52
 // File Name     : SecondCacheTrace.v
 // Description   : 跟踪Cache的数据流动
 //         
@@ -93,13 +93,13 @@ module SecondCacheTrace (
 /*}}}*/
     // PHT的预测结果{{{
     output	reg     [3:0]                   SCT_PHT_predTake_p_o,
-    output	reg     [4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_o,
+    output	reg     [4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_o
 /*}}}*/
-    output	reg		                        SCT_isCanceled_o    //对该周期内出现的异常信号和分支失败信号采样
 /*}}}*/
 );
+    reg		                        SCT_isCanceled_o;   //对该周期内出现的异常信号和分支失败信号采样
     reg hasData;
-    assign SCT_valid_o = inst_data_ok;
+    assign SCT_valid_o = inst_data_ok && !SCT_isCanceled_o;
     assign SCT_allowin_w_o = !hasData || inst_data_ok;
     wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i);
     always @(posedge clk) begin

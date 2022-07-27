@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/25 14:26
+// Last Modified : 2022/07/26 19:18
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -67,10 +67,11 @@ module InstQueue (
     output  wire    [`IQ_NUMBER]                IQ_number_w  
     /*}}}*/
 );
-    reg [$clog2(`IQ_CAPABILITY):0]  head;
-    reg [$clog2(`IQ_CAPABILITY):0]  tail;
+    // 计数器比实际多一位,为了充分利用队列容量
+    reg [`IQ_POINT]  head;
+    reg [`IQ_POINT]  tail;
     wire    needClear = SBA_flush_w_i || CP0_excOccur_w_i;
-    reg [`IQ_LENTH] queue [`IQ_CAPABILITY:0];
+    reg [`IQ_LENTH] queue [`IQ_CAPABILITY-1:0];
     // 自动定义{{{
     /*autodef*/
     //Start of automatic define
@@ -85,11 +86,12 @@ module InstQueue (
     //End of automatic wire
     //End of automatic define
 /*}}}*/
-    assign IQ_number_w   = tail-head;
+    assign IQ_number_w   = tail[`IQ_NUMBER]-head[`IQ_NUMBER];
     //如果不考虑用于保存以及请求的指令的空隙，tail+1 == head表示队列,
-    assign IQ_empty         =  tail                 == head;
-    assign IQ_full          =  tail + 1             == head;
-    assign ID_stopFetch_o   = (tail + 1 + `IQ_GAP)  == head;
+    assign IQ_empty         =   tail == head;
+    assign IQ_full          =   (tail[`IQ_NUMBER] == head[`IQ_NUMBER]) && 
+                                (tail[`IQ_POINT_SIGN]!=head[`IQ_POINT_SIGN]);
+    assign ID_stopFetch_o   =   (tail + 1 + `IQ_GAP) == head;
     wire    [`SINGLE_WORD]          IF_inst_up          [3:0];
     wire    [`SINGLE_WORD]          IF_predDest_up      [3:0];
     wire    [0:0]                   IF_predTake_up      [3:0];
@@ -116,14 +118,14 @@ module InstQueue (
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
             assign packedInfo[i] = {
-                    IF_instBasePC_up[i],
-                    IF_inst_up[i],
                     IF_predDest_up[i],
                     IF_predTake_up[i],
                     IF_predInfo_up[i],
                     IF_hasException_i,
                     IF_ExcCode_i,
-                    IF_isRefill_i
+                    IF_isRefill_i,
+                    IF_inst_up[i],
+                    IF_instBasePC_up[i]
                     };
         end
     endgenerate
@@ -131,22 +133,22 @@ module InstQueue (
     always @(posedge clk) begin
         if (!ok_toWrite) begin end
         else if (IF_instEnable_i[3]) begin
-            queue[tail+3] <= packedInfo[3];
-            queue[tail+2] <= packedInfo[2];
-            queue[tail+1] <= packedInfo[1];
-            queue[tail+0] <= packedInfo[0];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 3] <= packedInfo[3];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 2] <= packedInfo[2];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 1] <= packedInfo[1];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[2]) begin
-            queue[tail+2] <= packedInfo[2];
-            queue[tail+1] <= packedInfo[1];
-            queue[tail+0] <= packedInfo[0];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 2] <= packedInfo[2];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 1] <= packedInfo[1];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[1]) begin
-            queue[tail+1] <= packedInfo[1];
-            queue[tail+0] <= packedInfo[0];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 1] <= packedInfo[1];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 0] <= packedInfo[0];
         end
         else if (IF_instEnable_i[0]) begin
-            queue[tail+0] <= packedInfo[0];
+            queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 0] <= packedInfo[0];
         end
     end
 /*}}}*/
@@ -155,7 +157,7 @@ module InstQueue (
                                                 IF_instEnable_i[2] ? 3'd3 :
                                                 IF_instEnable_i[1] ? 3'd2 :
                                                 IF_instEnable_i[0] ? 3'd1 : 3'd0);
-    wire    [`IQ_NUMBER] nextNumber = IQ_number_w + {{(`IQ_NUMBER_LEN-3){1'b0}},IF_supplyNum} - {{(`IQ_NUMBER_LEN-1){1'b0}},ID_upDateMode_i[0]} - {{(`IQ_NUMBER_LEN-1){1'b0}},ID_upDateMode_i[1]};
+    wire    [`IQ_NUMBER] nextNumber = IQ_number_w + {{(`IQ_CAP_WIDTH-3){1'b0}},IF_supplyNum} - {{(`IQ_CAP_WIDTH-1){1'b0}},ID_upDateMode_i[0]} - {{(`IQ_CAP_WIDTH-1){1'b0}},ID_upDateMode_i[1]};
     assign enough = nextNumber >= 'd2;
     always @(posedge clk) begin
         if (!rst || needClear) begin
@@ -178,18 +180,21 @@ module InstQueue (
     wire    [0:0]                       IQ_predTake_up          [1:0];  
     wire    [`ALL_CHECKPOINT]           IQ_checkPoint_up        [1:0];  
     wire    [0:0]                       IQ_isRefill_up          [1:0];
+    wire    [`IQ_NUMBER_WID]            number [1:0];
+    assign  number[0] = `IQ_NUMBER_BIT 0;
+    assign  number[1] = `IQ_NUMBER_BIT 1;
     generate
         for (genvar i = 0; i < 2; i = i+1)	begin
             assign  {
-                IQ_VAddr_up[i],
-                IQ_inst_up[i],
                 IQ_predDest_up[i],
                 IQ_predTake_up[i],
                 IQ_checkPoint_up[i],
                 IQ_hasException_up[i],
                 IQ_ExcCode_up[i],
-                IQ_isRefill_up[i]
-                }   =  queue[head+i];
+                IQ_isRefill_up[i],
+                IQ_inst_up[i],
+                IQ_VAddr_up[i]
+                }   =  queue[head[`IQ_NUMBER]+number[i]];
         end
     endgenerate
     // }}}

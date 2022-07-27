@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/07/25 16:11
+// Last Modified : 2022/07/26 16:58
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -33,7 +33,7 @@ module BranchSelectCheck (
     // 寄存器输入{{{
     //  BTB信息{{{
     input   wire 	[4*`SINGLE_WORD]        SCT_predDest_p_i,
-            input   wire    [`INST_NUM]             SCT_BTBInstEnable_i,    // 表示BTB读出的4条目标指令那些是需要
+    input   wire    [`INST_NUM]             SCT_BTBInstEnable_i,    // 表示BTB读出的4条目标指令那些是需要
     input	wire	[`SINGLE_WORD]          SCT_BTBfifthVAddr_i,
     input	wire	                        SCT_needDelaySlot_i,
     input	wire    [`SINGLE_WORD]          SCT_BTBValidDest_i,
@@ -46,7 +46,6 @@ module BranchSelectCheck (
     input	wire    [`EXCCODE]              SCT_ExcCode_i,
     input	wire	                        SCT_isRefill_i,
 /*}}}*/
-    input	wire		                    SCT_isCanceled_i,   //对该周期内出现的异常信号和分支失败信号采样
     input	wire	                        SCT_valid_i,        // SecondCacheTrace送入信号
     // BPU预测结果{{{
     // PHT的预测结果
@@ -188,14 +187,14 @@ module BranchSelectCheck (
     assign BSC_DelaySlotIsGetted_w_o = SCT_needDelaySlot_i;
     assign isPredictSame =  (!(validTake_o || SCT_BTBValidTake_i))||
                             ((validTake_o && SCT_BTBValidTake_i)&& (validDest_o==SCT_BTBValidDest_i));
-    assign BSC_isDiffRes_w_o = !(isEnableSame&&isPredictSame);
+    assign BSC_isDiffRes_w_o = !(isEnableSame&&isPredictSame) && !SCT_needDelaySlot_i;
     assign BSC_needCancel_w_o = BSC_isDiffRes_w_o || SBA_flush_w_i;
     assign BSC_validDest_w_o = validDest_o;
     assign BSC_fifthVAddr_w_o = SCT_BTBfifthVAddr_i;
     assign BPU_checkPoint = BPU_checkPoint_up[0] | BPU_checkPoint_up[1] | BPU_checkPoint_up[2] | BPU_checkPoint_up[3];
     /*}}}*/
     //FIFO传入逻辑{{{
-    assign IF_valid_o = SCT_valid_i && (|actualEnable) && !SCT_isCanceled_i;
+    assign IF_valid_o = SCT_valid_i && (|actualEnable);
     assign IF_hasException_o = SCT_hasException_i;
     assign IF_ExcCode_o = SCT_ExcCode_i;
     assign IF_isRefill_o = SCT_isRefill_i;
@@ -268,10 +267,10 @@ module BranchSelectCheck (
 /*}}}*/
     // 分支恢复逻辑{{{
     assign BSC_allCheckPoint_w_o = SBA_flush_w_i ? SBA_checkPoint_w_i : BPU_checkPoint;
-    assign BSC_erroVAdr_w_o = SBA_flush_w_i ? SBA_erroVAddr_w_i : BPU_erroVAddr;
-    assign BSC_correctTake_w_o = SBA_flush_w_i ? SBA_corrTake_w_i : validTake_o;
-    assign BSC_correctDest_w_o = SBA_flush_w_i ? SBA_corrDest_w_i : validDest_o;
-    assign BSC_repairAction_w_o = SBA_flush_w_i ? SBA_repairAction_w_i : now_RepairAction;
+    assign BSC_erroVAdr_w_o      = SBA_flush_w_i ? SBA_erroVAddr_w_i : BPU_erroVAddr;
+    assign BSC_correctTake_w_o   = SBA_flush_w_i ? SBA_corrTake_w_i : validTake_o;
+    assign BSC_correctDest_w_o   = SBA_flush_w_i ? SBA_corrDest_w_i : validDest_o;
+    assign BSC_repairAction_w_o  = SBA_flush_w_i ? SBA_repairAction_w_i : now_RepairAction;
     assign baseAddr = SCT_VAddr_i[31:4];
     assign offset = SCT_VAddr_i[1:0];
     assign position =    ({2{firstValidBit[0]}} & 2'b00)|

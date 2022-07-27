@@ -122,13 +122,13 @@ module Main(
 	assign	ID_up_oprand0IsReg_i	=	ID_up_oprand0IsReg_o;
 	wire	[0:0]	ID_up_oprand1IsReg_o;	wire	[0:0]	ID_up_oprand1IsReg_i;
 	assign	ID_up_oprand1IsReg_i	=	ID_up_oprand1IsReg_o;
-	wire	[7:0]	ID_up_forwardSel0_o;	wire	[7:0]	ID_up_forwardSel0_i;
+	wire	[6:0]	ID_up_forwardSel0_o;	wire	[6:0]	ID_up_forwardSel0_i;
 	assign	ID_up_forwardSel0_i	=	ID_up_forwardSel0_o;
 	wire	[0:0]	ID_up_data0Ready_o;	wire	[0:0]	ID_up_data0Ready_i;
 	assign	ID_up_data0Ready_i	=	ID_up_data0Ready_o;
 	wire	[31:0]	ID_up_oprand1_o;	wire	[31:0]	ID_up_oprand1_i;
 	assign	ID_up_oprand1_i	=	ID_up_oprand1_o;
-	wire	[7:0]	ID_up_forwardSel1_o;	wire	[7:0]	ID_up_forwardSel1_i;
+	wire	[6:0]	ID_up_forwardSel1_o;	wire	[6:0]	ID_up_forwardSel1_i;
 	assign	ID_up_forwardSel1_i	=	ID_up_forwardSel1_o;
 	wire	[0:0]	ID_up_data1Ready_o;	wire	[0:0]	ID_up_data1Ready_i;
 	assign	ID_up_data1Ready_i	=	ID_up_data1Ready_o;
@@ -174,13 +174,13 @@ module Main(
 	assign	ID_down_oprand0IsReg_i	=	ID_down_oprand0IsReg_o;
 	wire	[0:0]	ID_down_oprand1IsReg_o;	wire	[0:0]	ID_down_oprand1IsReg_i;
 	assign	ID_down_oprand1IsReg_i	=	ID_down_oprand1IsReg_o;
-	wire	[7:0]	ID_down_forwardSel0_o;	wire	[7:0]	ID_down_forwardSel0_i;
+	wire	[6:0]	ID_down_forwardSel0_o;	wire	[6:0]	ID_down_forwardSel0_i;
 	assign	ID_down_forwardSel0_i	=	ID_down_forwardSel0_o;
 	wire	[0:0]	ID_down_data0Ready_o;	wire	[0:0]	ID_down_data0Ready_i;
 	assign	ID_down_data0Ready_i	=	ID_down_data0Ready_o;
 	wire	[31:0]	ID_down_oprand1_o;	wire	[31:0]	ID_down_oprand1_i;
 	assign	ID_down_oprand1_i	=	ID_down_oprand1_o;
-	wire	[7:0]	ID_down_forwardSel1_o;	wire	[7:0]	ID_down_forwardSel1_i;
+	wire	[6:0]	ID_down_forwardSel1_o;	wire	[6:0]	ID_down_forwardSel1_i;
 	assign	ID_down_forwardSel1_i	=	ID_down_forwardSel1_o;
 	wire	[0:0]	ID_down_data1Ready_o;	wire	[0:0]	ID_down_data1Ready_i;
 	assign	ID_down_data1Ready_i	=	ID_down_data1Ready_o;
@@ -342,7 +342,7 @@ module Main(
 	assign	REEXE_valid_w_i	=	REEXE_valid_w_o;
 	wire	[31:0]	REEXE_forwardData_w_o;	wire	[31:0]	REEXE_forwardData_w_i;
 	assign	REEXE_forwardData_w_i	=	REEXE_forwardData_w_o;
-	wire	[7:0]	REEXE_forwardMode_w_o;	wire	[7:0]	REEXE_forwardMode_w_i;
+	wire	[6:0]	REEXE_forwardMode_w_o;	wire	[6:0]	REEXE_forwardMode_w_i;
 	assign	REEXE_forwardMode_w_i	=	REEXE_forwardMode_w_o;
 	wire	[4:0]	REEXE_writeNum_w_o;	wire	[4:0]	REEXE_writeNum_w_i;
 	assign	REEXE_writeNum_w_i	=	REEXE_writeNum_w_o;
@@ -394,7 +394,7 @@ module Main(
 	assign	r_pfn1_i	=	r_pfn1_o;
 	wire	[4:0]	r_flags1_o;	wire	[4:0]	r_flags1_i;
 	assign	r_flags1_i	=	r_flags1_o;
-	wire	[7:0]	MEM_forwardMode_w_o;	wire	[7:0]	MEM_forwardMode_w_i;
+	wire	[6:0]	MEM_forwardMode_w_o;	wire	[6:0]	MEM_forwardMode_w_i;
 	assign	MEM_forwardMode_w_i	=	MEM_forwardMode_w_o;
 	wire	[4:0]	MEM_writeNum_w_o;	wire	[4:0]	MEM_writeNum_w_i;
 	assign	MEM_writeNum_w_i	=	MEM_writeNum_w_o;
@@ -440,6 +440,8 @@ module Main(
 	assign	MEM_VAddr_i	=	MEM_VAddr_o;
 	wire	[31:0]	MEM_rtData_o;	wire	[31:0]	MEM_rtData_i;
 	assign	MEM_rtData_i	=	MEM_rtData_o;
+	wire	[0:0]	MEM_memReq_o;	wire	[0:0]	MEM_memReq_i;
+	assign	MEM_memReq_i	=	MEM_memReq_o;
 	wire	[0:0]	MEM_isDangerous_o;	wire	[0:0]	MEM_isDangerous_i;
 	assign	MEM_isDangerous_i	=	MEM_isDangerous_o;
 	wire	[31:0]	MEM_finalRes_o;	wire	[31:0]	MEM_finalRes_i;
@@ -468,7 +470,7 @@ module Main(
 	assign	SBA_valid_w_i	=	SBA_valid_w_o;
 	wire	[31:0]	SBA_forwardData_w_o;	wire	[31:0]	SBA_forwardData_w_i;
 	assign	SBA_forwardData_w_i	=	SBA_forwardData_w_o;
-	wire	[7:0]	SBA_forwardMode_w_o;	wire	[7:0]	SBA_forwardMode_w_i;
+	wire	[6:0]	SBA_forwardMode_w_o;	wire	[6:0]	SBA_forwardMode_w_i;
 	assign	SBA_forwardMode_w_i	=	SBA_forwardMode_w_o;
 	wire	[4:0]	SBA_writeNum_w_o;	wire	[4:0]	SBA_writeNum_w_i;
 	assign	SBA_writeNum_w_i	=	SBA_writeNum_w_o;
@@ -528,7 +530,7 @@ module Main(
 	assign	inst_oddPage_i	=	inst_oddPage_o;
 	wire	[7:0]	inst_asid_o;	wire	[7:0]	inst_asid_i;
 	assign	inst_asid_i	=	inst_asid_o;
-	wire	[7:0]	EXE_up_forwardMode_w_o;	wire	[7:0]	EXE_up_forwardMode_w_i;
+	wire	[6:0]	EXE_up_forwardMode_w_o;	wire	[6:0]	EXE_up_forwardMode_w_i;
 	assign	EXE_up_forwardMode_w_i	=	EXE_up_forwardMode_w_o;
 	wire	[4:0]	EXE_up_writeNum_w_o;	wire	[4:0]	EXE_up_writeNum_w_i;
 	assign	EXE_up_writeNum_w_i	=	EXE_up_writeNum_w_o;
@@ -562,7 +564,7 @@ module Main(
 	assign	EXE_up_ExcCode_i	=	EXE_up_ExcCode_o;
 	wire	[0:0]	EXE_up_hasException_o;	wire	[0:0]	EXE_up_hasException_i;
 	assign	EXE_up_hasException_i	=	EXE_up_hasException_o;
-	wire	[7:0]	EXE_down_forwardMode_w_o;	wire	[7:0]	EXE_down_forwardMode_w_i;
+	wire	[6:0]	EXE_down_forwardMode_w_o;	wire	[6:0]	EXE_down_forwardMode_w_i;
 	assign	EXE_down_forwardMode_w_i	=	EXE_down_forwardMode_w_o;
 	wire	[4:0]	EXE_down_writeNum_w_o;	wire	[4:0]	EXE_down_writeNum_w_i;
 	assign	EXE_down_writeNum_w_i	=	EXE_down_writeNum_w_o;
@@ -630,7 +632,7 @@ module Main(
 	assign	EXE_down_isCacheInst_i	=	EXE_down_isCacheInst_o;
 	wire	[4:0]	EXE_down_CacheOperator_o;	wire	[4:0]	EXE_down_CacheOperator_i;
 	assign	EXE_down_CacheOperator_i	=	EXE_down_CacheOperator_o;
-	wire	[7:0]	PREMEM_forwardMode_w_o;	wire	[7:0]	PREMEM_forwardMode_w_i;
+	wire	[6:0]	PREMEM_forwardMode_w_o;	wire	[6:0]	PREMEM_forwardMode_w_i;
 	assign	PREMEM_forwardMode_w_i	=	PREMEM_forwardMode_w_o;
 	wire	[4:0]	PREMEM_writeNum_w_o;	wire	[4:0]	PREMEM_writeNum_w_i;
 	assign	PREMEM_writeNum_w_i	=	PREMEM_writeNum_w_o;
@@ -876,8 +878,10 @@ WriteBack  u_WriteBack (
     .MEM_valid_w_i           ( MEM_valid_w_i         ),
     .PBA_hasRisk_w_i         ( PBA_hasRisk_w_i       ),
     .data_rdata              ( data_rdata            ),
+    .data_data_ok            ( data_data_ok          ),
     .MEM_writeNum_i          ( MEM_writeNum_i        ),
     .MEM_exceptionRisk_i     ( MEM_exceptionRisk_i   ),
+    .MEM_memReq_i            ( MEM_memReq_i          ),
     .MEM_VAddr_i             ( MEM_VAddr_i           ),
     .MEM_isDangerous_i       ( MEM_isDangerous_i     ),
     .MEM_finalRes_i          ( MEM_finalRes_i        ),
@@ -1040,7 +1044,6 @@ MEM  u_MEM (
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
     .CP0_readData_w_i         ( CP0_readData_w_i          ),
     .data_hasException        ( data_hasException         ),
-    .data_data_ok             ( data_data_ok              ),
     .DMMU_tlbRefill_i         ( DMMU_tlbRefill_i          ),
     .DMMU_ExcCode_i           ( DMMU_ExcCode_i            ),
     .CP0_Cause_w_i            ( CP0_Cause_w_i             ),
@@ -1090,6 +1093,7 @@ MEM  u_MEM (
     .MEM_writeNum_o           ( MEM_writeNum_o            ),
     .MEM_VAddr_o              ( MEM_VAddr_o               ),
     .MEM_rtData_o             ( MEM_rtData_o              ),
+    .MEM_memReq_o             ( MEM_memReq_o              ),
     .MEM_isDangerous_o        ( MEM_isDangerous_o         ),
     .MEM_finalRes_o           ( MEM_finalRes_o            ),
     .MEM_alignCheck_o         ( MEM_alignCheck_o          ),

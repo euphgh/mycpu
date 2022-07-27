@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/25 17:04
+// Last Modified : 2022/07/26 17:15
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -51,12 +51,15 @@ module Arbitrator(
     wire                    isNeedRd    [1:0];  // 指令是否存在写寄存器的需求
 
     // 指令种类的冲突，当0号指令可以在0号槽双发且1号指令可以在1号槽双发，才能双发
-    wire    kindConflict = !(|(instMode[0] & `AT_SLOT_ZERO)) || !(|(instMode[1] & `AT_SLOT_ONE));
+    wire    kindConflict0   = !(|(instMode[0] & `AT_SLOT_ZERO));
+    wire    kindConflict1   = !(|(instMode[1] & `AT_SLOT_ONE));
+    wire    dual_kindConflict   = kindConflict0 || kindConflict1;
+    wire    single_kindConflict = !(|(instMode[0] & `AT_SLOT_ONE));
     // 指令数据的冲突，是否存在写后读
     wire    dataConflict = isNeedRd[0] && ((isNeedRs[1] && (ReadRs[1]==writeRd[0]))||(isNeedRt[1] && (ReadRt[1]==writeRd[0])));
-    assign AB_issueMode_w =     ({2{IQ_supplyValid  [1]}} & ((dataConflict || kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE)) |
-                                ({2{IQ_supplyValid  [0]}} & `SINGLE_ISSUE) | `NO_ISSUE;
-
+    assign AB_issueMode_w =     IQ_supplyValid  [1] ? ((dataConflict || dual_kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE) :
+                                IQ_supplyValid  [0] ? (single_kindConflict ? `NO_ISSUE : `SINGLE_ISSUE) : `NO_ISSUE;
+ 
     wire    [2*`GPR_NUM]    IQ_regReadNum_up    [1:0];
     wire    [`GPR_NUM]      IQ_regWriteNum_up   [1:0];
     wire    [1:0]           IQ_needRead_up      [1:0];

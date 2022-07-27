@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 16:52
-// Last Modified : 2022/07/25 21:07
+// Last Modified : 2022/07/25 23:22
 // File Name     : DataMemoryManagementUnit.v
 // Description   :
 //         
@@ -166,7 +166,7 @@ module DataMemoryManagementUnit(
     wire    modifyException     =   data_hit_i && data_v_i && !data_d_i && !mapWR;
     wire    storeException      =   !mapWR && (!data_hit_i || !data_v_i);
     wire    loadException       =   mapWR  && (!data_hit_i || !data_v_i);
-    assign  data_hasException =   (modifyException || storeException || loadException) && mapReq;
+    assign  data_hasException   =   (modifyException || storeException || loadException) && mapReq && isOther;
     assign  DMMU_ExcCode_o      =   {5{mapReq}} & (modifyException ?   `MOD :
                                     storeException  ?   `TLBS: `TLBL);
     assign  DMMU_tlbRefill_o    =   mapReq && !data_hit_i ;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/13 09:29
-// Last Modified : 2022/07/25 11:35
+// Last Modified : 2022/07/26 17:31
 // File Name     : Decorder.v
 // Description   : ID段的解码器，用于生成所有的控制信号
 //         
@@ -250,7 +250,8 @@ wire temp_0_1 = (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]))) |
  (!(temp_0_1) & (((temp_0_0) & ((!inst[i][16]& inst[i][17]& inst[i][18]& inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]& inst[i][18]& inst[i][19]&!inst[i][20]))) |
  (!(temp_0_0) & (1'b0))));
-	assign	aluOprator_up[i][11]	=	((temp_0_1) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]))) |
+	assign	aluOprator_up[i][11]	=	((temp_0_1) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+(!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]))) |
  (!(temp_0_1) & (((temp_0_0) & (( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) |
 ( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]))) |
  (!(temp_0_0) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |

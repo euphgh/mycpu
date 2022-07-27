@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 10:17
-// Last Modified : 2022/07/21 19:49
+// Last Modified : 2022/07/26 16:50
 // File Name     : IndirectJumpTargetCache.v
 // Description   : 用于预测j*r $1-30指令的目的地址,采用Gshare方法,在
 //                  finalConfirme的时候需要Info对GHR进行回复
@@ -66,9 +66,9 @@ module IndirectJumpTargetCache (
             checkPoint[3]  <= 'd0;
         end
         else if (inst_index_ok && inst_req) begin
-            destination[0] <= {PCR_VAddr_i[31:4],2'b01,PCR_VAddr_i[1:0]};
-            destination[1] <= {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
-            destination[2] <= {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
+            destination[0] <= {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
+            destination[1] <= {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
+            destination[2] <= {BTB_fifthVAddr_i[31:4],2'b11,BTB_fifthVAddr_i[1:0]};
             destination[3] <= {BTB_fifthVAddr_i[31:4],2'b01,BTB_fifthVAddr_i[1:0]};
             checkPoint[0]  <= 'd0;
             checkPoint[1]  <= 'd0;

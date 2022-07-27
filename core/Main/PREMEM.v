@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/25 20:20
+// Last Modified : 2022/07/25 23:23
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -245,11 +245,12 @@ module PREMEM (
     // }}}
     // 线信号处理{{{
     assign PREMEM_VAddr_w_o  = EXE_down_aluRes_r_i;
-    assign PREMEM_search_w_o = PREMEM_allowin_w_o && !PREMEM_hasRisk_w_o && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLP];
-    assign PREMEM_writeI_w_o = PREMEM_allowin_w_o && !PREMEM_hasRisk_w_o && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWI];
-    assign PREMEM_writeR_w_o = PREMEM_allowin_w_o && !PREMEM_hasRisk_w_o && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
-    assign PREMEM_read_w_o   = PREMEM_allowin_w_o && !PREMEM_hasRisk_w_o && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
-    assign PREMEM_map_w_o    = PREMEM_allowin_w_o && !PREMEM_hasRisk_w_o && EXE_down_memReq_r_i;
+    wire   ok_to_req_tlb     = !SBA_hasRisk_w_i && !PREMEM_hasException_o && MEM_allowin_w_i;
+    assign PREMEM_search_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLP];
+    assign PREMEM_writeI_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWI];
+    assign PREMEM_writeR_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
+    assign PREMEM_read_w_o   = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
+    assign PREMEM_map_w_o    = EXE_down_memReq_r_i;
     wire    cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
     wire    store_conflict  = EXE_down_memReq_r_i && SBA_hasRisk_w_i;
     wire    tlb_conflict    = EXE_down_isTLBInst_r_i && PREMEM_hasRisk_w_o;
@@ -282,7 +283,7 @@ module PREMEM (
     end
     /*}}}*/
     // 总线信号{{{
-    assign data_req =  EXE_down_memReq_r_i && !SBA_hasRisk_w_i && !PREMEM_hasException_o && MEM_allowin_w_i;
+    assign data_req =  EXE_down_memReq_r_i && ok_to_req_tlb;
     assign data_wr  = EXE_down_memWR_r_i;
     assign data_index   = EXE_down_aluRes_r_i[11:0];
     assign data_wstrb   = EXE_down_memEnable_r_i;

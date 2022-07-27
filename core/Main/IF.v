@@ -185,8 +185,6 @@ module IF (
 	assign	SCT_PHT_predTake_p_i	=	SCT_PHT_predTake_p_o;
 	wire	[39:0]	SCT_PHT_checkPoint_p_o;	wire	[39:0]	SCT_PHT_checkPoint_p_i;
 	assign	SCT_PHT_checkPoint_p_i	=	SCT_PHT_checkPoint_p_o;
-	wire	[0:0]	SCT_isCanceled_o;	wire	[0:0]	SCT_isCanceled_i;
-	assign	SCT_isCanceled_i	=	SCT_isCanceled_o;
 	wire	[31:0]	IJTC_checkPoint_p_o;	wire	[31:0]	IJTC_checkPoint_p_i;
 	assign	IJTC_checkPoint_p_i	=	IJTC_checkPoint_p_o;
 	wire	[127:0]	IJTC_predDest_p_o;	wire	[127:0]	IJTC_predDest_p_i;
@@ -217,55 +215,54 @@ module IF (
 	assign	FCT_isCanceled_i	=	FCT_isCanceled_o;
 
 BranchSelectCheck  u_BranchSelectCheck (
-    .SBA_flush_w_i              ( SBA_flush_w_i               ),
-    .SBA_erroVAddr_w_i          ( SBA_erroVAddr_w_i           ),
-    .SBA_corrDest_w_i           ( SBA_corrDest_w_i            ),
-    .SBA_corrTake_w_i           ( SBA_corrTake_w_i            ),
-    .SBA_checkPoint_w_i         ( SBA_checkPoint_w_i          ),
-    .SBA_repairAction_w_i       ( SBA_repairAction_w_i        ),
-    .inst_rdata                 ( inst_rdata                  ),
-    .SCT_predDest_p_i           ( SCT_predDest_p_i            ),
-    .SCT_BTBInstEnable_i        ( SCT_BTBInstEnable_i         ),
-    .SCT_BTBfifthVAddr_i        ( SCT_BTBfifthVAddr_i         ),
-    .SCT_needDelaySlot_i        ( SCT_needDelaySlot_i         ),
-    .SCT_BTBValidDest_i         ( SCT_BTBValidDest_i          ),
-    .SCT_BTBValidTake_i         ( SCT_BTBValidTake_i          ),
-    .SCT_originEnable_i         ( SCT_originEnable_i          ),
-    .SCT_VAddr_i                ( SCT_VAddr_i                 ),
-    .SCT_hasException_i         ( SCT_hasException_i          ),
-    .SCT_ExcCode_i              ( SCT_ExcCode_i               ),
-    .SCT_isRefill_i             ( SCT_isRefill_i              ),
-    .SCT_isCanceled_i           ( SCT_isCanceled_i            ),
-    .SCT_valid_i                ( SCT_valid_i                 ),
-    .SCT_PHT_predTake_p_i       ( SCT_PHT_predTake_p_i        ),
-    .SCT_PHT_checkPoint_p_i     ( SCT_PHT_checkPoint_p_i      ),
-    .SCT_RAS_predDest_p_i       ( SCT_RAS_predDest_p_i        ),
-    .SCT_RAS_checkPoint_p_i     ( SCT_RAS_checkPoint_p_i      ),
-    .SCT_IJTC_checkPoint_p_i    ( SCT_IJTC_checkPoint_p_i     ),
-    .SCT_IJTC_predDest_p_i      ( SCT_IJTC_predDest_p_i       ),
+    .SBA_flush_w_i                      ( SBA_flush_w_i                       ),
+    .SBA_erroVAddr_w_i                  ( SBA_erroVAddr_w_i                   ),
+    .SBA_corrDest_w_i                   ( SBA_corrDest_w_i                    ),
+    .SBA_corrTake_w_i                   ( SBA_corrTake_w_i                    ),
+    .SBA_checkPoint_w_i                 ( SBA_checkPoint_w_i                  ),
+    .SBA_repairAction_w_i               ( SBA_repairAction_w_i                ),
+    .inst_rdata                         ( inst_rdata                          ),
+    .SCT_predDest_p_i                   ( SCT_predDest_p_i                    ),
+    .SCT_BTBInstEnable_i                ( SCT_BTBInstEnable_i                 ),
+    .SCT_BTBfifthVAddr_i                ( SCT_BTBfifthVAddr_i                 ),
+    .SCT_needDelaySlot_i                ( SCT_needDelaySlot_i                 ),
+    .SCT_BTBValidDest_i                 ( SCT_BTBValidDest_i                  ),
+    .SCT_BTBValidTake_i                 ( SCT_BTBValidTake_i                  ),
+    .SCT_originEnable_i                 ( SCT_originEnable_i                  ),
+    .SCT_VAddr_i                        ( SCT_VAddr_i                         ),
+    .SCT_hasException_i                 ( SCT_hasException_i                  ),
+    .SCT_ExcCode_i                      ( SCT_ExcCode_i                       ),
+    .SCT_isRefill_i                     ( SCT_isRefill_i                      ),
+    .SCT_valid_i                        ( SCT_valid_i                         ),
+    .SCT_PHT_predTake_p_i               ( SCT_PHT_predTake_p_i                ),
+    .SCT_PHT_checkPoint_p_i             ( SCT_PHT_checkPoint_p_i              ),
+    .SCT_RAS_predDest_p_i               ( SCT_RAS_predDest_p_i                ),
+    .SCT_RAS_checkPoint_p_i             ( SCT_RAS_checkPoint_p_i              ),
+    .SCT_IJTC_checkPoint_p_i            ( SCT_IJTC_checkPoint_p_i             ),
+    .SCT_IJTC_predDest_p_i              ( SCT_IJTC_predDest_p_i               ),
 
-    .BSC_repairAction_w_o       ( BSC_repairAction_w_o        ),
-    .BSC_allCheckPoint_w_o      ( BSC_allCheckPoint_w_o       ),
-    .BSC_erroVAdr_w_o           ( BSC_erroVAdr_w_o            ),
-    .BSC_correctTake_w_o        ( BSC_correctTake_w_o         ),
-    .BSC_correctDest_w_o        ( BSC_correctDest_w_o         ),
-    .BSC_needCancel_w_o         ( BSC_needCancel_w_o          ),
-    .BSC_isDiffRes_w_o          ( BSC_isDiffRes_w_o           ),
-    .BSC_fifthVAddr_w_o         ( BSC_fifthVAddr_w_o          ),
-    .BSC_validDest_w_o          ( BSC_validDest_w_o           ),
-    .BSC_needDelaySlot_w_o      ( BSC_needDelaySlot_w_o       ),
-    .BSC_DelaySlotIsGetted_w_o  ( BSC_DelaySlotIsGetted_w_o   ),
-    .IF_predDest_p_o            ( IF_predDest_p_o             ),
-    .IF_predTake_p_o            ( IF_predTake_p_o             ),
-    .IF_predInfo_p_o            ( IF_predInfo_p_o             ),
-    .IF_instBasePC_o            ( IF_instBasePC_o             ),
-    .IF_valid_o                 ( IF_valid_o                  ),
-    .IF_instEnable_o            ( IF_instEnable_o             ),
-    .IF_inst_p_o                ( IF_inst_p_o                 ),
-    .IF_instNum_o               ( IF_instNum_o                ),
-    .IF_hasException_o          ( IF_hasException_o           ),
-    .IF_isRefill_o              ( IF_isRefill_o               ),
-    .IF_ExcCode_o               ( IF_ExcCode_o                )
+    .BSC_repairAction_w_o               ( BSC_repairAction_w_o                ),
+    .BSC_allCheckPoint_w_o              ( BSC_allCheckPoint_w_o               ),
+    .BSC_erroVAdr_w_o                   ( BSC_erroVAdr_w_o                    ),
+    .BSC_correctTake_w_o                ( BSC_correctTake_w_o                 ),
+    .BSC_correctDest_w_o                ( BSC_correctDest_w_o                 ),
+    .BSC_needCancel_w_o                 ( BSC_needCancel_w_o                  ),
+    .BSC_isDiffRes_w_o                  ( BSC_isDiffRes_w_o                   ),
+    .BSC_fifthVAddr_w_o                 ( BSC_fifthVAddr_w_o                  ),
+    .BSC_validDest_w_o                  ( BSC_validDest_w_o                   ),
+    .BSC_needDelaySlot_w_o              ( BSC_needDelaySlot_w_o               ),
+    .BSC_DelaySlotIsGetted_w_o          ( BSC_DelaySlotIsGetted_w_o           ),
+    .IF_predDest_p_o                    ( IF_predDest_p_o                     ),
+    .IF_predTake_p_o                    ( IF_predTake_p_o                     ),
+    .IF_predInfo_p_o                    ( IF_predInfo_p_o                     ),
+    .IF_instBasePC_o                    ( IF_instBasePC_o                     ),
+    .IF_valid_o                         ( IF_valid_o                          ),
+    .IF_instEnable_o                    ( IF_instEnable_o                     ),
+    .IF_inst_p_o                        ( IF_inst_p_o                         ),
+    .IF_instNum_o                       ( IF_instNum_o                        ),
+    .IF_hasException_o                  ( IF_hasException_o                   ),
+    .IF_isRefill_o                      ( IF_isRefill_o                       ),
+    .IF_ExcCode_o                       ( IF_ExcCode_o                        )
 );
 
 PatternHistoryTable  u_PatternHistoryTable (
@@ -440,8 +437,7 @@ SecondCacheTrace  u_SecondCacheTrace (
     .SCT_RAS_predDest_p_o     ( SCT_RAS_predDest_p_o      ),
     .SCT_RAS_checkPoint_p_o   ( SCT_RAS_checkPoint_p_o    ),
     .SCT_PHT_predTake_p_o     ( SCT_PHT_predTake_p_o      ),
-    .SCT_PHT_checkPoint_p_o   ( SCT_PHT_checkPoint_p_o    ),
-    .SCT_isCanceled_o         ( SCT_isCanceled_o          )
+    .SCT_PHT_checkPoint_p_o   ( SCT_PHT_checkPoint_p_o    )
 );
 
 IndirectJumpTargetCache  u_IndirectJumpTargetCache (

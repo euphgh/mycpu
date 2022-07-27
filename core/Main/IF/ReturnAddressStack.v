@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 08:52
-// Last Modified : 2022/07/21 19:48
+// Last Modified : 2022/07/26 16:49
 // File Name     : ReturnAddressStack.v
 // Description   : 预测j.*r指令和jr $31指令的跳转返回关系
 //                  1. 在preComfirm阶段修改preSatck,如果是call，就用PC(call+8)
@@ -73,9 +73,9 @@ module ReturnAddressStack (
             checkPoint[3]  <= 'd0;
         end
         else if (inst_index_ok && inst_req) begin
-            destination[0] <= {PCR_VAddr_i[31:4],2'b01,PCR_VAddr_i[1:0]};
-            destination[1] <= {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
-            destination[2] <= {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
+            destination[0] <= {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
+            destination[1] <= {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
+            destination[2] <= {BTB_fifthVAddr_i[31:4],2'b00,BTB_fifthVAddr_i[1:0]};
             destination[3] <= {BTB_fifthVAddr_i[31:4],2'b01,BTB_fifthVAddr_i[1:0]};
             checkPoint[0]  <= 'd0;
             checkPoint[1]  <= 'd0;

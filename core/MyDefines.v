@@ -87,9 +87,14 @@
 `define IQ_VALID_DUAL   2'b11
 `define IQ_VALID_NON    2'b00
 `define IQ_CAPABILITY   16
-`define IQ_NUMBER       `IQ_NUMBER_LEN-1:0
-`define IQ_NUMBER_LEN   $clog2(`IQ_CAPABILITY)+1
-`define IQ_GAP          5'd9 
+`define IQ_GAP          5'd8
+`define IQ_NUMBER_BIT   4'd
+`define IQ_NUMBER_WID   3:0
+
+`define IQ_CAP_WIDTH    $clog2(`IQ_CAPABILITY)
+`define IQ_POINT        `IQ_CAP_WIDTH:0
+`define IQ_NUMBER       `IQ_CAP_WIDTH-1:0
+`define IQ_POINT_SIGN   `IQ_CAP_WIDTH
 // ID_demandNum_i表示需要的指令条数
 `define NO_DEMAND       2'b00
 `define ONE_DEMAND      2'b01
@@ -148,8 +153,8 @@
 `define FORWARD_PREMEM_BIT      3
 `define FORWARD_MEM_BIT         4
 `define FORWARD_WB_BIT          5       
+`define FORWARD_ID_BIT          6   // 寄存器中有数据，无需前递
 // 以上都是前递的寄存器数值
-`define FORWARD_ID_BIT          6       // 指PC+4，立即数，sa等数据
 `define FORWARD_MODE_SBA        `FORWARD_MODE_LEN'b00000001
 `define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b00000010
 `define FORWARD_MODE_PBA        `FORWARD_MODE_LEN'b00000100

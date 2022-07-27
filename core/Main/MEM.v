@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/25 21:11
+// Last Modified : 2022/07/26 21:27
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -34,7 +34,6 @@ module MEM(
     input	wire	[`SINGLE_WORD]          CP0_readData_w_i,   // 读出来的寄存器数值
     // 在执行TLB指令后，需要将以下数据写入CP0寄存器
     input	wire	                        data_hasException,
-    input	wire	                        data_data_ok,
     input	wire	                        DMMU_tlbRefill_i,   // 是否有重填异常
     input	wire	[`EXCCODE]              DMMU_ExcCode_i,     //包括TLB异常以及非对齐异常
     input	wire	[`SINGLE_WORD]          CP0_Cause_w_i,
@@ -105,6 +104,7 @@ module MEM(
     output	wire	[`GPR_NUM]              MEM_writeNum_o,         // 回写寄存器数值,0为不回写
     output	wire	[`SINGLE_WORD]          MEM_VAddr_o,
     output	wire	[`SINGLE_WORD]          MEM_rtData_o,
+    output	wire	                        MEM_memReq_o,
     output	wire	                        MEM_isDangerous_o,      // 表示该条指令是不是危险指令,传递给下一级
     output	wire    [`SINGLE_WORD]          MEM_finalRes_o,         // 最终写入寄存器的数值 包括alu，乘除，cp0
     output	wire	[1:0]                   MEM_alignCheck_o,
@@ -199,7 +199,7 @@ module MEM(
     assign MEM_VAddr_o = PREMEM_VAddr_r_i;
     // 流水线互锁
     reg hasData;
-    wire ready = (!PREMEM_memReq_r_i) || data_data_ok;
+    wire ready = 1'b1;
     wire needFlash = CP0_excOccur_w_i ;
     // 只要有一段有数据就说明有数据
     assign MEM_valid_w_o = hasData && ready && REEXE_allowin_w_i;
@@ -223,6 +223,7 @@ module MEM(
     assign MEM_finalRes_o = MEM_forwardData_w_o;
     assign MEM_alignCheck_o = PREMEM_alignCheck_r_i;
     assign MEM_exceptionRisk_o = 1'b0;
+    assign MEM_memReq_o = PREMEM_memReq_r_i;
     // }}}
     // 异常处理{{{
     // 中断生成
