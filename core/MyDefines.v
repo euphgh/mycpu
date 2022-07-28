@@ -1,6 +1,7 @@
 //globaol{{{
+`define STARTPOINT  32'hbfc7d7c0
+`define STARTLINE   63583
 `define ZEROWORD 32'h00000000
-`define STARTPOINT 32'hbfc00000
 `define SINGLE_WORD_LEN 32
 `define SINGLE_WORD `SINGLE_WORD_LEN-1:0
 `define FOUR_WORDS 127:0
@@ -337,16 +338,13 @@
 /*}}}*/
 // 访问存储模式设置{{{
 `define LOAD_MODE       6:0
-`define LOAD_MODE_LB    7'b0000001
-`define LOAD_MODE_LBU   7'b0000010
-`define LOAD_MODE_LH    7'b0000100
-`define LOAD_MODE_LHU   7'b0001000
-`define LOAD_MODE_LW    7'b0010000
-`define LOAD_MODE_LWL   7'b0100000
-`define LOAD_MODE_LWR   7'b1000000
-`define LOAD_MODE_LH_BIT    2
-`define LOAD_MODE_LHU_BIT   3
-`define LOAD_MODE_LW_BIT    4
+`define LOAD_MODE_LB    0
+`define LOAD_MODE_LBU   1
+`define LOAD_MODE_LH    2
+`define LOAD_MODE_LHU   3
+`define LOAD_MODE_LW    4
+`define LOAD_MODE_LWL   5
+`define LOAD_MODE_LWR   6
 
 `define LOAD_SEL        10:0
 `define LOAD_SEL_LB     11'b00000000001

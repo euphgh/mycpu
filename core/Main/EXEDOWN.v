@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/27 16:30
+// Last Modified : 2022/07/28 14:43
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -373,22 +373,31 @@ module EXEDOWN(
 /*}}}*/
     // 访存处理{{{
     wire [1:0]  alignCheck = updataRegFile_up[0][1:0] + ID_down_oprand1_r_i[1:0];
-    wire [3:0]  loadEnable = 4'b1111;
-    wire [3:0]  storeByteEnable =   alignCheck==2'b00 ? 4'b0001 :
-                                    alignCheck==2'b01 ? 4'b0010 :
-                                    alignCheck==2'b10 ? 4'b0100 : 4'b1000;
-    wire [3:0]  storeHalfEnable =   alignCheck==2'b00 ? 4'b0011 :
-                                    alignCheck==2'b10 ? 4'b1100 : 4'b0000;
-    wire [3:0]  storeWordLeftEnable =  alignCheck==2'b00 ? 4'b0001 :
-                                       alignCheck==2'b01 ? 4'b0011 :
-                                       alignCheck==2'b10 ? 4'b0111 : 4'b1111 ;
-    wire [3:0]  storeWordRightEnable = alignCheck==2'b00 ? 4'b1111 :
-                                       alignCheck==2'b01 ? 4'b1110 :
-                                       alignCheck==2'b10 ? 4'b1100 : 4'b1000 ;
-    wire [3:0]  storeEnable =   ID_down_storeMode_r_i[`STORE_MODE_SB]  ? storeByteEnable :
-                                ID_down_storeMode_r_i[`STORE_MODE_SH]  ? storeHalfEnable :
-                                ID_down_storeMode_r_i[`STORE_MODE_SWR] ? storeWordRightEnable :
-                                ID_down_storeMode_r_i[`STORE_MODE_SWL] ? storeWordLeftEnable  : 4'b1111;
+    wire [3:0]  ByteEnable =    alignCheck==2'b00 ? 4'b0001 :
+                                alignCheck==2'b01 ? 4'b0010 :
+                                alignCheck==2'b10 ? 4'b0100 : 4'b1000 ;
+    wire [3:0]  HalfEnable =    alignCheck==2'b00 ? 4'b0011 :
+                                alignCheck==2'b10 ? 4'b1100 : 4'b0000 ;
+    wire [3:0]  WordLeftEnable =    alignCheck==2'b00 ? 4'b0001 :
+                                    alignCheck==2'b01 ? 4'b0011 :
+                                    alignCheck==2'b10 ? 4'b0111 : 4'b1111 ;
+    wire [3:0]  WordRightEnable =   alignCheck==2'b00 ? 4'b1111 :
+                                    alignCheck==2'b01 ? 4'b1110 :
+                                    alignCheck==2'b10 ? 4'b1100 : 4'b1000 ;
+    wire isByte   = ID_down_loadMode_r_i[`LOAD_MODE_LB]  || 
+                    ID_down_loadMode_r_i[`LOAD_MODE_LBU] || 
+                    ID_down_storeMode_r_i[`STORE_MODE_SB];
+    wire isHalf   = ID_down_loadMode_r_i[`LOAD_MODE_LH]  || 
+                    ID_down_loadMode_r_i[`LOAD_MODE_LHU] || 
+                    ID_down_storeMode_r_i[`STORE_MODE_SH];
+    wire isLeft   = ID_down_loadMode_r_i[`LOAD_MODE_LWL] ||
+                    ID_down_storeMode_r_i[`STORE_MODE_SWL];
+    wire isRight  = ID_down_loadMode_r_i[`LOAD_MODE_LWR] ||
+                    ID_down_storeMode_r_i[`STORE_MODE_SWR];
+    assign EXE_down_memEnable_o   = isByte  ? ByteEnable :
+                                    isHalf  ? HalfEnable :
+                                    isLeft  ? WordRightEnable :
+                                    isRight ? WordLeftEnable  : 4'b1111;
     wire [`LOAD_SEL] lwl_sel =  alignCheck==2'b00 ? `LOAD_SEL_L0 :
                                 alignCheck==2'b01 ? `LOAD_SEL_L1 : 
                                 alignCheck==2'b10 ? `LOAD_SEL_R2 : `LOAD_SEL_LW;
@@ -401,7 +410,6 @@ module EXEDOWN(
                                 ID_down_loadMode_r_i == `LOAD_MODE_LHU ? `LOAD_SEL_LHU:
                                 ID_down_loadMode_r_i == `LOAD_MODE_LW  ? `LOAD_SEL_LW :
                                 ID_down_loadMode_r_i == `LOAD_MODE_LWL ? lwl_sel : lwr_sel;
-    assign EXE_down_memEnable_o = ID_down_memWR_r_i ? storeEnable : loadEnable;
     wire [`SINGLE_WORD] sb_data = {4{updataRegFile_up[1][7:0]}};
     wire [`SINGLE_WORD] sh_data = {2{updataRegFile_up[1][15:0]}};
     wire [`SINGLE_WORD] combination [2:0];
@@ -425,8 +433,8 @@ module EXEDOWN(
     // ALU 异常处理{{{
     wire storeException = ((ID_down_storeMode_r_i[`STORE_MODE_SH] && alignCheck[0]!=1'b0) ||
                           (ID_down_storeMode_r_i[`STORE_MODE_SW] && (alignCheck[1:0]!=2'b00))) && ID_down_memReq_r_i;
-    wire loadException  = (((ID_down_loadMode_r_i[`LOAD_MODE_LH_BIT]||ID_down_loadMode_r_i[`LOAD_MODE_LHU_BIT]) && alignCheck[0]!=1'b0) || 
-                          ((ID_down_loadMode_r_i[`LOAD_MODE_LW_BIT]) && alignCheck[1:0]!=2'b00)) && ID_down_memReq_r_i;
+    wire loadException  = (((ID_down_loadMode_r_i[`LOAD_MODE_LH]||ID_down_loadMode_r_i[`LOAD_MODE_LHU]) && alignCheck[0]!=1'b0) || 
+                          ((ID_down_loadMode_r_i[`LOAD_MODE_LW]) && alignCheck[1:0]!=2'b00)) && ID_down_memReq_r_i;
     wire tlbRisk = (aluso[31:29]!=3'b101) && (aluso[31:29]!=3'b100) && ID_down_memReq_r_i;
     wire equals = !(|aluso);
     wire hasTrap =  ID_down_trapKind_r_i[`TRAP_EQUAL]      ? equals    :
@@ -513,7 +521,7 @@ module EXEDOWN(
             isAccepted  <=  `FALSE;
         end 
     end
-    wire mduConflict = isMduWrite && (isAccepted||MDU_Oprand_ok==1'b0);
+    wire mduConflict = isMduWrite && ((!isAccepted)||MDU_Oprand_ok==1'b0);
     wire HiLoConflict = ((|ID_down_readHiLo_r_i)||(|ID_down_writeHiLo_r_i))&&HiLo_busy;   
 /*}}}*/
     // HiLo模块和MDU模块的交互{{{

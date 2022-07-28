@@ -9,9 +9,8 @@
  *      (debug_wb_pc, debug_wb_rf_wen, debug_wb_rf_wnum, debug_wb_rf_wdata) is ignored
  */
 
-`timescale 1ns / 1ps
-
-
+`timescale 1ns / 1ps 
+`include "MyDefines.v"
 `define FUNC_TEST
 // `define CACHE_HIT_TEST
 `define TRACE_REF_FILE          "../../../../../../mycpu/trace/golden_trace.txt"
@@ -95,11 +94,12 @@ assign debug_wb_wnum [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wnum1;
 assign debug_wb_wdata[1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wdata1;
 
 // open the trace file
-integer trace_ref;
+integer trace_ref,status;
 initial begin
     trace_ref = $fopen(`TRACE_REF_FILE, "r");
+    status = $fseek(trace_ref,24*`STARTLINE,0);
+    $display("status: %h",status);
 end
-
 //get reference result in falling edge
 reg        trace_cmp_flag;
 reg        debug_end;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/15 20:49
-// Last Modified : 2022/07/17 10:04
+// Last Modified : 2022/07/28 11:20
 // File Name     : MyMultiplier.v
 // Description   :
 //         
@@ -59,7 +59,7 @@ module MyMultiplier(
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,mulOprand_up,mulOprand)
     generate
         for (genvar i = 0; i < 2; i=i+1) begin
-            assign oprand[i] = {{isSignedMul ? mulOprand_up[i][31] : 1'b0},mulOprand_up[i]};
+            assign oprand[i] = {isSignedMul && mulOprand_up[i][31],mulOprand_up[i]};
         end
     endgenerate
     Multiplier Multiplier_u(

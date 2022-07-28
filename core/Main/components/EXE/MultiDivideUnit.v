@@ -105,7 +105,7 @@ module MultiDivideUnit(
     /*}}}*/ 
     assign MDU_Oprand_ok =  MDU_operator[`DIV_REQ]  ? div_oprand_ok    :
                             (MDU_operator[`MUL_REQ] || MDU_operator[`ACCUM_REQ]) ? mulOprand_ok&&MduReq  : 1'b1;
-    assign MDU_data_ok =  cancel && (div_oprand_ok||mulOprand_ok||MDU_operator[`MT_REQ]) ;
+    assign MDU_data_ok =  !cancel && (div_data_ok||mulData_ok||MDU_operator[`MT_REQ]) ;
 
     assign MDU_writeEnable = (div_data_ok||mulData_ok) ? 2'b11 : {MDU_operator[`MT_DEST],MDU_operator[`MT_DEST]};
     assign MDU_writeData_p[31:0] =   div_data_ok ? quotient_o :

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/15 20:21
-// Last Modified : 2022/07/17 09:40
+// Last Modified : 2022/07/28 10:11
 // File Name     : Divider.v
 // Description   : 除法器，33周期，包括有符号数和无符号数
 //         
@@ -77,6 +77,7 @@ module Divider (
             timer           <= timer < 'd32 ? timer + 1'b1 : 'b0;
             minuend         <= timer < 'd32 ? minuend_back : 'd0;
             quotient_iter   <= timer < 'd32 ? quotient_temp: 'd0;
+            have_data       <= timer < 'd32 ? 1'b1 : 1'b0;
         end
     end
     
