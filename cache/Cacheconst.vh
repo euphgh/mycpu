@@ -33,6 +33,7 @@
 `define VIC_RES    4'b0101
 //FUNCTION
 `define encoder4_2(x) {{x[2] | x[3]}, {x[1] | x[3]}}
+`define encoder2_1(x) {x[1]}
 //AXI_ID
 `define ICACHE_ARID 4'd0
 `define ICACHE_RID  4'd0

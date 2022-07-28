@@ -345,6 +345,7 @@ module mycpu_top(
     // Data Uncache <-> Data Cache
     wire        data_uca_req    ;
     wire        data_uca_wr     ;
+    wire [1 :0] data_uca_size   ;
     wire [31:0] data_uca_addr   ;
     wire [31:0] data_uca_wdata  ;
     wire [3 :0] data_uca_wstrb  ;
@@ -445,6 +446,7 @@ module mycpu_top(
         .bresp                (data_cache_bresp    ),
         .bready               (data_cache_bready   ),
         .data_uncache_req     (data_uca_req    ),
+        .data_uncache_size    (data_uca_size   ),
         .data_uncache_wr      (data_uca_wr     ),
         .data_uncache_addr    (data_uca_addr   ),
         .data_uncache_wdata   (data_uca_wdata  ),
@@ -457,6 +459,7 @@ module mycpu_top(
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .data_req             (data_uca_req        ),
+        .data_size            (data_uca_size       ),
         .data_wr              (data_uca_wr         ),
         .data_addr            (data_uca_addr       ),
         .data_wdata           (data_uca_wdata      ),

@@ -5,6 +5,7 @@ module data_uncache (
     input         rst       ,
 
     input         data_req     ,
+    input  [1 :0] data_size    ,
     input         data_wr      ,
     input  [31:0] data_addr    ,
     input  [31:0] data_wdata   ,
@@ -56,6 +57,7 @@ module data_uncache (
 );
     
     reg         last_req;
+    reg [1 :0]  last_size;
     reg         last_op;
     reg [31:0]  last_addr;
     reg [31:0]  last_wdata;
@@ -77,6 +79,15 @@ module data_uncache (
         end
         else if (data_data_ok) begin
             last_req <= 1'b0;
+        end
+    end
+
+    always @(posedge clk ) begin
+        if (!rst) begin
+            last_size <= 2'b0;
+        end
+        else if (data_addr_ok) begin
+            last_size <= data_size;
         end
     end
 
@@ -160,7 +171,7 @@ module data_uncache (
     assign arid    = `DUNCA_ARID;
     assign araddr  = last_addr;
     assign arlen   = 4'd0;
-    assign arsize  = 3'b010;
+    assign arsize  = {1'b0,last_size};
     assign arburst = 2'd0;
     assign arlock  = 2'd0;
     assign arcache = 4'd0;
@@ -172,7 +183,7 @@ module data_uncache (
     assign awid    = `DUNCA_AWID;
     assign awaddr  = last_addr;
     assign awlen   = 4'd0;
-    assign awsize  = 3'b010;
+    assign awsize  = {1'b0,last_size};
     assign awburst = 2'd0;
     assign awlock  = 2'd0;
     assign awcache = 4'd0;
