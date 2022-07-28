@@ -73,6 +73,7 @@ module dcache_tp(
     // data_uncache
     output        data_uncache_req,
     output        data_uncache_wr,
+    output [1 :0] data_uncache_size,
     output [31:0] data_uncache_addr,
     output [3 :0] data_uncache_wstrb,
     output [31:0] data_uncache_wdata,
@@ -232,6 +233,7 @@ module dcache_tp(
     
     //驱动data_uncache
     assign data_uncache_req   = !sda_hasException & sda_unCache & sda_req & !sda_uca_addr_ok;
+    assign data_uncache_size  = sda_size;
     assign data_uncache_addr  = {sda_tag,sda_index,sda_offset};
     assign data_uncache_wr    = sda_wr;
     assign data_uncache_wstrb = sda_wstrb;
