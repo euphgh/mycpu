@@ -347,7 +347,7 @@ module dcache_2w8b128l(
             sda_wdata        <= sta_wdata       ;
             for (i = 0; i < 2; i = i+1) begin 
                 sda_tagv_back[i] <= tagv_back[i] ;
-                sda_rdata[i]     <= data_rdata[i];
+                sda_rdata[i]     <= cache_rdata[i];
             end
             sda_uca_addr_ok  <= !sta_unCache && sta_hasException   ;
             sda_wb_addr_ok   <= !sta_wr         ;
@@ -363,7 +363,7 @@ module dcache_2w8b128l(
         else if (cache_stat == `IDLE) begin
             for (i = 0; i < 2; i = i+1) begin 
                 sda_tagv_back[i] <= tagv_back[i] ;
-                sda_rdata[i]     <= data_rdata[i];
+                sda_rdata[i]     <= cache_rdata[i];
             end
         end
         //TODO 当数据传输完毕，需要拉低sda_req

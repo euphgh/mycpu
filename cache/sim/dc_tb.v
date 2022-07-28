@@ -43,7 +43,7 @@ module dc_tb(  );
         data_size = 2'b11;
         data_hasException = 0;
         //TODO
-        data_unCache =1;
+        data_unCache =0;
         data_wdata = 0;
         data_wstrb = 0;
         data_addr_trace_ref = $fopen(`DCACHE_ADDR_TRACE_FILE,"r");
@@ -60,6 +60,7 @@ module dc_tb(  );
     reg  ref_data_wr;
     reg [3:0] no_use_data_wstrb;
     reg [31:0] ref_data_rdata;
+     reg real_data_ok;
     // index
     assign data_index = data_addr[11:0];
     // tag
@@ -80,14 +81,14 @@ module dc_tb(  );
     end
     always @(posedge aclk) begin
         #1;
-        if (data_data_ok) begin
+        if (real_data_ok) begin
             if (!($feof(data_data_trace_ref)) && aresetn) begin
                 $fscanf(data_data_trace_ref, "          %d %h %h %h %h %h", use_num ,ref_data_addr,ref_data_wr,no_use_data_wstrb,no_use_data_wdata,ref_data_rdata);
             end
         end
     end
     //TRACE比对
-    reg real_data_ok;
+   
     always @(posedge aclk ) begin
         if (!aresetn) begin
             real_data_ok <= 1'b0;
@@ -377,7 +378,7 @@ module dc_tb(  );
     //     .s_axi_rready             (data_cache_rready )
     // );
     // DCACHE and DATA_UNCAHCE
-    dcache_tp u_dcache_tp (
+    dcache_2w8b128l u_dcache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .data_req             (data_req            ),
