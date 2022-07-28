@@ -118,7 +118,7 @@ module icache_2w8b128l(
     wire         hit_fill     ;
     wire [127:0] hit_fill_data;
     //TODO LRU
-    reg [2:0] plru [127:0];
+    reg       plru [127:0];
     reg [1:0] way         ;  
     // 初始化使用的循环控制变量
     integer i;
@@ -453,18 +453,8 @@ module icache_2w8b128l(
         end
         else if (cache_stat == `RUN && sda_req && !hit_run) begin
             case (plru[sda_index])
-                //选择第0路
-                3'b000: way <= 4'b0001;
-                3'b100: way <= 4'b0001;
-                //选择第1路
-                3'b010: way <= 4'b0010;
-                3'b110: way <= 4'b0010;
-                //选择第2路
-                3'b001: way <= 4'b0100;
-                3'b011: way <= 4'b0100;
-                //选择第3路
-                3'b101: way <= 4'b1000;
-                3'b111: way <= 4'b1000;
+                1'b0: way <= 2'b01;
+                1'b1: way <= 2'b10;
             endcase
         end else begin
         end
@@ -472,19 +462,13 @@ module icache_2w8b128l(
     always @(posedge clk) begin
         if (!rst) begin
             for (i = 0; i < 128; i = i+1) begin 
-                plru[i] <= 3'b0;
+                plru[i] <= 0;
             end
         end
         else if (cache_stat == `MISS) begin
             case (way)
-                //选中0路，则plru为x00,调整为x11
-                4'b0001: plru[sda_index] <= {plru[sda_index][2],1'b1,1'b1};
-                //选中1路，则plru为x10,调整为x01
-                4'b0010: plru[sda_index] <= {plru[sda_index][2],1'b0,1'b1};
-                //选中2路，则plru为0x1,调整为1x0
-                4'b0100: plru[sda_index] <= {1'b1,plru[sda_index][1],1'b0};
-                //选中3路，则plru为1x1,调整为0x0
-                4'b1000: plru[sda_index] <= {1'b0,plru[sda_index][1],1'b0};
+                2'b01: plru[sda_index] <= 1'b1;
+                2'b10: plru[sda_index] <= 1'b0;
             endcase
         end else begin
         end
@@ -498,8 +482,6 @@ module icache_2w8b128l(
 `ifdef EN_ICACHE_OP
     assign ca_hit[0] = {cache_stat == `CA_SEL} && tagv_back[0][0] && (tagv_back[0][20:1] == ca_htag_reg);
     assign ca_hit[1] = (cache_stat == `CA_SEL) && tagv_back[1][0] && (tagv_back[1][20:1] == ca_htag_reg);
-    assign ca_hit[2] = (cache_stat == `CA_SEL) && tagv_back[2][0] && (tagv_back[2][20:1] == ca_htag_reg);
-    assign ca_hit[3] = (cache_stat == `CA_SEL) && tagv_back[3][0] && (tagv_back[3][20:1] == ca_htag_reg);
     always @(posedge clk) begin
         if (!rst) begin
             ca_op_reg    <= 5'b0;
@@ -507,7 +489,7 @@ module icache_2w8b128l(
             ca_htag_reg  <= 20'b0;
             ca_wtag_reg  <= 20'b0;
             ca_index_reg <= 7'b0;
-            ca_way_reg   <= 2'b0;
+            ca_way_reg   <= 1'b0;
             ca_val_reg   <= 1'b0;
             ca_val_wen   <= 4'b0;
         end
@@ -516,22 +498,22 @@ module icache_2w8b128l(
             ca_htag_reg  <= icache_addr[31:12];
             ca_wtag_reg  <= icache_tag;
             ca_index_reg <= icache_addr[11: 5];
-            ca_way_reg   <= icache_addr[13:12];
+            ca_way_reg   <= icache_addr[12];
             ca_val_reg   <= icache_valid;
         end
         else if (cache_stat == `CA_SEL) begin
             case(ca_op_reg)
                 `IC_II: begin
-                    ca_tag_wen <= 4'b0              ;//不修改tag
-                    ca_val_wen <= 4'b1 << ca_way_reg;//选中对应的路
+                    ca_tag_wen <= 2'b0              ;//不修改tag
+                    ca_val_wen <= 2'b1 << ca_way_reg;//选中对应的路
                     ca_val_reg <= 1'b0              ;//tag无效化
                 end
                 `IC_IST:begin
-                    ca_tag_wen <= 4'b1 << ca_way_reg;//选中对应的路
-                    ca_val_wen <= 4'b1 << ca_way_reg;//选中对应的路
+                    ca_tag_wen <= 2'b1 << ca_way_reg;//选中对应的路
+                    ca_val_wen <= 2'b1 << ca_way_reg;//选中对应的路
                 end
                 `IC_HI:begin
-                    ca_tag_wen <= 4'b0  ;//不修改tag
+                    ca_tag_wen <= 2'b0  ;//不修改tag
                     ca_val_wen <= ca_hit;//选择命中的路
                     ca_val_reg <= 1'b0  ;//无效化命中的路
                 end
