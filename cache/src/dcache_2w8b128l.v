@@ -79,7 +79,7 @@ module dcache_2w8b128l(
     output [31:0] data_uncache_wdata,
     input  [31:0] data_uncache_rdata,
     input         data_uncache_addr_ok,
-    input         data_uncache_data_ok  
+    input         data_uncache_data_ok
 );
     ////////////////////////////////////////////////////////
     // Signal Define
@@ -242,7 +242,7 @@ module dcache_2w8b128l(
     // AXI 读
     assign arid    = `DCACHE_ARID;
     assign araddr  = {sda_tag , sda_index , sda_offset[4:2] , 2'b00 };
-    assign arvalid = ok_send_arv;   
+    assign arvalid = ok_send_arv;
     assign arlock  = 2'd0;
     assign arcache = 4'd0;
     assign arprot  = 3'd0;
@@ -391,11 +391,11 @@ module dcache_2w8b128l(
                 `IDLE:      cache_stat <= `RUN;
                 //如果发生了不命中，进入MISS状态
 `ifdef EN_DCACHE_OP
-                `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
-                                          (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
-                `CA_SEL:    cache_stat <= `CA_OP;
-                `CA_OP :    cache_stat <= ca_need_wb && victim_stat == `VIC_IDLE ? `CA_WB  : `RUN;
-                `CA_WB :    cache_stat <= ca_wb_end  ? `RUN    : `CA_WB;
+                `RUN:       cache_stat <=   (deal_cache_op) ? `CA_SEL:
+                                            (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
+                `CA_SEL:    cache_stat <=   `CA_OP;
+                `CA_OP :    cache_stat <=   ca_need_wb && victim_stat == `VIC_IDLE ? `CA_WB  : `RUN;
+                `CA_WB :    cache_stat <=   ca_wb_end  ? `RUN    : `CA_WB;
 `else
                 `RUN:       cache_stat <=  (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
 `endif
@@ -419,9 +419,9 @@ module dcache_2w8b128l(
     //RESET 相关
     //持续128个周期，每个周期将一行tag置为无效
     always @(posedge clk) begin
-        if (!rst) begin 
+        if (!rst) begin
             reset_counter <=7'b0;//初始化为0，重置信号拉高后开始计数
-        end 
+        end
         else begin
             reset_counter <= reset_counter + 7'b1;
         end
@@ -444,7 +444,7 @@ module dcache_2w8b128l(
     end
     always @(posedge clk ) begin
         if (!rst) begin
-            for (i = 0; i < 8; i = i+1) begin 
+            for (i = 0; i < 8; i = i+1) begin
                 refill_buf_data[i] <= 32'b0;
                 refill_buf_valid[i] <= 1'b0;
             end
@@ -459,9 +459,8 @@ module dcache_2w8b128l(
     end
     assign refill_wen[0] = {32{way[0] & (cache_stat==`FINISH)}};
     assign refill_wen[1] = {32{way[1] & (cache_stat==`FINISH)}};
-    assign refill_wdata  = { refill_buf_data[7],refill_buf_data[6],refill_buf_data[5],refill_buf_data[4],
-                             refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0] };
-  
+    assign refill_wdata  = {refill_buf_data[7],refill_buf_data[6],refill_buf_data[5],refill_buf_data[4],
+                            refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0] };
     //HIT
     assign hit_way[0] = sda_tagv_back[0][0] & sda_tagv_back[0][20:1] == sda_tag;
     assign hit_way[1] = sda_tagv_back[1][0] & sda_tagv_back[1][20:1] == sda_tag;
@@ -491,10 +490,10 @@ module dcache_2w8b128l(
                         (cache_stat == `CA_OP)  ? ca_index_reg  :
                         (data_index_ok && cache_stat==`RUN) ? sin_index : sta_index;
     assign tagv_wdata = (cache_stat == `RESET)  ? 20'b0    :
-                        (cache_stat == `FINISH) ? sda_tag : 
+                        (cache_stat == `FINISH) ? sda_tag :
                         (cache_stat == `CA_OP)  ? ca_wtag_reg : 20'b0;
     assign tagv_valid = (cache_stat == `RESET)  ? 1'b0    :
-                        (cache_stat == `FINISH) ? 1'b1    : 
+                        (cache_stat == `FINISH) ? 1'b1    :
                         (cache_stat == `CA_OP)  ? ca_val_reg : 1'b0;
 `else 
     assign tag_wen =    (cache_stat == `RESET)  ? 2'b11 :
