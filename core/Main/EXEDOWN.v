@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/28 14:43
+// Last Modified : 2022/07/29 11:36
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -26,10 +26,11 @@ module EXEDOWN(
     input	wire	                        EXE_up_allowin_w_i,        // allowin共用一个，代表上下两端都可进
     input	wire	                        PREMEM_allowin_w_i,
     // 异常互锁
-    input	wire	                        EXE_up_hasRisk_w_i,
+    input	wire	                        PREMEM_hasRisk_w_i,
     // 非阻塞乘除
-    input	wire	                        SBA_nonBlockMark_w_i,
     input	wire	                        CP0_nonBlockMark_w_i,
+    input	wire	                        SBA_nonBlockDS_w_i,
+    input	wire	                        SBA_branchRisk_w_i,
     // 流水线刷新
     input	wire	                        SBA_flush_w_i,
     input	wire	                        CP0_excOccur_w_i,
@@ -46,10 +47,17 @@ module EXEDOWN(
     output  wire                            EXE_down_allowin_w_o,   // 下周起该段是否可以更新
     //危险暂停信号
     output	wire	                        EXE_down_hasDangerous_w_o,  // mul,clo,clz,madd,msub,cache,tlb等危险指令
-    // 异常互锁
+	output   wire    [0:0]			        EXE_down_hasExceprion_w_o,
+	output   wire    [`EXCCODE]			    EXE_down_ExcCode_w_o,
+    output	wire	                        EXE_down_isDelaySlot_w_o,
+    output	wire	[`SINGLE_WORD]          EXE_down_exceptPC_w_o,
+    output	wire	[`SINGLE_WORD]          EXE_down_exceptBadVAddr_w_o,
+    output	wire	                        EXE_down_nonBlockMark_w_o,
+    output	wire	                        EXE_down_eret_w_o,
+    output	wire	                        EXE_down_isRefill_w_o,       // 不同异常地址
+    output	wire	                        EXE_down_isInterrupt_w_o,    // 不同异常地址
     //最后一段不需要传递给其他段
     //output	wire	                        EXE_down_hasRisk_w_o,     //
-    output	wire	                        EXE_down_nonBlockMark_w_o,    // 用于给上段做标记
 /*}}}*/
     ////////////////////////////////////////////////
     //////////////    寄存器输入      //////////////{{{
@@ -79,7 +87,9 @@ module EXEDOWN(
     input	wire	[`EXCEPRION_SEL]        ID_down_exceptionSel_i,     // 选择ALU的overflow和trap
     input	wire	                        ID_down_hasException_i,     // 存在异常
     input	wire	                        ID_down_eret_i,
+    input	wire	                        ID_down_isRefill_i,
     input	wire                            ID_down_exceptionRisk_i,    // 存在异常的风险
+    input	wire	                        ID_up_branchRisk_i,
     input	wire	[`CP0_POSITION]         ID_down_positionCp0_i,      // {rd,sel}
     input	wire	                        ID_down_readCp0_i,          // 只有指令需要将cp0写入GPR,该信号才会拉高,mfc0
     input	wire	                        ID_down_writeCp0_i,         // 只有指令需要将GPR写入cp0,该信号才会拉高,mtc0
@@ -119,13 +129,15 @@ module EXEDOWN(
     output	wire	[4:0]                   EXE_down_clRes_o,           // clo的计算结果
     output	wire	[`SINGLE_WORD]          EXE_down_mulRes_o,          // 专门用于Mul的接口
     output	wire	[`MATH_SEL]             EXE_down_mathResSel_o,      // 数学运算结果的选择
-    output	wire	                        EXE_down_nonBlockMark_o,    // 该条指令执行在MDU运算期间}}}
+    output	wire	                        EXE_down_nonBlockDS_o,        // 该条指令执行在MDU运算期间, 包括MDU指令
+    output	wire	                        EXE_down_nonBlockMark_o,    // 该条指令执行在MDU运算期间, 不包括MDU指令}}}
     // 异常处理类信息{{{
     output	wire    [`EXCCODE]              EXE_down_ExcCode_o,         // 异常信号
     output	wire	                        EXE_down_hasException_o,    // 存在异常
     output	wire                            EXE_down_exceptionRisk_o,   // 存在异常的风险
     output	wire	[`SINGLE_WORD]          EXE_down_exceptBadVAddr_o,
     output	wire	                        EXE_down_eret_o,
+    output	wire	                        EXE_down_isRefill_o,
     output	wire	[`CP0_POSITION]         EXE_down_positionCp0_o,     // {rd,sel}
     output	wire	                        EXE_down_readCp0_o,         // mfc0,才会拉高
     output	wire	                        EXE_down_writeCp0_o,        // mtc0,才会拉高
@@ -197,7 +209,9 @@ module EXEDOWN(
 	reg	[`EXCEPRION_SEL]			ID_down_exceptionSel_r_i;
 	reg	[0:0]			ID_down_hasException_r_i;
 	reg	[0:0]			ID_down_eret_r_i;
+	reg	[0:0]			ID_down_isRefill_r_i;
 	reg	[0:0]			ID_down_exceptionRisk_r_i;
+	reg	[0:0]			ID_up_branchRisk_r_i;
 	reg	[`CP0_POSITION]			ID_down_positionCp0_r_i;
 	reg	[0:0]			ID_down_readCp0_r_i;
 	reg	[0:0]			ID_down_writeCp0_r_i;
@@ -240,7 +254,9 @@ module EXEDOWN(
 			ID_down_exceptionSel_r_i	<=	'b0;
 			ID_down_hasException_r_i	<=	'b0;
 			ID_down_eret_r_i	<=	'b0;
+			ID_down_isRefill_r_i	<=	'b0;
 			ID_down_exceptionRisk_r_i	<=	'b0;
+			ID_up_branchRisk_r_i	<=	'b0;
 			ID_down_positionCp0_r_i	<=	'b0;
 			ID_down_readCp0_r_i	<=	'b0;
 			ID_down_writeCp0_r_i	<=	'b0;
@@ -283,7 +299,9 @@ module EXEDOWN(
 			ID_down_exceptionSel_r_i	<=	ID_down_exceptionSel_i;
 			ID_down_hasException_r_i	<=	ID_down_hasException_i;
 			ID_down_eret_r_i	<=	ID_down_eret_i;
+			ID_down_isRefill_r_i	<=	ID_down_isRefill_i;
 			ID_down_exceptionRisk_r_i	<=	ID_down_exceptionRisk_i;
+			ID_up_branchRisk_r_i	<=	ID_up_branchRisk_i;
 			ID_down_positionCp0_r_i	<=	ID_down_positionCp0_i;
 			ID_down_readCp0_r_i	<=	ID_down_readCp0_i;
 			ID_down_writeCp0_r_i	<=	ID_down_writeCp0_i;
@@ -307,7 +325,10 @@ module EXEDOWN(
     end
     /*}}}*/
 //  线信号处理{{{
-    wire EXE_down_hasRisk_w_o  = ID_down_exceptionRisk_r_i || EXE_up_hasRisk_w_i;
+    wire EXE_down_hasRisk_w_o  =    ID_down_exceptionRisk_r_i || 
+                                    ID_up_branchRisk_r_i || 
+                                    PREMEM_hasRisk_w_i;
+
     assign EXE_down_writeNum_w_o = ID_down_writeNum_r_i;
     wire    isAluInst = !ID_down_memReq_r_i &&
                         !ID_down_mduOperator_r_i[`MDU_CLO] &&
@@ -404,12 +425,12 @@ module EXEDOWN(
     wire [`LOAD_SEL] lwr_sel =  alignCheck==2'b00 ? `LOAD_SEL_LW :
                                 alignCheck==2'b01 ? `LOAD_SEL_R1 : 
                                 alignCheck==2'b10 ? `LOAD_SEL_R2 : `LOAD_SEL_R3;
-    assign EXE_down_loadSel_o = ID_down_loadMode_r_i == `LOAD_MODE_LB  ? `LOAD_SEL_LB :
-                                ID_down_loadMode_r_i == `LOAD_MODE_LBU ? `LOAD_SEL_LBU:
-                                ID_down_loadMode_r_i == `LOAD_MODE_LH  ? `LOAD_SEL_LH :
-                                ID_down_loadMode_r_i == `LOAD_MODE_LHU ? `LOAD_SEL_LHU:
-                                ID_down_loadMode_r_i == `LOAD_MODE_LW  ? `LOAD_SEL_LW :
-                                ID_down_loadMode_r_i == `LOAD_MODE_LWL ? lwl_sel : lwr_sel;
+    assign EXE_down_loadSel_o = ID_down_loadMode_r_i[`LOAD_MODE_LB ] ? `LOAD_SEL_LB :
+                                ID_down_loadMode_r_i[`LOAD_MODE_LBU] ? `LOAD_SEL_LBU:
+                                ID_down_loadMode_r_i[`LOAD_MODE_LH ] ? `LOAD_SEL_LH :
+                                ID_down_loadMode_r_i[`LOAD_MODE_LHU] ? `LOAD_SEL_LHU:
+                                ID_down_loadMode_r_i[`LOAD_MODE_LW ] ? `LOAD_SEL_LW :
+                                ID_down_loadMode_r_i[`LOAD_MODE_LWL] ? lwl_sel : lwr_sel;
     wire [`SINGLE_WORD] sb_data = {4{updataRegFile_up[1][7:0]}};
     wire [`SINGLE_WORD] sh_data = {2{updataRegFile_up[1][15:0]}};
     wire [`SINGLE_WORD] combination [2:0];
@@ -466,6 +487,7 @@ module EXEDOWN(
     assign EXE_down_TLBInstOperator_o = ID_down_TLBInstOperator_r_i;
     assign EXE_down_isCacheInst_o = ID_down_isCacheInst_r_i;
     assign EXE_down_CacheOperator_o = ID_down_CacheOperator_r_i;
+    assign EXE_down_isRefill_o  = ID_down_isRefill_r_i;
 /*}}}*/
     // 乘除法指令的操作{{{
     // 信号声明和赋值{{{
@@ -493,40 +515,49 @@ module EXEDOWN(
         .MDU_data_ok            (MDU_data_ok                    )  //output
     );
 /*}}}*/
-    assign cancel = (CP0_excOccur_w_i && !CP0_nonBlockMark_w_i) || (SBA_flush_w_i && !SBA_nonBlockMark_w_i);
-    assign MDU_operator[`MUL_REQ]   = ID_down_mduOperator_i[`MDU_MULT]||ID_down_mduOperator_r_i[`MDU_MULU];
-    assign MDU_operator[`MUL_SIGN]  = ID_down_mduOperator_i[`MDU_MULT];
-    assign MDU_operator[`DIV_REQ]   = ID_down_mduOperator_i[`MDU_DIV] ||ID_down_mduOperator_r_i[`MDU_DIVU];
-    assign MDU_operator[`DIV_SIGN]  = ID_down_mduOperator_i[`MDU_DIV];
-    assign MDU_operator[`MT_REQ]    = |ID_down_writeHiLo_r_i;
-    assign MDU_operator[`MT_DEST]   = ID_down_writeHiLo_r_i[`HI_WRITE];
-    assign MDU_operator[`ACCUM_REQ] = ID_down_mduOperator_r_i[`MDU_ADD] || ID_down_mduOperator_r_i[`MDU_SUB];
+    assign cancel = (CP0_excOccur_w_i && !CP0_nonBlockMark_w_i) || (SBA_flush_w_i && !SBA_nonBlockDS_w_i);
+    assign MDU_operator[`MUL_REQ]   = ID_down_mduOperator_r_i[`MDU_MULT]||ID_down_mduOperator_r_i[`MDU_MULU];
+    assign MDU_operator[`MUL_SIGN]  = ID_down_mduOperator_r_i[`MDU_MULT];
+    assign MDU_operator[`DIV_REQ]   = ID_down_mduOperator_r_i[`MDU_DIV] ||ID_down_mduOperator_r_i[`MDU_DIVU];
+    assign MDU_operator[`DIV_SIGN]  = ID_down_mduOperator_r_i[`MDU_DIV];
+    assign MDU_operator[`ACCUM_REQ] = ID_down_mduOperator_r_i[`MDU_ADD] ||ID_down_mduOperator_r_i[`MDU_SUB];
     assign MDU_operator[`ACCUM_OP]  = ID_down_mduOperator_r_i[`MDU_ADD];
-    assign MDU_oprand = ID_down_readData_r_i;
+    assign MDU_operator[`MT_REQ]    = |ID_down_writeHiLo_r_i;
+    assign MDU_operator[`MT_DEST]   =  ID_down_writeHiLo_r_i[`HI_WRITE];
+    assign MDU_oprand = {updataRegFile_up[1],updataRegFile_up[0]};
     assign MDU_HiLoData = {regHiLo[1],regHiLo[0]} ;
     wire isMduWrite = |ID_down_mduOperator_r_i[6:0];     
     assign mulrReq = ID_down_mduOperator_r_i[`MDU_MULR];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,MDU_writeData,MDU_writeData_p)/*}}}*/
     // MDU和指令流水线之间的交互{{{
     reg                 isAccepted;     // 该指令是否被MDU接受
-    assign MduReq = isMduWrite && (!isAccepted) && !cancel && !EXE_down_hasRisk_w_o;
+    // 乘除指令自身不会有异常风险
+    assign MduReq = isMduWrite  &&
+                    !isAccepted &&
+                    !cancel     &&
+                    !PREMEM_hasRisk_w_i &&
+                    !SBA_branchRisk_w_i;
     always @(posedge clk) begin
         if (!rst || needFlash) begin
             isAccepted  <=  `FALSE;
         end
-        else if (EXE_up_allowin_w_i && PREMEM_allowin_w_i==1'b0) begin
+        else if (EXE_up_allowin_w_i && !PREMEM_allowin_w_i) begin
             isAccepted  <=  MDU_Oprand_ok || isAccepted;
         end
         else begin
             isAccepted  <=  `FALSE;
         end 
     end
-    wire mduConflict = isMduWrite && ((!isAccepted)||MDU_Oprand_ok==1'b0);
-    wire HiLoConflict = ((|ID_down_readHiLo_r_i)||(|ID_down_writeHiLo_r_i))&&HiLo_busy;   
+    // 需要MDU运算但是MDU没有接受
+    wire mduConflict = isMduWrite && !(isAccepted||MDU_Oprand_ok);
+    // 不能在MDU中同时存在两个工作
+    wire HiLoConflict = ((|ID_down_readHiLo_r_i)||(|isMduWrite))&&HiLo_busy;   
+    // 需要写HiLo寄存器但是前面有风险,包括乘除
+    wire writeHiLoConflict = isMduWrite && PREMEM_hasRisk_w_i;
 /*}}}*/
     // HiLo模块和MDU模块的交互{{{
     always @(posedge clk) begin
-        if(!rst || needFlash || MDU_data_ok) begin
+        if(!rst || cancel || MDU_data_ok) begin
             HiLo_busy   <=  `FALSE;
         end
         else if (MDU_Oprand_ok && MduReq) begin
@@ -534,8 +565,8 @@ module EXEDOWN(
         end 
     end
     assign EXE_down_mduRes_o = ID_down_readHiLo_r_i[`HI_READ] ? regHiLo[1] : regHiLo[0];
-    assign EXE_down_nonBlockMark_o = HiLo_busy;
-    assign EXE_down_nonBlockMark_w_o = HiLo_busy;
+    assign EXE_down_nonBlockMark_o  = HiLo_busy;
+    assign EXE_down_nonBlockDS_o    = HiLo_busy || ID_down_isDelaySlot_r_i;
 /*}}}*/
     // HiLo寄存器{{{
     generate
@@ -576,9 +607,20 @@ module EXEDOWN(
     assign EXE_down_clRes_o = clRes;
     wire mulr_conflict = mulrReq && !mulr_data_ok;
     assign EXE_down_mulRes_o = MDU_writeData_p[31:0];
-    assign ready = !(mduConflict || HiLoConflict || mulr_conflict || cl_conflict);
+    assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
     assign EXE_down_mathResSel_o =  clReq   ? 4'b0001 :
                                     mulrReq ? 4'b0010 :
-                                    MduReq  ? 4'b0100 : 4'b1000;
+                                    !(isAluInst)  ? 4'b0100 : 4'b1000;
     /*}}}*/
+    // 异常处理{{{
+    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o;
+    assign EXE_down_ExcCode_w_o         = EXE_down_ExcCode_o;                                      
+    assign EXE_down_isDelaySlot_w_o     = EXE_down_isDelaySlot_o;                                     
+    assign EXE_down_exceptPC_w_o        = EXE_down_VAddr_o;                                     
+    assign EXE_down_exceptBadVAddr_w_o  = EXE_down_exceptBadVAddr_o;                                     
+    assign EXE_down_nonBlockMark_w_o    = EXE_down_nonBlockMark_o;                                     
+    assign EXE_down_eret_w_o            = EXE_down_eret_o;                                     
+    assign EXE_down_isRefill_w_o        = EXE_down_isRefill_o;                                     
+    assign EXE_down_isInterrupt_w_o     = 1'b0;                                     
+    // }}}
 endmodule

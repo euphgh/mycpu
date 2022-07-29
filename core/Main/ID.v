@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/27 16:42
+// Last Modified : 2022/07/29 11:36
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -92,6 +92,7 @@ module ID (
     //上段
     output	wire	[`GPR_NUM]              ID_up_writeNum_o,             // 回写寄存器数值,0为不回写
     output	wire	[2*`SINGLE_WORD]        ID_up_readData_o,           // 寄存器值rsrt
+    output	wire	[`SINGLE_WORD]          ID_up_VAddr_o,
     //算数,位移
     output	wire	[`SINGLE_WORD]          ID_up_oprand0_o,            // 经过多路选择,选择指令自带的数据
     output	wire	                        ID_up_oprand0IsReg_o,       
@@ -102,13 +103,6 @@ module ID (
     output	wire	[`FORWARD_MODE]         ID_up_forwardSel1_o,        // 用于选择前递信号
     output	wire	                        ID_up_data1Ready_o,         // 表示该operand是否可用
     output	wire	[`ALUOP]                ID_up_aluOprator_o,
-    // 异常
-    output	wire	[`SINGLE_WORD]          ID_up_VAddr_o,              // 用于debug和异常处理
-    output	wire    [`EXCCODE]              ID_up_ExcCode_o,            // 异常信号	
-    output	wire	                        ID_up_hasException_o,         // 存在异常
-    output	wire                            ID_up_exceptionRisk_o,      // 存在异常的风险
-    output	wire	[`EXCEPRION_SEL]        ID_up_exceptionSel_o,
-    output	wire	[`TRAP_KIND]            ID_up_trapKind_o,           // 自陷指令的种类
     // 分支确认的信息
     output	wire                            ID_up_branchRisk_o,         // 存在分支确认失败的风险
     output	wire	[`REPAIR_ACTION]        ID_up_repairAction_o,       // 预测的分支类型
@@ -144,6 +138,7 @@ module ID (
     output	wire	[`CP0_POSITION]         ID_down_positionCp0_o,      // {rd,sel}
     output	wire	                        ID_down_readCp0_o,          // 只有指令需要将cp0写入GPR,该信号才会拉高,mfc0
     output	wire	                        ID_down_eret_o,
+    output	wire	                        ID_down_isRefill_o,
     output	wire	                        ID_down_writeCp0_o,         // 只有指令需要将GPR写入cp0,该信号才会拉高,mtc0,直接将rt寄存器的数值接入
     output	wire	[`TRAP_KIND]            ID_down_trapKind_o,           // 自陷指令的种类
     // 访存类信息
@@ -349,9 +344,7 @@ module ID (
         .decorderException_p          (decorderException_p[1:0]                 ), //output
         .extendAction_p               (extendAction_p[2*`EXTEND_ACTION]         ),  //output
         .decorderExcCode_p            (decorderExcCode_p[2*`EXCCODE]            ), //output
-        .ID_up_exceptionSel_o         (ID_up_exceptionSel_o[`EXCEPRION_SEL]     ), //output
         .ID_down_exceptionSel_o       (ID_down_exceptionSel_o[`EXCEPRION_SEL]   ), //output
-        .ID_up_trapKind_o             (ID_up_trapKind_o[`TRAP_KIND]             ), //output // INST_NEW
         .ID_down_trapKind_o           (ID_down_trapKind_o[`TRAP_KIND]           ),  //output // INST_NEW
         .ID_up_branchKind_o           (ID_up_branchKind_o                       )
         /*autoinst*/
@@ -454,18 +447,15 @@ module ID (
     `UNPACK_ARRAY(1,2,decorderException_up,decorderException_p)
     `UNPACK_ARRAY(`EXCCODE_LEN,2,decorderExcCode_up,decorderExcCode_p)
     assign ID_up_VAddr_o = AB_VAddr_up[0];
-    assign ID_up_hasException_o = AB_hasException_up[0] || decorderException_up[0];
-    assign ID_up_ExcCode_o = AB_hasException_up[0] ? AB_ExcCode_up[0] : decorderExcCode_up[0];
     // 此处包括任何可能产生异常的指令,除了上面之外,包括
     // trap,add,sub,load,store,mtc0,eret等
-    assign ID_up_exceptionRisk_o = ID_up_hasException_o ? 1'b1 : ID_exceptionRisk_p[0];
-
     assign ID_down_VAddr_o = AB_VAddr_up[1];
     assign ID_down_hasException_o = AB_hasException_up[1] || decorderException_up[1];
     assign ID_down_ExcCode_o = AB_hasException_up[1] ? AB_ExcCode_up[1] : decorderExcCode_up[1];
     assign ID_down_exceptionRisk_o = ID_down_hasException_o ? 1'b1 : ID_exceptionRisk_p[1];
     assign ID_down_isDelaySlot_o = ID_up_branchRisk_o;
     assign ID_down_positionCp0_o = {AB_regWriteNum_p_w[9:5],AB_inst_up[1][2:0]};
+    assign ID_down_isRefill_o   = AB_isRefill_p[1];
 /*}}}*/
     // 分支预测{{{
     assign ID_up_checkPoint_o = AB_checkPoint_up[0];

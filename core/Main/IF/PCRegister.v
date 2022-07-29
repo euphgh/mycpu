@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/07/27 17:22
+// Last Modified : 2022/07/28 16:35
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -31,7 +31,7 @@ module PCRegister (
     output  wire                    inst_req,
     output  wire                    inst_wr,                // constant value = 1'b0;
     output  wire    [1:0]           inst_size,              // constant value = 2'b11 表示一次传输4条指令，共16字节;'
-    output  reg     [`CACHE_INDEX]  inst_index,             // 4字对齐，`CACHE_INDEX'hx0
+    output  wire     [`CACHE_INDEX]  inst_index,             // 4字对齐，`CACHE_INDEX'hx0
     output  wire    [`SINGLE_WORD]  inst_wdata,             // constant value = 32'b0
     input   wire                    inst_index_ok,
 /*}}}*/
@@ -52,16 +52,16 @@ module PCRegister (
 /*}}}*/
     // 寄存器输出{{{
     // 异常处理{{{
-    output	reg 	[`EXCCODE]      PCR_ExcCode_o,
-    output	reg 	                PCR_hasException_o,  // 表明存在异常
+    output	wire 	[`EXCCODE]      PCR_ExcCode_o,
+    output	wire 	                PCR_hasException_o,  // 表明存在异常
 /*}}}*/
     // 延迟槽处理{{{
     output	reg 	                PCR_needDelaySlot_o,
 /*}}}*/
     // 取指信息{{{
-    output  reg     [`SINGLE_WORD]  PCR_VAddr_o,     // to TLB
-    output	wire	[`SINGLE_WORD]  PCR_lastVAddr_o,
-    output  reg     [`INST_NUM]     PCR_instEnable_o // 表示此次读出的4条目标指令那些是需要的
+    output  wire    [`SINGLE_WORD]  PCR_VAddr_o,     // to TLB
+    output	wire    [`SINGLE_WORD]  PCR_lastVAddr_o,
+    output  wire    [`INST_NUM]     PCR_instEnable_o // 表示此次读出的4条目标指令那些是需要的
     // }}}
 /*}}}*/
 );
@@ -77,19 +77,15 @@ module PCRegister (
     //End of automatic wire
     //End of automatic define
     wire                        useBTBPC                        ;
-    wire [`SINGLE_WORD]         nextNotAlignedPC                ;
+    reg  [`SINGLE_WORD]         nextNotAlignedPC                ;
     wire [1:0]                  wordBoundary                    ;
     wire [`SINGLE_WORD]         nextAlignedPC                   ;
     wire [3:0]                  temp_enable                     ;
     wire [3:2]                  position                        ;
     wire [3:0]                  temp_instEnable                 ;
-    reg  [`SINGLE_WORD]         lastBase                        ;/*}}}*/
+    wire [`SINGLE_WORD]         lastBase                        ;/*}}}*/
     // 没有异常的时候和没有分支预测错误的时候使用BTB预测结果
     assign useBTBPC = !(CP0_excOccur_w_i|SBA_flush_w_i);
-    // 从三个PC来源中选出一个目标PC
-    assign nextNotAlignedPC = (CP0_excDestPC_w_i & {32{CP0_excOccur_w_i}}) |
-        (BSC_correctDest_w_i & {32{SBA_flush_w_i}}) |
-        (DSP_predictPC_i & {32{useBTBPC}});
     // 将不是4字对齐的目标PC转换成4字对齐的PC
     assign wordBoundary = nextNotAlignedPC[1:0];
     assign nextAlignedPC = {nextNotAlignedPC[31:4],2'b00,wordBoundary};
@@ -104,29 +100,30 @@ module PCRegister (
     // 总线交互
     always @(posedge clk) begin
         if (!rst) begin
-            inst_index  <= `CACHE_INDEX_ZERO;
-            PCR_instEnable_o <= 4'b1111;
-            PCR_VAddr_o      <=  `STARTPOINT;
-            lastBase                <=  `STARTPOINT - 32'h4;
-            PCR_hasException_o   <= `FALSE;
-            PCR_ExcCode_o        <= 0;
+            nextNotAlignedPC    <=  `STARTPOINT;
             PCR_needDelaySlot_o <= `FALSE;
         end
         // 只有在index_ok 和请求都有效的情况下才会刷新另一个请求
         else if (inst_req&&inst_index_ok || (!useBTBPC)) begin
-            // 如果IQ满了，则始终将req拉低
-            inst_index  <= nextAlignedPC[`CACHE_INDEX];
-            lastBase         <= {nextAlignedPC[31:4]-1'b1,nextAlignedPC[3:0]};
-            PCR_instEnable_o <= temp_instEnable & {4{!(|wordBoundary)}}; //字边界检查，如果有异常则全部不要
-            PCR_VAddr_o      <= nextAlignedPC;
-            PCR_hasException_o  <= (|wordBoundary);
-            PCR_ExcCode_o       <= `ADEL;
+            // 从三个PC来源中选出一个目标PC
+            nextNotAlignedPC <= (CP0_excDestPC_w_i & {32{CP0_excOccur_w_i}}) |
+                                (BSC_correctDest_w_i & {32{SBA_flush_w_i}})  |
+                                (DSP_predictPC_i & {32{useBTBPC}});
             PCR_needDelaySlot_o <= DSP_needDelaySlot_i;
         end
     end
+
+    assign inst_index       = nextAlignedPC[`CACHE_INDEX];
+    assign lastBase         = {nextAlignedPC[31:4]-1'b1,nextAlignedPC[3:0]};
+    assign PCR_instEnable_o = temp_instEnable & {4{!(|wordBoundary)}}; //字边界检查，如果有异常则全部不要
+    assign PCR_VAddr_o      = nextAlignedPC;
+    assign PCR_hasException_o  = (|wordBoundary);
+    assign PCR_ExcCode_o       = `ADEL;
+
     assign inst_wdata   = `ZEROWORD;
     assign inst_wr      = `SRAM_READ;
     assign inst_size    = 2'b11;
+    // 如果IQ满了，则始终将req拉低
     assign inst_req = rst && !ID_stopFetch_i;
     assign PCR_lastVAddr_o = lastBase;
 endmodule

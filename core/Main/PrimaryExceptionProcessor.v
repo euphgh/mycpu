@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/18 10:45
-// Last Modified : 2022/07/23 09:16
+// Last Modified : 2022/07/29 11:59
 // File Name     : PrimaryExceptionProcessor.v
 // Description   :  接受异常请求和修改TLB的请求,对CP0寄存器进行读写
 //                  此外还需在异常触发的时候发送刷新流水线的信号
@@ -17,6 +17,13 @@
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
 `include "MyDefines.v"
+`define EXCEP_SEG_LEN   4
+`define EXCEP_SEG       `EXCEP_SEG_LEN-1:0
+`define EXCEP_EXE       0
+`define EXCEP_EXE_CODE      `EXCEP_SEG_LEN'b0001
+`define EXCEP_PREMEM_CODE   `EXCEP_SEG_LEN'b0010
+`define EXCEP_MEM_CODE      `EXCEP_SEG_LEN'b0100
+`define EXCEP_WB_CODE       `EXCEP_SEG_LEN'b1000
 module PrimaryExceptionProcessor (
     input	wire	                        clk,
     input	wire	                        rst,
@@ -24,7 +31,7 @@ module PrimaryExceptionProcessor (
     input	wire	                        MEM_writeCp0_w_i,         // mtc0,才会拉高
     input	wire	[`CP0_POSITION]         MEM_positionCp0_w_i,      // {rd,sel}
     input	wire	[`SINGLE_WORD]          MEM_writeData_w_i,        // 需要写入CP0的内容
-    // tlb指令的异常请求
+    // tlb指令的异常请求{{{
     input	wire	                        DMMU_TLBPwrite_i,       // 查询指令，写Index
     input	wire	                        DMMU_TLBRwrite_i,       // 读指令,写大部分TLB寄存器
     input	wire    [`SINGLE_WORD]          DMMU_Index_i,
@@ -32,9 +39,10 @@ module PrimaryExceptionProcessor (
     input	wire    [`SINGLE_WORD]          DMMU_EntryLo0_i,
     input	wire    [`SINGLE_WORD]          DMMU_EntryLo1_i,
     input	wire    [`SINGLE_WORD]          DMMU_PageMask_i,
-    // MEM段异常处理内容
+/*}}}*/
+    // MEM段异常处理内容{{{
     // 判断该段是否可以处理异常不可以用该段的hasRisk,因为有异常必为1
-    input	wire	                        REEXE_hasRisk_w_i,
+    input	wire	                        WB_hasRisk_w_i,
     input	wire	                        MEM_hasException_w_i,     // 存在异常
     input	wire    [`EXCCODE]              MEM_ExcCode_w_i,          // 异常信号
     input	wire	                        MEM_isDelaySlot_w_i,
@@ -44,22 +52,38 @@ module PrimaryExceptionProcessor (
     input	wire	                        MEM_eret_w_i,
     input	wire	                        MEM_isRefill_w_i,       // 不同异常地址
     input	wire	                        MEM_isInterrupt_w_i,    // 不同异常地址
-    // REEXE段异常处理内容
-    input	wire	                        WB_hasRisk_w_i,         
-	input   wire    [0:0]			        REEXE_hasExceprion_w_i,
-	input   wire    [`EXCCODE]			    REEXE_ExcCode_w_i,
-    input	wire	                        REEXE_isDelaySlot_w_i,
-    input	wire	[`SINGLE_WORD]          REEXE_exceptPC_w_i,
-    input	wire	[`SINGLE_WORD]          REEXE_exceptBadVAddr_w_i,
-    input	wire	                        REEXE_nonBlockMark_w_i,
-    input	wire	                        REEXE_eret_w_i,
-    input	wire	                        REEXE_isRefill_w_i,       // 不同异常地址
-    input	wire	                        REEXE_isInterrupt_w_i,    // 不同异常地址
-    // 外界读取寄存器
+/*}}}*/
+    // PREMEM段异常处理内容{{{
+    // 判断该段是否可以处理异常不可以用该段的hasRisk,因为有异常必为1
+    input	wire	                        MEM_hasRisk_w_i,
+    input	wire	                        PREMEM_hasException_w_i,     // 存在异常
+    input	wire    [`EXCCODE]              PREMEM_ExcCode_w_i,          // 异常信号
+    input	wire	                        PREMEM_isDelaySlot_w_i,
+    input	wire	[`SINGLE_WORD]          PREMEM_exceptPC_w_i,
+    input	wire	[`SINGLE_WORD]          PREMEM_exceptBadVAddr_w_i,
+    input	wire	                        PREMEM_nonBlockMark_w_i,
+    input	wire	                        PREMEM_eret_w_i,
+    input	wire	                        PREMEM_isRefill_w_i,       // 不同异常地址
+    input	wire	                        PREMEM_isInterrupt_w_i,    // 不同异常地址
+/*}}}*/
+    // EXE down段异常处理内容{{{
+    input	wire	                        PREMEM_hasRisk_w_i,         
+	input   wire    [0:0]			        EXE_down_hasExceprion_w_i,
+	input   wire    [`EXCCODE]			    EXE_down_ExcCode_w_i,
+    input	wire	                        EXE_down_isDelaySlot_w_i,
+    input	wire	[`SINGLE_WORD]          EXE_down_exceptPC_w_i,
+    input	wire	[`SINGLE_WORD]          EXE_down_exceptBadVAddr_w_i,
+    input	wire	                        EXE_down_nonBlockMark_w_i,
+    input	wire	                        EXE_down_eret_w_i,
+    input	wire	                        EXE_down_isRefill_w_i,       // 不同异常地址
+    input	wire	                        EXE_down_isInterrupt_w_i,    // 不同异常地址
+/*}}}*/
+    // 外界读取寄存器{{{
     output	wire	[`SINGLE_WORD]          CP0_Status_w_o,
     output	wire	[`SINGLE_WORD]          CP0_Cause_w_o,
     output	wire	[`SINGLE_WORD]          CP0_Config_w_o,
-    // 异常处理的输出
+/*}}}*/
+    // 异常处理的输出{{{
     output	wire	[`SINGLE_WORD]          CP0_readData_w_o,       // 读出来的寄存器数值
     output	wire	                        CP0_excOccur_w_o,       // 判断是否发生了异常冲刷
     output	wire	[`SINGLE_WORD]          CP0_excDestPC_w_o,
@@ -70,6 +94,8 @@ module PrimaryExceptionProcessor (
     output	wire	[`SINGLE_WORD]          CP0_PageMask_w_o, 
     output	wire	[`SINGLE_WORD]          CP0_Index_w_o, 
     output	wire	[`SINGLE_WORD]          CP0_Random_w_o, 
+    output	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_o,
+/*}}}*/
     input   wire    [5:0]                   ext_int                 // 外部中断接入口 
 );
     // 寄存器数据{{{
@@ -103,14 +129,14 @@ module PrimaryExceptionProcessor (
     // 一般异常信息
     `define ALL_INFO `ALL_INFO_LEN-1:0
     `define ALL_INFO_LEN 73
-    wire [`ALL_INFO] REEXE_packedInfo = {
-         REEXE_hasExceprion_w_i,
-         REEXE_ExcCode_w_i,
-         REEXE_isDelaySlot_w_i,
-         REEXE_exceptPC_w_i,
-         REEXE_exceptBadVAddr_w_i,
-         REEXE_nonBlockMark_w_i,
-         REEXE_eret_w_i
+    wire [`ALL_INFO] EXE_packedInfo = {
+         EXE_down_hasExceprion_w_i,
+         EXE_down_ExcCode_w_i,
+         EXE_down_isDelaySlot_w_i,
+         EXE_down_exceptPC_w_i,
+         EXE_down_exceptBadVAddr_w_i,
+         EXE_down_nonBlockMark_w_i,
+         EXE_down_eret_w_i
         };
     wire [`ALL_INFO] MEM_packedInfo = {
          MEM_hasException_w_i,
@@ -121,8 +147,18 @@ module PrimaryExceptionProcessor (
          MEM_nonBlockMark_w_i,
          MEM_eret_w_i
         };
-    wire [`ALL_INFO] selectedInfo = ({`ALL_INFO_LEN{!WB_hasRisk_w_i}}   & REEXE_packedInfo) |
-                                    ({`ALL_INFO_LEN{!REEXE_hasRisk_w_i}}     & MEM_packedInfo);
+    wire [`ALL_INFO] PREMEM_packedInfo = {
+         PREMEM_hasException_w_i,
+         PREMEM_ExcCode_w_i,
+         PREMEM_isDelaySlot_w_i,
+         PREMEM_exceptPC_w_i,
+         PREMEM_exceptBadVAddr_w_i,
+         PREMEM_nonBlockMark_w_i,
+         PREMEM_eret_w_i
+        };
+    wire [`ALL_INFO] selectedInfo = ({`ALL_INFO_LEN{!PREMEM_hasRisk_w_i}}   & EXE_packedInfo) |
+                                    ({`ALL_INFO_LEN{!WB_hasRisk_w_i}}       & MEM_packedInfo) |
+                                    ({`ALL_INFO_LEN{!MEM_hasRisk_w_i}}      & PREMEM_packedInfo);
     wire                    hasException;
     wire    [`EXCCODE]      ExcCode;
     wire                    isDelaySlot;
@@ -140,6 +176,10 @@ module PrimaryExceptionProcessor (
          eret
         } = selectedInfo;
     wire    isExceptionInNormal = (hasException && !Status[`EXL]) ? `TRUE : `FALSE;
+    assign CP0_exceptSeg_w_o =  ({`EXCEP_SEG_LEN{!PREMEM_hasRisk_w_i}}   & `EXCEP_EXE_CODE) |
+                                ({`EXCEP_SEG_LEN{!WB_hasRisk_w_i}}       & `EXCEP_PREMEM_CODE) |
+                                ({`EXCEP_SEG_LEN{!MEM_hasRisk_w_i}}      & `EXCEP_PREMEM_CODE);
+
     /*}}}*/
     ////////////////    Status  ////////////////{{{
     //  EXL{{{

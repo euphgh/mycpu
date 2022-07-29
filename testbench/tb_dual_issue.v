@@ -14,6 +14,7 @@
 `define FUNC_TEST
 // `define CACHE_HIT_TEST
 `define TRACE_REF_FILE          "../../../../../../mycpu/trace/golden_trace.txt"
+`define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define CONFREG_OPEN_TRACE      soc_lite.u_confreg.open_trace
 `define CONFREG_NUM_REG         soc_lite.u_confreg.num_data
 `define CONFREG_NUM_MONITOR     soc_lite.u_confreg.num_monitor
@@ -41,12 +42,16 @@ assign switch_inv  = 8'h00;
 assign switch      = ~switch_inv;
 assign btn_key_row = 4'd0;
 assign btn_step    = 2'd3;
-
+integer regNum;
 initial begin
     clk    = 1'b0;
     resetn = 1'b0;
     #2000;
     resetn = 1'b1;
+    #30
+    for(regNum=1; regNum<32; regNum=regNum+1) begin
+        $display("%h",soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum]);
+	end
 end
 
 always #5 clk=~clk;
@@ -92,13 +97,17 @@ assign debug_wb_pc   [1] = soc_lite.u_cpu.u_Main.debug_wb_pc1;
 assign debug_wb_wen  [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wen1;
 assign debug_wb_wnum [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wnum1;
 assign debug_wb_wdata[1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wdata1;
-
 // open the trace file
-integer trace_ref,status;
+integer trace_ref,status,reg_record;
+integer line;
 initial begin
     trace_ref = $fopen(`TRACE_REF_FILE, "r");
-    status = $fseek(trace_ref,24*`STARTLINE,0);
-    $display("status: %h",status);
+    status = $fseek(trace_ref,24*(`STARTLINE-1),0);
+    line = `STARTLINE;
+    if (status!='d0) begin
+        $display("some error of file happen!\nerror Code:\t%h",status);
+        $finish(0);
+    end
 end
 //get reference result in falling edge
 reg        trace_cmp_flag;
@@ -137,6 +146,7 @@ begin
             $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
                     ref_wb_pc, ref_wb_wnum, ref_wb_wdata);
         end
+        line = line + 1 ;
         if ((debug_wb_pc !== ref_wb_pc)     ||
             (debug_wb_wnum !== ref_wb_wnum) ||
             (get_valid_wdata(debug_wb_wdata, debug_wb_wen) !== get_valid_wdata(ref_wb_wdata, debug_wb_wen))) begin
@@ -148,7 +158,13 @@ begin
                       debug_wb_pc, debug_wb_wnum, get_valid_wdata(debug_wb_wdata, debug_wb_wen));
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
-            #40;
+            reg_record = $fopen(`REG_FILE,"w");
+	        for(regNum=1; regNum<32; regNum=regNum+1) begin
+	           $fdisplay(reg_record,"%h",soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum]);
+	        end
+	        $display ("`define STARTPOINT\t%h\n`define STARTLINE\t%d",debug_wb_pc,line);
+	        $fclose(reg_record);
+            #15;
             $finish;
         end
     end

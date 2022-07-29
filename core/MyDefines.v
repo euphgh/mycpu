@@ -1,6 +1,14 @@
+`define CONTINUE
+`define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
+`ifdef CONTINUE
+    `define STARTPOINT  32'hbfc69f54
+    `define STARTLINE   83195
+`endif
+`ifndef CONTINUE
+    `define STARTPOINT  32'hbfc00000
+    `define STARTLINE   1
+`endif
 //globaol{{{
-`define STARTPOINT  32'hbfc7d7c0
-`define STARTLINE   63583
 `define ZEROWORD 32'h00000000
 `define SINGLE_WORD_LEN 32
 `define SINGLE_WORD `SINGLE_WORD_LEN-1:0
@@ -45,6 +53,18 @@
 `define RAS_DEST    4
 /*}}}*/
 //分支预测检查点长度定义{{{
+//RAS的检查点{{{
+`define RAS_WIDTH `RAS_WIDTH-1:0
+`define RAS_WIDTH_LEN `RAS_PC_LEN + `RAS_NUMBER_LEN
+`define RAS_PC_LEN      30
+`define RAS_PC          `RAS_PC_LEN-1:0
+`define RAS_NUMBER_LEN  4
+`define RAS_NUMBER      `RAS_PC_LEN+`RAS_NUMBER_LEN-1:`RAS_PC_LEN-1
+`define RAS_SIZE        1024
+`define RAS_ENRTY_WIDTH `RAS_WIDTH_LEN-1:0
+`define RAS_ENRTY_NUM_LEN $clog2(`RAS_SIZE)  
+`define RAS_ENRTY_NUM   `RAS_ENRTY_NUM_LEN-1:0
+//}}}
 `define ALL_CHECKPOINT  `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT   `ALL_CHECKPOINT_LEN'b0
 `define IJTC_CHECKPOINT `IJTC_CHECKPOINT_LEN-1:0         // 记录全局分支历史
@@ -52,7 +72,9 @@
 `define RAS_CHECKPOINT  `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
 `define ALL_CHECKPOINT_LEN (`RAS_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN+`IJTC_CHECKPOINT_LEN)
 `define PHT_CHECKPOINT_LEN 10
-`define RAS_CHECKPOINT_LEN 36
+`define RAS_CHECKPOINT_LEN `RAS_WIDTH_LEN
+`define RSA_CHECK_PC    
+`define RSA_CHECK_NUM
 `define IJTC_CHECKPOINT_LEN 8                           // 记录全局分支历史
 /*}}}*/
 // 分支恢复的所有动作和使能{{{
@@ -80,9 +102,9 @@
 `define BTB_ACTION          0
 `define BTB_REPAIRE         1'b1
 `define BTB_NOACTION        1'b0 /*}}}*/
-//InstQueue
+//InstQueue{{{
 `define IQ_LENTH        `IQ_ENTRY_LEN-1:0
-`define IQ_ENTRY_LEN    158
+`define IQ_ENTRY_LEN    156
 `define IQ_VALID        1:0
 `define IQ_VALID_SINGLE 2'b01
 `define IQ_VALID_DUAL   2'b11
@@ -90,12 +112,14 @@
 `define IQ_CAPABILITY   16
 `define IQ_GAP          5'd8
 `define IQ_NUMBER_BIT   4'd
+`define IQ_POINT_BIT   5'd
 `define IQ_NUMBER_WID   3:0
 
 `define IQ_CAP_WIDTH    $clog2(`IQ_CAPABILITY)
 `define IQ_POINT        `IQ_CAP_WIDTH:0
 `define IQ_NUMBER       `IQ_CAP_WIDTH-1:0
 `define IQ_POINT_SIGN   `IQ_CAP_WIDTH
+/*}}}*/
 // ID_demandNum_i表示需要的指令条数
 `define NO_DEMAND       2'b00
 `define ONE_DEMAND      2'b01

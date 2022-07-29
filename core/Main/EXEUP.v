@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/27 15:44
+// Last Modified : 2022/07/28 20:08
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -30,15 +30,12 @@ module EXEUP(
     input	wire	                        SBA_flush_w_i,            
     input	wire	                        CP0_excOccur_w_i,            
     // 异常互锁
-    input	wire	                        PREMEM_hasRisk_w_i,
     input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,
-    // 非阻塞乘除法
-    input	wire	                        EXE_down_nonBlockMark_w_o,
-
 /*}}}*/
     ////////////////////////////////////////////////
     //////////////    寄存器的输入    //////////////{{{
     ////////////////////////////////////////////////
+    input	wire	[`SINGLE_WORD]          ID_up_VAddr_i,
     input	wire	[`GPR_NUM]              ID_up_writeNum_i,             // 回写寄存器数值,0为不回写
     // 寄存器文件
     input	wire	[2*`SINGLE_WORD]        ID_up_readData_i,           // 寄存器值rsrt
@@ -52,13 +49,6 @@ module EXEUP(
     input	wire	[`FORWARD_MODE]         ID_up_forwardSel1_i,        // 用于选择前递信号
     input	wire	                        ID_up_data1Ready_i,         // 表示该operand是否可用
     input	wire	[`ALUOP]                ID_up_aluOprator_i,
-    // 异常 
-    input	wire	[`SINGLE_WORD]          ID_up_VAddr_i,              // 用于debug和异常处理
-    input	wire    [`EXCCODE]              ID_up_ExcCode_i,            // 异常信号	
-    input	wire	                        ID_up_hasException_i,       // 存在异常
-    input	wire                            ID_up_exceptionRisk_i,      // 存在异常的风险
-    input	wire	[`EXCEPRION_SEL]        ID_up_exceptionSel_i,
-    input	wire	[`TRAP_KIND]            ID_up_trapKind_i,           // 自陷指令的种类
     // 分支确认的信息    
     input	wire                            ID_up_branchRisk_i,         // 存在分支确认失败的风险
     input	wire    [`BRANCH_KIND]          ID_up_branchKind_i,         // 分支指令的种类
@@ -83,8 +73,6 @@ module EXEUP(
     // 流水线控制
     output	wire	                        EXE_up_allowin_w_o, // 只有上才有allowin，代表上下两端都可进
     output	wire	                        EXE_up_valid_w_o,       // 用于给下一级流水线决定是否采样
-    // 异常互锁
-    output	wire	                        EXE_up_hasRisk_w_o,         // 传递给EXE_DOWN，异常互锁
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      寄存器输出     //////////////{{{
@@ -94,17 +82,12 @@ module EXEUP(
     // 算数,位移
     output	wire    [`SINGLE_WORD]          EXE_up_aluRes_o,	        
     // 非阻塞乘除
-    output	wire	                        EXE_up_nonBlockMark_o,
     // 分支确认的信息
     output	wire	[`SINGLE_WORD]          EXE_up_corrDest_o,          // 预测的分支地址
     output	wire	                        EXE_up_corrTake_o,          // 预测的分支跳转
     output	wire	[`REPAIR_ACTION]        EXE_up_repairAction_o,      // 修复动作，包含是否需要修复的信号
     output	wire	[`ALL_CHECKPOINT]       EXE_up_checkPoint_o,
-    output	wire                            EXE_up_branchRisk_o,        // 存在分支确认失败的风险
-    //异常处理信息
-    output	wire                            EXE_up_exceptionRisk_o,     // 存在异常的风险
-    output	wire    [`EXCCODE]              EXE_up_ExcCode_o,           // 异常信号	
-    output	wire	                        EXE_up_hasException_o       // 存在异常
+    output	wire                            EXE_up_branchRisk_o         // 存在分支确认失败的风险
 /*}}}*/
 );
     /*autodef*/
@@ -128,6 +111,7 @@ module EXEUP(
     wire            needClear;
     wire            needUpdata;
 
+	reg	[`SINGLE_WORD]			ID_up_VAddr_r_i;
 	reg	[`GPR_NUM]			ID_up_writeNum_r_i;
 	reg	[2*`SINGLE_WORD]			ID_up_readData_r_i;
 	reg	[`SINGLE_WORD]			ID_up_oprand0_r_i;
@@ -139,12 +123,6 @@ module EXEUP(
 	reg	[`FORWARD_MODE]			ID_up_forwardSel1_r_i;
 	reg	[0:0]			ID_up_data1Ready_r_i;
 	reg	[`ALUOP]			ID_up_aluOprator_r_i;
-	reg	[`SINGLE_WORD]			ID_up_VAddr_r_i;
-	reg	[`EXCCODE]			ID_up_ExcCode_r_i;
-	reg	[0:0]			ID_up_hasException_r_i;
-	reg	[0:0]			ID_up_exceptionRisk_r_i;
-	reg	[`EXCEPRION_SEL]			ID_up_exceptionSel_r_i;
-	reg	[`TRAP_KIND]			ID_up_trapKind_r_i;
 	reg	[0:0]			ID_up_branchRisk_r_i;
 	reg	[`BRANCH_KIND]			ID_up_branchKind_r_i;
 	reg	[`REPAIR_ACTION]			ID_up_repairAction_r_i;
@@ -159,6 +137,7 @@ module EXEUP(
 	reg	[`SINGLE_WORD]			MEM_finalRes_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
+			ID_up_VAddr_r_i	<=	'b0;
 			ID_up_writeNum_r_i	<=	'b0;
 			ID_up_readData_r_i	<=	'b0;
 			ID_up_oprand0_r_i	<=	'b0;
@@ -170,12 +149,6 @@ module EXEUP(
 			ID_up_forwardSel1_r_i	<=	'b0;
 			ID_up_data1Ready_r_i	<=	'b0;
 			ID_up_aluOprator_r_i	<=	'b0;
-			ID_up_VAddr_r_i	<=	'b0;
-			ID_up_ExcCode_r_i	<=	'b0;
-			ID_up_hasException_r_i	<=	'b0;
-			ID_up_exceptionRisk_r_i	<=	'b0;
-			ID_up_exceptionSel_r_i	<=	'b0;
-			ID_up_trapKind_r_i	<=	'b0;
 			ID_up_branchRisk_r_i	<=	'b0;
 			ID_up_branchKind_r_i	<=	'b0;
 			ID_up_repairAction_r_i	<=	'b0;
@@ -190,6 +163,7 @@ module EXEUP(
 			MEM_finalRes_r_i	<=	'b0;
         end
         else if (needUpdata) begin
+			ID_up_VAddr_r_i	<=	ID_up_VAddr_i;
 			ID_up_writeNum_r_i	<=	ID_up_writeNum_i;
 			ID_up_readData_r_i	<=	ID_up_readData_i;
 			ID_up_oprand0_r_i	<=	ID_up_oprand0_i;
@@ -201,12 +175,6 @@ module EXEUP(
 			ID_up_forwardSel1_r_i	<=	ID_up_forwardSel1_i;
 			ID_up_data1Ready_r_i	<=	ID_up_data1Ready_i;
 			ID_up_aluOprator_r_i	<=	ID_up_aluOprator_i;
-			ID_up_VAddr_r_i	<=	ID_up_VAddr_i;
-			ID_up_ExcCode_r_i	<=	ID_up_ExcCode_i;
-			ID_up_hasException_r_i	<=	ID_up_hasException_i;
-			ID_up_exceptionRisk_r_i	<=	ID_up_exceptionRisk_i;
-			ID_up_exceptionSel_r_i	<=	ID_up_exceptionSel_i;
-			ID_up_trapKind_r_i	<=	ID_up_trapKind_i;
 			ID_up_branchRisk_r_i	<=	ID_up_branchRisk_i;
 			ID_up_branchKind_r_i	<=	ID_up_branchKind_i;
 			ID_up_repairAction_r_i	<=	ID_up_repairAction_i;
@@ -223,7 +191,6 @@ module EXEUP(
     end
     /*}}}*/
 //  线信号处理{{{
-    assign EXE_up_hasRisk_w_o  = ID_up_exceptionRisk_r_i || ID_up_branchRisk_r_i || PREMEM_hasRisk_w_i;
     assign EXE_up_writeNum_w_o = ID_up_writeNum_r_i;
     // 流水线互锁
     reg hasData;
@@ -281,17 +248,8 @@ module EXEUP(
         end
     endgenerate
 /*}}}*/
-    // ALU 异常处理{{{
-    wire equals = !(|aluso);
-    wire hasTrap =  ID_up_trapKind_r_i[`TRAP_EQUAL]      ? equals    :
-                    ID_up_trapKind_r_i[`TRAP_LT_LTU]     ? aluso[0]  :
-                    ID_up_trapKind_r_i[`TRAP_GE_GEU]     ? !aluso[0] : !equals;
-    assign EXE_up_hasException_o =  (ID_up_exceptionSel_r_i[`EXCEPRION_OV] ? overflow : 
-                                    ID_up_exceptionSel_r_i[`EXCEPRION_TR] ? hasTrap  :  1'b0) || ID_up_hasException_r_i;
+    // 简单信号赋值{{{
     assign EXE_up_writeNum_o = ID_up_writeNum_r_i;
-    assign EXE_up_ExcCode_o = ID_up_ExcCode_r_i;
-    // 该信号用于下一段前递，表示这周期的运算结果是否有风险，可以慢
-    assign EXE_up_exceptionRisk_o = EXE_up_hasException_o;
     assign EXE_up_VAddr_o = ID_up_VAddr_r_i;
 /*}}}*/
     // 分支预测计算{{{
@@ -315,9 +273,6 @@ module EXEUP(
     assign EXE_up_branchRisk_o   =  ((EXE_up_corrTake_o != ID_up_predTake_r_i) ||
                                     ((EXE_up_corrDest_o!=ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i)) &&
                                     ID_up_branchRisk_r_i;
-/*}}}*/
-    // 非阻塞乘除{{{
-    assign EXE_up_nonBlockMark_o = EXE_down_nonBlockMark_w_o;
 /*}}}*/
 endmodule
 

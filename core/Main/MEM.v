@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/27 11:09
+// Last Modified : 2022/07/28 20:36
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -28,7 +28,7 @@ module MEM(
     input	wire	                        WB_allowin_w_i,
     input	wire	                        PREMEM_valid_w_i,
     // 异常互锁
-    input	wire                            REEXE_hasRisk_w_i, 
+    input	wire                            WB_hasRisk_w_i, 
     // 流水线刷新
     input	wire	                        CP0_excOccur_w_i,
     input	wire	[`SINGLE_WORD]          CP0_readData_w_i,   // 读出来的寄存器数值
@@ -88,6 +88,7 @@ module MEM(
     input	wire	                        PREMEM_hasException_i,      // 存在异常
     input	wire	[`SINGLE_WORD]          PREMEM_exceptBadVAddr_i,    // 虚地址异常
     input	wire	                        PREMEM_eret_i,
+    input	wire	                        PREMEM_isRefill_i,
     input	wire                            PREMEM_exceptionRisk_i,     // 存在异常的风险
     input	wire	[`CP0_POSITION]         PREMEM_positionCp0_i,       // {rd,sel}
     input	wire	                        PREMEM_readCp0_i,           // mfc0,才会拉高
@@ -133,6 +134,7 @@ module MEM(
 	reg	[0:0]			PREMEM_hasException_r_i;
 	reg	[`SINGLE_WORD]			PREMEM_exceptBadVAddr_r_i;
 	reg	[0:0]			PREMEM_eret_r_i;
+	reg	[0:0]			PREMEM_isRefill_r_i;
 	reg	[0:0]			PREMEM_exceptionRisk_r_i;
 	reg	[`CP0_POSITION]			PREMEM_positionCp0_r_i;
 	reg	[0:0]			PREMEM_readCp0_r_i;
@@ -156,6 +158,7 @@ module MEM(
 			PREMEM_hasException_r_i	<=	'b0;
 			PREMEM_exceptBadVAddr_r_i	<=	'b0;
 			PREMEM_eret_r_i	<=	'b0;
+			PREMEM_isRefill_r_i	<=	'b0;
 			PREMEM_exceptionRisk_r_i	<=	'b0;
 			PREMEM_positionCp0_r_i	<=	'b0;
 			PREMEM_readCp0_r_i	<=	'b0;
@@ -179,6 +182,7 @@ module MEM(
 			PREMEM_hasException_r_i	<=	PREMEM_hasException_i;
 			PREMEM_exceptBadVAddr_r_i	<=	PREMEM_exceptBadVAddr_i;
 			PREMEM_eret_r_i	<=	PREMEM_eret_i;
+			PREMEM_isRefill_r_i	<=	PREMEM_isRefill_i;
 			PREMEM_exceptionRisk_r_i	<=	PREMEM_exceptionRisk_i;
 			PREMEM_positionCp0_r_i	<=	PREMEM_positionCp0_i;
 			PREMEM_readCp0_r_i	<=	PREMEM_readCp0_i;
@@ -190,7 +194,6 @@ module MEM(
     end
     /*}}}*/
     // 线信号处理{{{
-    assign MEM_hasRisk_w_o  = PREMEM_exceptionRisk_r_i || REEXE_hasRisk_w_i;
     assign MEM_writeNum_w_o = PREMEM_writeNum_r_i;
     assign MEM_hasDangerous_w_o = PREMEM_isDangerous_r_i;
     assign MEM_rtData_o = PREMEM_rtData_r_i;
@@ -228,6 +231,7 @@ module MEM(
     // 中断生成
     wire has_int =  ((CP0_Cause_w_i[`IP7:`IP0] & CP0_Status_w_i[`IM7:`IM0])!=8'h00) && 
                     (CP0_Status_w_i[`EXL]==1'b0);
+    assign MEM_hasRisk_w_o  = PREMEM_exceptionRisk_r_i || WB_hasRisk_w_i || has_int;
     assign MEM_isInterrupt_w_o = has_int;
     assign MEM_ExcCode_w_o =    has_int ? `INT : 
                                 PREMEM_hasException_r_i ? PREMEM_ExcCode_r_i : DMMU_ExcCode_i;
@@ -239,7 +243,7 @@ module MEM(
     assign MEM_writeCp0_w_o = PREMEM_writeCp0_r_i;
     assign MEM_eret_w_o = PREMEM_eret_r_i;
     assign MEM_writeData_w_o = PREMEM_preliminaryRes_r_i;
-    assign MEM_isRefill_w_o = DMMU_tlbRefill_i;
+    assign MEM_isRefill_w_o = DMMU_tlbRefill_i || PREMEM_isRefill_r_i;
     assign MEM_nonBlockMark_w_o = PREMEM_nonBlockMark_r_i;
     // }}}
 endmodule

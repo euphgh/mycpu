@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/28 14:43
+// Last Modified : 2022/07/28 21:35
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -26,8 +26,7 @@ module PREMEM (
     input	wire	                        EXE_down_valid_w_i,
     input	wire	                        SBA_allowin_w_i,
     // 异常互锁
-    input	wire                            SBA_hasRisk_w_i, 
-    input	wire	                        SBA_exceptionRisk_w_i,
+    input	wire                            MEM_hasRisk_w_i, 
     // 流水线刷新
     input	wire	                        CP0_excOccur_w_i,
     input	wire	                        SBA_flush_w_i,
@@ -61,6 +60,16 @@ module PREMEM (
     output	wire	                        PREMEM_writeI_w_o,
     output	wire	                        PREMEM_writeR_w_o,
     output	wire	[`SINGLE_WORD]          PREMEM_VAddr_w_o,
+    // 送入CP0异常处理
+    output	wire	                        PREMEM_hasException_w_o,     // 存在异常
+    output	wire    [`EXCCODE]              PREMEM_ExcCode_w_o,          // 异常信号
+    output	wire	[`SINGLE_WORD]          PREMEM_exceptBadVAddr_w_o,
+    output	wire	                        PREMEM_isDelaySlot_w_o,
+    output	wire	[`SINGLE_WORD]          PREMEM_exceptPC_w_o,
+    output	wire	                        PREMEM_nonBlockMark_w_o,
+    output	wire	                        PREMEM_eret_w_o,
+    output	wire	                        PREMEM_isRefill_w_o,       // 不同异常地址
+    output	wire	                        PREMEM_isInterrupt_w_o,    // 不同异常地址
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      寄存器输入   ////////////////{{{
@@ -77,11 +86,13 @@ module PREMEM (
     input	wire	[`MATH_SEL]             EXE_down_mathResSel_i,      // 数学运算结果的选择
     input	wire	                        EXE_down_nonBlockMark_i,    // 该条指令执行在MDU运算期间}}}
     // 异常处理类信息
+    input	wire	                        EXE_up_branchRisk_i,
     input	wire    [`EXCCODE]              EXE_down_ExcCode_i,         // 异常信号	
     input	wire	                        EXE_down_hasException_i,    // 存在异常
     input	wire                            EXE_down_exceptionRisk_i,   // 存在异常的风险
     input	wire	[`SINGLE_WORD]          EXE_down_exceptBadVAddr_i,    // 虚地址异常
     input	wire	                        EXE_down_eret_i,
+    input	wire	                        EXE_down_isRefill_i,
     input	wire	[`CP0_POSITION]         EXE_down_positionCp0_i,     // {rd,sel}
     input	wire	                        EXE_down_readCp0_i,         // mfc0,才会拉高
     input	wire	                        EXE_down_writeCp0_i,        // mtc0,才会拉高
@@ -121,6 +132,7 @@ module PREMEM (
     output	wire                            PREMEM_exceptionRisk_o,     // 存在异常的风险
     output	wire	[`SINGLE_WORD]          PREMEM_exceptBadVAddr_o,    // 虚地址异常
     output	wire	                        PREMEM_eret_o,
+    output	wire	                        PREMEM_isRefill_o,
     output	wire	[`CP0_POSITION]         PREMEM_positionCp0_o,       // {rd,sel}
     output	wire	                        PREMEM_readCp0_o,           // mfc0,才会拉高
     output	wire	                        PREMEM_writeCp0_o,          // mtc0,才会拉高
@@ -148,11 +160,13 @@ module PREMEM (
 	reg	[`SINGLE_WORD]			EXE_down_mulRes_r_i;
 	reg	[`MATH_SEL]			EXE_down_mathResSel_r_i;
 	reg	[0:0]			EXE_down_nonBlockMark_r_i;
+	reg	[0:0]			EXE_up_branchRisk_r_i;
 	reg	[`EXCCODE]			EXE_down_ExcCode_r_i;
 	reg	[0:0]			EXE_down_hasException_r_i;
 	reg	[0:0]			EXE_down_exceptionRisk_r_i;
 	reg	[`SINGLE_WORD]			EXE_down_exceptBadVAddr_r_i;
 	reg	[0:0]			EXE_down_eret_r_i;
+	reg	[0:0]			EXE_down_isRefill_r_i;
 	reg	[`CP0_POSITION]			EXE_down_positionCp0_r_i;
 	reg	[0:0]			EXE_down_readCp0_r_i;
 	reg	[0:0]			EXE_down_writeCp0_r_i;
@@ -178,11 +192,13 @@ module PREMEM (
 			EXE_down_mulRes_r_i	<=	'b0;
 			EXE_down_mathResSel_r_i	<=	'b0;
 			EXE_down_nonBlockMark_r_i	<=	'b0;
+			EXE_up_branchRisk_r_i	<=	'b0;
 			EXE_down_ExcCode_r_i	<=	'b0;
 			EXE_down_hasException_r_i	<=	'b0;
 			EXE_down_exceptionRisk_r_i	<=	'b0;
 			EXE_down_exceptBadVAddr_r_i	<=	'b0;
 			EXE_down_eret_r_i	<=	'b0;
+			EXE_down_isRefill_r_i	<=	'b0;
 			EXE_down_positionCp0_r_i	<=	'b0;
 			EXE_down_readCp0_r_i	<=	'b0;
 			EXE_down_writeCp0_r_i	<=	'b0;
@@ -208,11 +224,13 @@ module PREMEM (
 			EXE_down_mulRes_r_i	<=	EXE_down_mulRes_i;
 			EXE_down_mathResSel_r_i	<=	EXE_down_mathResSel_i;
 			EXE_down_nonBlockMark_r_i	<=	EXE_down_nonBlockMark_i;
+			EXE_up_branchRisk_r_i	<=	EXE_up_branchRisk_i;
 			EXE_down_ExcCode_r_i	<=	EXE_down_ExcCode_i;
 			EXE_down_hasException_r_i	<=	EXE_down_hasException_i;
 			EXE_down_exceptionRisk_r_i	<=	EXE_down_exceptionRisk_i;
 			EXE_down_exceptBadVAddr_r_i	<=	EXE_down_exceptBadVAddr_i;
 			EXE_down_eret_r_i	<=	EXE_down_eret_i;
+			EXE_down_isRefill_r_i	<=	EXE_down_isRefill_i;
 			EXE_down_positionCp0_r_i	<=	EXE_down_positionCp0_i;
 			EXE_down_readCp0_r_i	<=	EXE_down_readCp0_i;
 			EXE_down_writeCp0_r_i	<=	EXE_down_writeCp0_i;
@@ -244,16 +262,17 @@ module PREMEM (
     // }}}
     // 线信号处理{{{
     assign PREMEM_VAddr_w_o  = EXE_down_aluRes_r_i;
-    wire   ok_to_req_tlb     = !SBA_exceptionRisk_w_i && !PREMEM_hasException_o && MEM_allowin_w_i;
-    assign PREMEM_search_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLP];
-    assign PREMEM_writeI_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWI];
-    assign PREMEM_writeR_w_o = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
-    assign PREMEM_read_w_o   = ok_to_req_tlb && EXE_down_isTLBInst_r_i && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
-    assign PREMEM_map_w_o    = EXE_down_memReq_r_i;
+    wire   ok_to_do_tlbInst  = !EXE_down_exceptionRisk_r_i && !MEM_hasRisk_w_i && EXE_down_isTLBInst_r_i;
+    assign PREMEM_map_w_o    = !EXE_down_exceptionRisk_r_i && !MEM_hasRisk_w_i && EXE_down_memReq_r_i;
+    assign PREMEM_search_w_o = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLP];
+    assign PREMEM_writeI_w_o = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWI];
+    assign PREMEM_writeR_w_o = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
+    assign PREMEM_read_w_o   = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
+    // 冲突通过暂停解决
     wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
-    wire   store_conflict  = EXE_down_memReq_r_i && SBA_exceptionRisk_w_i;
-    wire   tlb_conflict    = EXE_down_isTLBInst_r_i && PREMEM_hasRisk_w_o;
-    assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || SBA_hasRisk_w_i;
+    wire   store_conflict  = EXE_down_memReq_r_i && MEM_hasRisk_w_i;
+    wire   tlb_conflict    = EXE_down_isTLBInst_r_i && MEM_hasRisk_w_i;
+    assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || MEM_hasRisk_w_i || EXE_up_branchRisk_r_i;
     assign PREMEM_writeNum_w_o = EXE_down_writeNum_r_i;
     assign PREMEM_hasDangerous_w_o = EXE_down_isDangerous_r_i;
     // 流水线互锁
@@ -262,8 +281,7 @@ module PREMEM (
     assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i;
     wire needFlash = CP0_excOccur_w_i;
     // 只要有一段有数据就说明有数据
-    wire   pre_valid;   // 前一段的数据是否有效
-    assign pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
+    wire pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
     assign PREMEM_valid_w_o = hasData && ready && SBA_allowin_w_i;
     assign PREMEM_allowin_w_o = !hasData || (ready && MEM_allowin_w_i);
     wire   ok_to_change = PREMEM_allowin_w_o && SBA_allowin_w_i;
@@ -278,8 +296,8 @@ module PREMEM (
     end
     /*}}}*/
     // 总线信号{{{
-    assign data_req =  EXE_down_memReq_r_i && ok_to_req_tlb;
-    assign data_wr  = EXE_down_memWR_r_i;
+    assign data_req =  EXE_down_memReq_r_i && !MEM_hasRisk_w_i && !EXE_down_hasException_r_i && MEM_allowin_w_i;
+    assign data_wr  =  EXE_down_memWR_r_i;
     assign data_index   = EXE_down_aluRes_r_i[11:0];
     assign data_wstrb   = EXE_down_memEnable_r_i;
     wire [2:0] size =   {2'b00,data_wstrb[0]} + {2'b00,data_wstrb[1]} + 
@@ -314,6 +332,17 @@ module PREMEM (
     assign PREMEM_eret_o            = EXE_down_eret_r_i;
     assign PREMEM_exceptBadVAddr_o  = EXE_down_exceptBadVAddr_r_i;
     assign PREMEM_alignCheck_o      = data_index[1:0];
+    assign PREMEM_isRefill_o        = EXE_down_isRefill_r_i;
+
+    assign PREMEM_hasException_w_o  = EXE_down_hasException_r_i;
+    assign PREMEM_ExcCode_w_o       = EXE_down_ExcCode_r_i;
+    assign PREMEM_exceptBadVAddr_w_o= EXE_down_exceptBadVAddr_r_i;
+    assign PREMEM_isDelaySlot_w_o   = PREMEM_isDelaySlot_o; 
+    assign PREMEM_exceptPC_w_o      = PREMEM_VAddr_o;    
+    assign PREMEM_nonBlockMark_w_o  = PREMEM_nonBlockMark_o;
+    assign PREMEM_eret_w_o          = PREMEM_eret_o;        
+    assign PREMEM_isRefill_w_o      = PREMEM_isRefill_o;      
+    assign PREMEM_isInterrupt_w_o   = 1'b0;    
     // }}}
     // Cache指令{{{
     assign PREMEM_CacheAddress_o = EXE_down_aluRes_r_i;
