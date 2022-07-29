@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/18 10:45
-// Last Modified : 2022/07/29 11:59
+// Last Modified : 2022/07/29 17:04
 // File Name     : PrimaryExceptionProcessor.v
 // Description   :  接受异常请求和修改TLB的请求,对CP0寄存器进行读写
 //                  此外还需在异常触发的时候发送刷新流水线的信号
@@ -17,13 +17,6 @@
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
 `include "MyDefines.v"
-`define EXCEP_SEG_LEN   4
-`define EXCEP_SEG       `EXCEP_SEG_LEN-1:0
-`define EXCEP_EXE       0
-`define EXCEP_EXE_CODE      `EXCEP_SEG_LEN'b0001
-`define EXCEP_PREMEM_CODE   `EXCEP_SEG_LEN'b0010
-`define EXCEP_MEM_CODE      `EXCEP_SEG_LEN'b0100
-`define EXCEP_WB_CODE       `EXCEP_SEG_LEN'b1000
 module PrimaryExceptionProcessor (
     input	wire	                        clk,
     input	wire	                        rst,
@@ -156,9 +149,9 @@ module PrimaryExceptionProcessor (
          PREMEM_nonBlockMark_w_i,
          PREMEM_eret_w_i
         };
-    wire [`ALL_INFO] selectedInfo = ({`ALL_INFO_LEN{!PREMEM_hasRisk_w_i}}   & EXE_packedInfo) |
-                                    ({`ALL_INFO_LEN{!WB_hasRisk_w_i}}       & MEM_packedInfo) |
-                                    ({`ALL_INFO_LEN{!MEM_hasRisk_w_i}}      & PREMEM_packedInfo);
+    wire [`ALL_INFO] selectedInfo = !PREMEM_hasRisk_w_i   ? EXE_packedInfo :
+                                    !MEM_hasRisk_w_i      ? PREMEM_packedInfo :
+                                    !WB_hasRisk_w_i       ? MEM_packedInfo : 'd0;
     wire                    hasException;
     wire    [`EXCCODE]      ExcCode;
     wire                    isDelaySlot;
@@ -176,9 +169,9 @@ module PrimaryExceptionProcessor (
          eret
         } = selectedInfo;
     wire    isExceptionInNormal = (hasException && !Status[`EXL]) ? `TRUE : `FALSE;
-    assign CP0_exceptSeg_w_o =  ({`EXCEP_SEG_LEN{!PREMEM_hasRisk_w_i}}   & `EXCEP_EXE_CODE) |
-                                ({`EXCEP_SEG_LEN{!WB_hasRisk_w_i}}       & `EXCEP_PREMEM_CODE) |
-                                ({`EXCEP_SEG_LEN{!MEM_hasRisk_w_i}}      & `EXCEP_PREMEM_CODE);
+    assign CP0_exceptSeg_w_o =  !PREMEM_hasRisk_w_i    ? `EXCEP_EXE_CODE :
+                                !MEM_hasRisk_w_i    ? `EXCEP_PREMEM_CODE :
+                                !WB_hasRisk_w_i    ? `EXCEP_PREMEM_CODE  : 'd0;
 
     /*}}}*/
     ////////////////    Status  ////////////////{{{
@@ -228,7 +221,7 @@ module PrimaryExceptionProcessor (
             Cause_bd    <=  `FALSE;
         end
         else if (isExceptionInNormal) begin
-            Cause_bd    <=  `TRUE;
+            Cause_bd    <=  isDelaySlot;
         end
     end
     //}}}
@@ -435,8 +428,11 @@ module PrimaryExceptionProcessor (
                             ({32{mfc0_addr==`ADDR_ENRTYHI}}     & EntryHi)      |
                             ({32{mfc0_addr==`ADDR_CONFIG}}      & Config)       |
                             ({32{mfc0_addr==`ADDR_CONFIG1}}     & Config1)      ;
-    assign CP0_excOccur_w_o = isExceptionInNormal;
-    assign CP0_excDestPC_w_o = 32'hbfc00380;
+    wire    writeK0 = mtc0_wen && (mtc0_addr==`ADDR_CONFIG);
+    assign CP0_excOccur_w_o  =  isExceptionInNormal || eret || writeK0;
+    assign CP0_excDestPC_w_o =  isExceptionInNormal ? 32'hbfc00380 :
+                                eret ? EPC : 
+                                writeK0 ? (exceptPC + 32'd4) : 32'b0;
     assign CP0_Status_w_o = Status;
     assign CP0_Cause_w_o = Cause;
     assign CP0_Config_w_o = Config;

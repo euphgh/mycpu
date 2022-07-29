@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/29 09:42
+// Last Modified : 2022/07/29 21:06
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -26,6 +26,7 @@ module SecondBranchAmend (
     input	wire	                        MEM_hasRisk_w_i,
     // 刷新流水线的信号
     input	wire	                        CP0_excOccur_w_i,            
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     // 流水线控制
     input	wire	                        REEXE_allowin_w_i,
     input	wire	                        EXE_up_valid_w_i,
@@ -131,9 +132,12 @@ module SecondBranchAmend (
     reg hasData;
     wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
     assign SBA_forwardMode_w_o  = ready && hasData;
-    wire needFlush = CP0_excOccur_w_i;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i;
     wire pre_valid = EXE_up_valid_w_i && !SBA_flush_w_o;
-    assign SBA_valid_w_o    = hasData && ready && PREMEM_allowin_w_i;
+    assign SBA_valid_w_o    =   hasData && 
+                                ready && 
+                                PREMEM_allowin_w_i && 
+                                !needFlush;
     assign SBA_allowin_w_o  = !hasData || (ready && REEXE_allowin_w_i);
     wire   ok_to_change = SBA_allowin_w_o && PREMEM_allowin_w_i;
     assign needUpdata = ok_to_change && pre_valid;

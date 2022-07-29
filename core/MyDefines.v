@@ -1,8 +1,9 @@
 `define CONTINUE
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
+`define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
 `ifdef CONTINUE
-    `define STARTPOINT  32'hbfc69f54
-    `define STARTLINE   83195
+    `define STARTPOINT		32'hbfc00b64
+    `define STARTLINE	      84303
 `endif
 `ifndef CONTINUE
     `define STARTPOINT  32'hbfc00000
@@ -54,16 +55,18 @@
 /*}}}*/
 //分支预测检查点长度定义{{{
 //RAS的检查点{{{
-`define RAS_WIDTH `RAS_WIDTH-1:0
-`define RAS_WIDTH_LEN `RAS_PC_LEN + `RAS_NUMBER_LEN
-`define RAS_PC_LEN      30
-`define RAS_PC          `RAS_PC_LEN-1:0
-`define RAS_NUMBER_LEN  4
-`define RAS_NUMBER      `RAS_PC_LEN+`RAS_NUMBER_LEN-1:`RAS_PC_LEN-1
-`define RAS_SIZE        1024
-`define RAS_ENRTY_WIDTH `RAS_WIDTH_LEN-1:0
-`define RAS_ENRTY_NUM_LEN $clog2(`RAS_SIZE)  
-`define RAS_ENRTY_NUM   `RAS_ENRTY_NUM_LEN-1:0
+`define RAS_SIZE            1024
+`define RAS_PC_LEN          30
+`define RAS_TIMES_LEN       4
+`define RAS_WIDTH_LEN       `RAS_PC_LEN+`RAS_TIMES_LEN
+`define RAS_ENRTY_WIDTH     `RAS_WIDTH_LEN-1:0
+`define RAS_PC              `RAS_PC_LEN-1:0
+`define RAS_TIMES           `RAS_PC_LEN+`RAS_TIMES_LEN-1:`RAS_PC_LEN-1
+`define RAS_ENRTY_NUM_LEN   $clog2(`RAS_SIZE)  
+`define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
+`define RAS_CHECKPOINT_LEN  `RAS_WIDTH_LEN+`RAS_ENRTY_NUM_LEN
+`define RAS_CHECK_TOP       `RAS_ENRTY_WIDTH
+`define RAS_CHECK_ENRTY     `RAS_WIDTH_LEN+RAS_ENRTY_NUM_LEN-1:`RAS_WIDTH_LEN
 //}}}
 `define ALL_CHECKPOINT  `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT   `ALL_CHECKPOINT_LEN'b0
@@ -72,7 +75,6 @@
 `define RAS_CHECKPOINT  `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
 `define ALL_CHECKPOINT_LEN (`RAS_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN+`IJTC_CHECKPOINT_LEN)
 `define PHT_CHECKPOINT_LEN 10
-`define RAS_CHECKPOINT_LEN `RAS_WIDTH_LEN
 `define RSA_CHECK_PC    
 `define RSA_CHECK_NUM
 `define IJTC_CHECKPOINT_LEN 8                           // 记录全局分支历史
@@ -440,3 +442,15 @@
                 end \
                 endgenerate
                 /*}}}*/
+// CP0刷新流水段{{{
+`define EXCEP_SEG_LEN   4
+`define EXCEP_SEG       `EXCEP_SEG_LEN-1:0
+`define EXCEP_EXE       0
+`define EXCEP_PREMEM    1
+`define EXCEP_MEM       2
+`define EXCEP_WB        3
+`define EXCEP_EXE_CODE      `EXCEP_SEG_LEN'b0001
+`define EXCEP_PREMEM_CODE   `EXCEP_SEG_LEN'b0011
+`define EXCEP_MEM_CODE      `EXCEP_SEG_LEN'b0111
+`define EXCEP_WB_CODE       `EXCEP_SEG_LEN'b1111
+// }}}

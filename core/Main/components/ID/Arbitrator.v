@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/28 19:58
+// Last Modified : 2022/07/29 13:23
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -252,13 +252,13 @@ wire temp__3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]
 (!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]))) |
  (!(temp__0) & (((temp__2) & (( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) |
 ( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]))) |
- (!(temp__2) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
-( inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])))));
+ (!(temp__2) & (( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
+( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
+(!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
+( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])))));
 	assign	instMode[i][1]	=	((temp__0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |

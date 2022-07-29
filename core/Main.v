@@ -144,7 +144,7 @@ module Main(
 	assign	ID_up_predDest_i	=	ID_up_predDest_o;
 	wire	[0:0]	ID_up_predTake_o;	wire	[0:0]	ID_up_predTake_i;
 	assign	ID_up_predTake_i	=	ID_up_predTake_o;
-	wire	[53:0]	ID_up_checkPoint_o;	wire	[53:0]	ID_up_checkPoint_i;
+	wire	[61:0]	ID_up_checkPoint_o;	wire	[61:0]	ID_up_checkPoint_i;
 	assign	ID_up_checkPoint_i	=	ID_up_checkPoint_o;
 	wire	[5:0]	ID_up_branchKind_o;	wire	[5:0]	ID_up_branchKind_i;
 	assign	ID_up_branchKind_i	=	ID_up_branchKind_o;
@@ -308,6 +308,8 @@ module Main(
 	assign	CP0_Index_w_i	=	CP0_Index_w_o;
 	wire	[31:0]	CP0_Random_w_o;	wire	[31:0]	CP0_Random_w_i;
 	assign	CP0_Random_w_i	=	CP0_Random_w_o;
+	wire	[3:0]	CP0_exceptSeg_w_o;	wire	[3:0]	CP0_exceptSeg_w_i;
+	assign	CP0_exceptSeg_w_i	=	CP0_exceptSeg_w_o;
 	wire	[0:0]	REEXE_allowin_w_o;	wire	[0:0]	REEXE_allowin_w_i;
 	assign	REEXE_allowin_w_i	=	REEXE_allowin_w_o;
 	wire	[0:0]	REEXE_valid_w_o;	wire	[0:0]	REEXE_valid_w_i;
@@ -444,7 +446,7 @@ module Main(
 	assign	SBA_corrDest_w_i	=	SBA_corrDest_w_o;
 	wire	[0:0]	SBA_corrTake_w_o;	wire	[0:0]	SBA_corrTake_w_i;
 	assign	SBA_corrTake_w_i	=	SBA_corrTake_w_o;
-	wire	[53:0]	SBA_checkPoint_w_o;	wire	[53:0]	SBA_checkPoint_w_i;
+	wire	[61:0]	SBA_checkPoint_w_o;	wire	[61:0]	SBA_checkPoint_w_i;
 	assign	SBA_checkPoint_w_i	=	SBA_checkPoint_w_o;
 	wire	[7:0]	SBA_repairAction_w_o;	wire	[7:0]	SBA_repairAction_w_i;
 	assign	SBA_repairAction_w_i	=	SBA_repairAction_w_o;
@@ -458,7 +460,7 @@ module Main(
 	assign	IF_predDest_p_i	=	IF_predDest_p_o;
 	wire	[3:0]	IF_predTake_p_o;	wire	[3:0]	IF_predTake_p_i;
 	assign	IF_predTake_p_i	=	IF_predTake_p_o;
-	wire	[215:0]	IF_predInfo_p_o;	wire	[215:0]	IF_predInfo_p_i;
+	wire	[247:0]	IF_predInfo_p_o;	wire	[247:0]	IF_predInfo_p_i;
 	assign	IF_predInfo_p_i	=	IF_predInfo_p_o;
 	wire	[31:0]	IF_instBasePC_o;	wire	[31:0]	IF_instBasePC_i;
 	assign	IF_instBasePC_i	=	IF_instBasePC_o;
@@ -504,7 +506,7 @@ module Main(
 	assign	EXE_up_corrTake_i	=	EXE_up_corrTake_o;
 	wire	[7:0]	EXE_up_repairAction_o;	wire	[7:0]	EXE_up_repairAction_i;
 	assign	EXE_up_repairAction_i	=	EXE_up_repairAction_o;
-	wire	[53:0]	EXE_up_checkPoint_o;	wire	[53:0]	EXE_up_checkPoint_i;
+	wire	[61:0]	EXE_up_checkPoint_o;	wire	[61:0]	EXE_up_checkPoint_i;
 	assign	EXE_up_checkPoint_i	=	EXE_up_checkPoint_o;
 	wire	[0:0]	EXE_up_branchRisk_o;	wire	[0:0]	EXE_up_branchRisk_i;
 	assign	EXE_up_branchRisk_i	=	EXE_up_branchRisk_o;
@@ -934,7 +936,8 @@ PrimaryExceptionProcessor  u_PrimaryExceptionProcessor (
     .CP0_EntryLo1_w_o             ( CP0_EntryLo1_w_o              ),
     .CP0_PageMask_w_o             ( CP0_PageMask_w_o              ),
     .CP0_Index_w_o                ( CP0_Index_w_o                 ),
-    .CP0_Random_w_o               ( CP0_Random_w_o                )
+    .CP0_Random_w_o               ( CP0_Random_w_o                ),
+    .CP0_exceptSeg_w_o            ( CP0_exceptSeg_w_o             )
 );
 
 REEXE  u_REEXE (
@@ -1010,6 +1013,7 @@ MEM  u_MEM (
     .PREMEM_valid_w_i         ( PREMEM_valid_w_i          ),
     .WB_hasRisk_w_i           ( WB_hasRisk_w_i            ),
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
+    .CP0_exceptSeg_w_i        ( CP0_exceptSeg_w_i         ),
     .CP0_readData_w_i         ( CP0_readData_w_i          ),
     .data_hasException        ( data_hasException         ),
     .DMMU_tlbRefill_i         ( DMMU_tlbRefill_i          ),
@@ -1093,6 +1097,7 @@ SecondBranchAmend  u_SecondBranchAmend (
     .rst                     ( rst                     ),
     .MEM_hasRisk_w_i         ( MEM_hasRisk_w_i         ),
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i        ),
+    .CP0_exceptSeg_w_i       ( CP0_exceptSeg_w_i       ),
     .REEXE_allowin_w_i       ( REEXE_allowin_w_i       ),
     .EXE_up_valid_w_i        ( EXE_up_valid_w_i        ),
     .PREMEM_allowin_w_i      ( PREMEM_allowin_w_i      ),
@@ -1179,6 +1184,7 @@ EXEUP  u_EXEUP (
     .EXE_down_allowin_w_i     ( EXE_down_allowin_w_i      ),
     .SBA_flush_w_i            ( SBA_flush_w_i             ),
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
+    .CP0_exceptSeg_w_i        ( CP0_exceptSeg_w_i         ),
     .WB_forwardData_w_i       ( WB_forwardData_w_i        ),
     .ID_up_VAddr_i            ( ID_up_VAddr_i             ),
     .ID_up_writeNum_i         ( ID_up_writeNum_i          ),
@@ -1231,6 +1237,7 @@ EXEDOWN  u_EXEDOWN (
     .SBA_branchRisk_w_i           ( SBA_branchRisk_w_i            ),
     .SBA_flush_w_i                ( SBA_flush_w_i                 ),
     .CP0_excOccur_w_i             ( CP0_excOccur_w_i              ),
+    .CP0_exceptSeg_w_i            ( CP0_exceptSeg_w_i             ),
     .WB_forwardData_w_i           ( WB_forwardData_w_i            ),
     .ID_down_writeNum_i           ( ID_down_writeNum_i            ),
     .ID_down_readData_i           ( ID_down_readData_i            ),
@@ -1330,6 +1337,7 @@ PREMEM  u_PREMEM (
     .SBA_allowin_w_i             ( SBA_allowin_w_i              ),
     .MEM_hasRisk_w_i             ( MEM_hasRisk_w_i              ),
     .CP0_excOccur_w_i            ( CP0_excOccur_w_i             ),
+    .CP0_exceptSeg_w_i           ( CP0_exceptSeg_w_i            ),
     .SBA_flush_w_i               ( SBA_flush_w_i                ),
     .data_index_ok               ( data_index_ok                ),
     .EXE_down_writeNum_i         ( EXE_down_writeNum_i          ),

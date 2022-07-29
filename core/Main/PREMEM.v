@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/28 21:35
+// Last Modified : 2022/07/29 21:05
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -29,6 +29,7 @@ module PREMEM (
     input	wire                            MEM_hasRisk_w_i, 
     // 流水线刷新
     input	wire	                        CP0_excOccur_w_i,
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     input	wire	                        SBA_flush_w_i,
     // 总线
     input	wire	                        data_index_ok,
@@ -278,15 +279,18 @@ module PREMEM (
     // 流水线互锁
     reg hasData;
     wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
-    assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i;
-    wire needFlash = CP0_excOccur_w_i;
+    assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i && !EXE_down_readCp0_r_i;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
     // 只要有一段有数据就说明有数据
     wire pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
-    assign PREMEM_valid_w_o = hasData && ready && SBA_allowin_w_i;
+    assign PREMEM_valid_w_o =   hasData && 
+                                ready && 
+                                SBA_allowin_w_i &&
+                                !needFlush;
     assign PREMEM_allowin_w_o = !hasData || (ready && MEM_allowin_w_i);
     wire   ok_to_change = PREMEM_allowin_w_o && SBA_allowin_w_i;
     assign needUpdata = ok_to_change && pre_valid;
-    assign needClear  = (!pre_valid&&ok_to_change) || needFlash;
+    assign needClear  = (!pre_valid&&ok_to_change) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;

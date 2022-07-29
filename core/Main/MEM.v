@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/28 20:36
+// Last Modified : 2022/07/29 21:25
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -31,6 +31,7 @@ module MEM(
     input	wire                            WB_hasRisk_w_i, 
     // 流水线刷新
     input	wire	                        CP0_excOccur_w_i,
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     input	wire	[`SINGLE_WORD]          CP0_readData_w_i,   // 读出来的寄存器数值
     // 在执行TLB指令后，需要将以下数据写入CP0寄存器
     input	wire	                        data_hasException,
@@ -202,13 +203,16 @@ module MEM(
     reg hasData;
     wire ready = !PREMEM_memReq_r_i || data_data_ok;
     assign MEM_forwardMode_w_o = hasData && ready && !PREMEM_memReq_r_i;
-    wire needFlash = CP0_excOccur_w_i ;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i ;
     // 只要有一段有数据就说明有数据
-    assign MEM_valid_w_o = hasData && ready && REEXE_allowin_w_i;
+    assign MEM_valid_w_o =  hasData && 
+                            ready && 
+                            REEXE_allowin_w_i &&
+                            !needFlush;
     assign MEM_allowin_w_o = !hasData || (ready && WB_allowin_w_i);
     wire   ok_to_change = MEM_allowin_w_o && REEXE_allowin_w_i ;
     assign needUpdata = ok_to_change && PREMEM_valid_w_i;
-    assign needClear  = (!PREMEM_valid_w_i&&ok_to_change) || needFlash;
+    assign needClear  = (!PREMEM_valid_w_i&&ok_to_change) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;

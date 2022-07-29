@@ -14,7 +14,6 @@
 `define FUNC_TEST
 // `define CACHE_HIT_TEST
 `define TRACE_REF_FILE          "../../../../../../mycpu/trace/golden_trace.txt"
-`define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define CONFREG_OPEN_TRACE      soc_lite.u_confreg.open_trace
 `define CONFREG_NUM_REG         soc_lite.u_confreg.num_data
 `define CONFREG_NUM_MONITOR     soc_lite.u_confreg.num_monitor
@@ -43,15 +42,12 @@ assign switch      = ~switch_inv;
 assign btn_key_row = 4'd0;
 assign btn_step    = 2'd3;
 integer regNum;
+integer hiloNum;
 initial begin
     clk    = 1'b0;
     resetn = 1'b0;
     #2000;
     resetn = 1'b1;
-    #30
-    for(regNum=1; regNum<32; regNum=regNum+1) begin
-        $display("%h",soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum]);
-	end
 end
 
 always #5 clk=~clk;
@@ -98,7 +94,9 @@ assign debug_wb_wen  [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wen1;
 assign debug_wb_wnum [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wnum1;
 assign debug_wb_wdata[1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wdata1;
 // open the trace file
-integer trace_ref,status,reg_record;
+integer trace_ref,status;
+integer reg_record;
+integer hilo_record;
 integer line;
 initial begin
     trace_ref = $fopen(`TRACE_REF_FILE, "r");
@@ -132,7 +130,9 @@ end
 endfunction
 
 reg debug_wb_err;
-reg myAssert;
+reg ok_to_write = 1'b0;
+reg [`SINGLE_WORD]  tempRegFile     [31:1];
+reg [`SINGLE_WORD]  tempHiLoFile    [1:0];
 task compare (
     input [31:0] debug_wb_pc  ,
     input [3 :0] debug_wb_wen ,
@@ -146,7 +146,20 @@ begin
             $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
                     ref_wb_pc, ref_wb_wnum, ref_wb_wdata);
         end
-        line = line + 1 ;
+        line = line + 1 ;      
+        if  (({debug_wb_pc[31:12],8'b0,debug_wb_pc[3:0]}==32'hbfc00004)     && 
+                (debug_wb_pc[11:4]<=8'hc9)                                  &&
+                (debug_wb_pc[11:4]>=8'h72)) begin
+	            for(regNum=1; regNum<32; regNum=regNum+1) begin
+                        tempRegFile[regNum]  <=  soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum];
+	            end
+	            for(hiloNum=0; hiloNum<2; hiloNum=hiloNum+1) begin
+                        tempHiLoFile[hiloNum] <=  soc_lite.u_cpu.u_Main.u_EXEDOWN.regHiLo[hiloNum];
+                        $display ("hilo:\t%h",tempHiLoFile[hiloNum]);
+	            end
+                ok_to_write <=  1'b1;
+	            $display ("`define STARTPOINT\t\t32'h%h\n`define STARTLINE\t%d",debug_wb_pc,line-1);
+            end
         if ((debug_wb_pc !== ref_wb_pc)     ||
             (debug_wb_wnum !== ref_wb_wnum) ||
             (get_valid_wdata(debug_wb_wdata, debug_wb_wen) !== get_valid_wdata(ref_wb_wdata, debug_wb_wen))) begin
@@ -158,12 +171,18 @@ begin
                       debug_wb_pc, debug_wb_wnum, get_valid_wdata(debug_wb_wdata, debug_wb_wen));
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
-            reg_record = $fopen(`REG_FILE,"w");
-	        for(regNum=1; regNum<32; regNum=regNum+1) begin
-	           $fdisplay(reg_record,"%h",soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum]);
-	        end
-	        $display ("`define STARTPOINT\t%h\n`define STARTLINE\t%d",debug_wb_pc,line);
-	        $fclose(reg_record);
+            if (ok_to_write) begin
+                reg_record = $fopen(`REG_FILE,"w");
+                hilo_record = $fopen(`HILO_FILE,"w");
+	            for(regNum=1; regNum<32; regNum=regNum+1) begin
+	                $fdisplay(reg_record,"%h",tempRegFile[regNum]);
+	            end
+	            for(hiloNum=0; hiloNum<2; hiloNum=hiloNum+1) begin
+	                $fdisplay(hilo_record,"%h",tempHiLoFile[hiloNum]);
+	            end
+	            $fclose(reg_record);
+	            $fclose(hilo_record);
+            end
             #15;
             $finish;
         end

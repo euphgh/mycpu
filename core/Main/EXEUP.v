@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/28 20:08
+// Last Modified : 2022/07/29 21:07
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -29,6 +29,7 @@ module EXEUP(
     // 刷新流水线的信号
     input	wire	                        SBA_flush_w_i,            
     input	wire	                        CP0_excOccur_w_i,            
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     // 异常互锁
     input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,
 /*}}}*/
@@ -195,14 +196,18 @@ module EXEUP(
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
+    wire exceptionClean = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
     assign EXE_up_forwardMode_w_o = hasData && ready;
-    assign EXE_up_valid_w_o = hasData && ready && EXE_down_allowin_w_i;
+    assign EXE_up_valid_w_o =   hasData && 
+                                ready && 
+                                EXE_down_allowin_w_i &&
+                                !exceptionClean;
     // 前递的要求
     assign EXE_up_allowin_w_o = !hasData || (ready && SBA_allowin_w_i);
     wire   ok_to_change = EXE_up_allowin_w_o && EXE_down_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_up_valid_w_i;
     // TODO 是否需要在清空流水线的时候allowin
-    wire needFlush = SBA_flush_w_i || CP0_excOccur_w_i;
+    wire needFlush = SBA_flush_w_i || exceptionClean;
     assign needClear  = (!ID_up_valid_w_i&&ok_to_change) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin

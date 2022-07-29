@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/29 11:36
+// Last Modified : 2022/07/29 21:07
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -34,6 +34,7 @@ module EXEDOWN(
     // 流水线刷新
     input	wire	                        SBA_flush_w_i,
     input	wire	                        CP0_excOccur_w_i,
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     input	wire	[`SINGLE_WORD]          WB_forwardData_w_i,
 /*}}}*/
     /////////////////////////////////////////////////
@@ -342,7 +343,10 @@ module EXEDOWN(
     assign EXE_down_forwardMode_w_o  = hasData && ready && !ID_down_memReq_r_i && isAluInst;
     wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
     // 只要有一段有数据就说明有数据
-    assign EXE_down_valid_w_o = hasData && ready && EXE_up_allowin_w_i;
+    assign EXE_down_valid_w_o = hasData && 
+                                ready && 
+                                EXE_up_allowin_w_i && 
+                                !CP0_excOccur_w_i;
     assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
     wire   ok_to_change = EXE_down_allowin_w_o && EXE_up_allowin_w_i ;
     assign needUpdata = ok_to_change && ID_down_valid_w_i;
@@ -526,7 +530,7 @@ module EXEDOWN(
     assign MDU_operator[`MT_DEST]   =  ID_down_writeHiLo_r_i[`HI_WRITE];
     assign MDU_oprand = {updataRegFile_up[1],updataRegFile_up[0]};
     assign MDU_HiLoData = {regHiLo[1],regHiLo[0]} ;
-    wire isMduWrite = |ID_down_mduOperator_r_i[6:0];     
+    wire isMduWrite = |ID_down_mduOperator_r_i[6:0] || (|ID_down_writeHiLo_r_i);
     assign mulrReq = ID_down_mduOperator_r_i[`MDU_MULR];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,MDU_writeData,MDU_writeData_p)/*}}}*/
     // MDU和指令流水线之间的交互{{{
@@ -573,7 +577,11 @@ module EXEDOWN(
         for (genvar i = 0; i < 2; i = i+1)	begin
             always @(posedge clk) begin
                 if (!rst) begin
+                `ifdef CONTINUE
+                    $readmemh(`HILO_FILE, regHiLo);
+                `else
                     regHiLo[i]  <=  `ZEROWORD;
+                `endif
                 end
                 else if (MDU_data_ok && MDU_writeEnable[i]) begin
                     regHiLo[i]  <=  MDU_writeData[i];
@@ -610,7 +618,7 @@ module EXEDOWN(
     assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
     assign EXE_down_mathResSel_o =  clReq   ? 4'b0001 :
                                     mulrReq ? 4'b0010 :
-                                    !(isAluInst)  ? 4'b0100 : 4'b1000;
+                                    (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
     assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o;

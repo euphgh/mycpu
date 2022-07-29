@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/29 11:36
+// Last Modified : 2022/07/29 20:46
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -425,10 +425,10 @@ module ID (
     assign ID_down_forwardSel0_o = forwardSel[1][0];
     assign ID_down_forwardSel1_o = forwardSel[1][1];
 
-    assign ID_up_oprand0IsReg_o = oprand_sel[0][0][`SEL_RS_DATA];
-    assign ID_up_oprand1IsReg_o = oprand_sel[0][1][`SEL_RT_DATA];
-    assign ID_down_oprand0IsReg_o = oprand_sel[1][0][`SEL_RS_DATA];
-    assign ID_down_oprand1IsReg_o = oprand_sel[1][1][`SEL_RT_DATA];
+    assign ID_up_oprand0IsReg_o = oprand_sel[0][0][`SEL_RS_DATA] ;
+    assign ID_up_oprand1IsReg_o = oprand_sel[0][1][`SEL_RT_DATA] ;
+    assign ID_down_oprand0IsReg_o = oprand_sel[1][0][`SEL_RS_DATA] || ID_down_writeCp0_o;
+    assign ID_down_oprand1IsReg_o = oprand_sel[1][1][`SEL_RT_DATA] || ID_down_writeCp0_o;
 /*}}}*/
     // 流水暂停控制{{{ 
     wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
@@ -454,7 +454,7 @@ module ID (
     assign ID_down_ExcCode_o = AB_hasException_up[1] ? AB_ExcCode_up[1] : decorderExcCode_up[1];
     assign ID_down_exceptionRisk_o = ID_down_hasException_o ? 1'b1 : ID_exceptionRisk_p[1];
     assign ID_down_isDelaySlot_o = ID_up_branchRisk_o;
-    assign ID_down_positionCp0_o = {AB_regWriteNum_p_w[9:5],AB_inst_up[1][2:0]};
+    assign ID_down_positionCp0_o = {AB_inst_up[1][15:11],AB_inst_up[1][2:0]};
     assign ID_down_isRefill_o   = AB_isRefill_p[1];
 /*}}}*/
     // 分支预测{{{
