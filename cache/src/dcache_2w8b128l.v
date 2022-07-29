@@ -79,7 +79,7 @@ module dcache_2w8b128l(
     output [31:0] data_uncache_wdata,
     input  [31:0] data_uncache_rdata,
     input         data_uncache_addr_ok,
-    input         data_uncache_data_ok  
+    input         data_uncache_data_ok
 );
     ////////////////////////////////////////////////////////
     // Signal Define

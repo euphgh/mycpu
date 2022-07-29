@@ -316,7 +316,7 @@ module ic_tb(  );
         .s_axi_rready             (inst_cache_rready )
     );
     // ICACHE and INST_UNCACHE
-    icache_4w16b64l  u_icache_tp (
+    icache_4w4b256l  u_icache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .inst_req             (inst_req            ),
