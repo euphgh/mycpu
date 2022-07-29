@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/27 12:10
+// Last Modified : 2022/07/28 19:58
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
@@ -41,7 +41,6 @@ module Arbitrator(
     output	wire	[3:0]                       AB_needRead_p_w,                       
     output	wire	[2*`GPR_NUM]                AB_regWriteNum_p_w
 );
-    // 发射规则{{{
     wire    [1:0]           instMode    [1:0];
     wire    [`GPR_NUM]      ReadRs      [1:0];  // 指令的部分截取
     wire    [`GPR_NUM]      ReadRt      [1:0];  // 指令的部分截取
@@ -49,30 +48,13 @@ module Arbitrator(
     wire                    isNeedRs    [1:0];  // 指令是否存在读寄存器的需求
     wire                    isNeedRt    [1:0];  // 指令是否存在读寄存器的需求
     wire                    isNeedRd    [1:0];  // 指令是否存在写寄存器的需求
-
-    // 指令种类的冲突，当0号指令可以在0号槽双发且1号指令可以在1号槽双发，才能双发
-    wire    kindConflict0   = !(|(instMode[0] & `AT_SLOT_ZERO));
-    wire    kindConflict1   = !(|(instMode[1] & `AT_SLOT_ONE));
-    wire    dual_kindConflict   = kindConflict0 || kindConflict1;
-    wire    single_kindConflict = !(|(instMode[0] & `AT_SLOT_ONE));
-    // 指令数据的冲突，是否存在写后读
-    wire    dataConflict = isNeedRd[0] && ((isNeedRs[1] && (ReadRs[1]==writeRd[0]))||(isNeedRt[1] && (ReadRt[1]==writeRd[0])));
-    assign AB_issueMode_w =     IQ_supplyValid  [1] ? ((dataConflict || dual_kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE) :
-                                IQ_supplyValid  [0] ? (single_kindConflict ? `NO_ISSUE : `SINGLE_ISSUE) : `NO_ISSUE;
- 
     wire    [2*`GPR_NUM]    IQ_regReadNum_up    [1:0];
     wire    [`GPR_NUM]      IQ_regWriteNum_up   [1:0];
     wire    [1:0]           IQ_needRead_up      [1:0];
     wire    [2*`GPR_NUM]    AB_regReadNum_up    [1:0];
     wire    [`GPR_NUM]      AB_regWriteNum_up   [1:0];
     wire    [1:0]           AB_needRead_up      [1:0];
-    assign  IQ_regReadNum_up[0] = {({5{isNeedRt[0]}} & ReadRt[0]),({5{isNeedRs[0]}} & ReadRs[0])};
-    assign  IQ_regReadNum_up[1] = {({5{isNeedRt[1]}} & ReadRt[1]),({5{isNeedRs[1]}} & ReadRs[1])};
-    assign  IQ_regWriteNum_up[0]= {5{isNeedRd[0]}} & writeRd[0];
-    assign  IQ_regWriteNum_up[1]= {5{isNeedRd[1]}} & writeRd[1];
-    assign  IQ_needRead_up[0]   = {isNeedRt[0],isNeedRs[0]};
-    assign  IQ_needRead_up[1]   = {isNeedRt[1],isNeedRs[1]};
-    // }}}
+
     // 解包和压缩包{{{
     wire    [   3*`SINGLE_WORD_LEN+
                 3*1+
@@ -147,6 +129,23 @@ module Arbitrator(
     end
     endgenerate
 /*}}}*/
+    // 发射规则{{{
+    // 指令种类的冲突，当0号指令可以在0号槽双发且1号指令可以在1号槽双发，才能双发
+    wire    kindConflict0   = !(|(instMode[0] & `AT_SLOT_ZERO)) || IQ_hasException_up[0];
+    wire    kindConflict1   = !(|(instMode[1] & `AT_SLOT_ONE));
+    wire    dual_kindConflict   = kindConflict0 || kindConflict1;
+    wire    single_kindConflict = !(|(instMode[0] & `AT_SLOT_ONE));
+    // 指令数据的冲突，是否存在写后读
+    wire    dataConflict = isNeedRd[0] && ((isNeedRs[1] && (ReadRs[1]==writeRd[0]))||(isNeedRt[1] && (ReadRt[1]==writeRd[0])));
+    assign AB_issueMode_w =     IQ_supplyValid  [1] ? ((dataConflict || dual_kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE) :
+                                IQ_supplyValid  [0] ? (single_kindConflict ? `NO_ISSUE : `SINGLE_ISSUE) : `NO_ISSUE;
+    assign  IQ_regReadNum_up[0] = {({5{isNeedRt[0]}} & ReadRt[0]),({5{isNeedRs[0]}} & ReadRs[0])};
+    assign  IQ_regReadNum_up[1] = {({5{isNeedRt[1]}} & ReadRt[1]),({5{isNeedRs[1]}} & ReadRs[1])};
+    assign  IQ_regWriteNum_up[0]= {5{isNeedRd[0]}} & writeRd[0];
+    assign  IQ_regWriteNum_up[1]= {5{isNeedRd[1]}} & writeRd[1];
+    assign  IQ_needRead_up[0]   = {isNeedRt[0],isNeedRs[0]};
+    assign  IQ_needRead_up[1]   = {isNeedRt[1],isNeedRs[1]};
+    // }}}
     // 指令发射流水线选择{{{
     assign allInfo_o[0] = allInfo_i[0];
     assign allInfo_o[1] = (AB_issueMode_w==`SINGLE_ISSUE) ? allInfo_i[0] : allInfo_i[1];
@@ -162,12 +161,12 @@ module Arbitrator(
             assign ReadRt[i]    =   inst[i][20:16];
             assign writeRd[i]   =   (writeToRt  ? inst[i][20:16] : inst[i][15:11]) | {5{link}}; 
 	/*autoDecoder_Start*/ /*{{{*/
-wire temp0 = (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]);
-wire temp1 = (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]);
-wire temp2 = ( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]);
-wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!inst[i][31]);
+wire temp__0 = (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]);
+wire temp__1 = (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]);
+wire temp__2 = ( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]);
+wire temp__3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!inst[i][31]);
 
-	assign	isNeedRs[i]	=	((temp0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+	assign	isNeedRs[i]	=	((temp__0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
@@ -182,7 +181,7 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]))) |
- (!(temp0) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+ (!(temp__0) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
@@ -197,7 +196,7 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31]) | (!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]& inst[i][30]& inst[i][31]) |
 ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31])));
-	assign	isNeedRt[i]	=	((temp0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+	assign	isNeedRt[i]	=	((temp__0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
@@ -211,14 +210,14 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 (!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]))) |
- (!(temp0) & (((temp1) & (( inst[i][23]&!inst[i][25]))) |
- (!(temp1) & ((!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!inst[i][31]) | (!inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
+ (!(temp__0) & (((temp__1) & (( inst[i][23]&!inst[i][25]))) |
+ (!(temp__1) & ((!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!inst[i][31]) | (!inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
 ( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) |
 ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]& inst[i][30]& inst[i][31])))));
-	assign	isNeedRd[i]	=	((temp0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+	assign	isNeedRd[i]	=	((temp__0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
@@ -229,11 +228,11 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) |
 (!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]&!inst[i][5]) | (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]&!inst[i][5]) |
 ( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]))) |
- (!(temp0) & (((temp3) & (( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][5]) | (!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][5]) |
+ (!(temp__0) & (((temp__3) & (( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][5]) | (!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][5]))) |
- (!(temp3) & (((temp2) & (( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]))) |
- (!(temp2) & (((temp1) & ((!inst[i][23]&!inst[i][25]) | ( inst[i][23]&!inst[i][25]))) |
- (!(temp1) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+ (!(temp__3) & (((temp__2) & (( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]))) |
+ (!(temp__2) & (((temp__1) & ((!inst[i][23]&!inst[i][25]))) |
+ (!(temp__1) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
@@ -242,8 +241,7 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 ( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31])))))))));
-	assign	instMode[i][0]	=	((temp0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
-(!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+	assign	instMode[i][0]	=	((temp__0) & (( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]& inst[i][5]) |
@@ -251,20 +249,17 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) | (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) |
 ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) | (!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]&!inst[i][5]) |
-(!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) |
-(!inst[i][0]&!inst[i][1]& inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) |
-(!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
-(!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
-(!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]))) |
- (!(temp0) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+(!inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]& inst[i][3]&!inst[i][4]&!inst[i][5]))) |
+ (!(temp__0) & (((temp__2) & (( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]&!inst[i][20]) |
+( inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]&!inst[i][19]& inst[i][20]))) |
+ (!(temp__2) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
 ( inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
-(!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) |
-( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])));
-	assign	instMode[i][1]	=	((temp0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
+(!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])))));
+	assign	instMode[i][1]	=	((temp__0) & ((!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]&!inst[i][4]& inst[i][5]) |
@@ -281,10 +276,10 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 (!inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]&!inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 (!inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | ( inst[i][0]& inst[i][1]&!inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) |
 (!inst[i][0]&!inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]) | (!inst[i][0]& inst[i][1]& inst[i][2]&!inst[i][3]& inst[i][4]& inst[i][5]))) |
- (!(temp0) & (((temp2) & ((!inst[i][16]& inst[i][17]& inst[i][18]& inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]& inst[i][19]&!inst[i][20]) |
+ (!(temp__0) & (((temp__2) & ((!inst[i][16]& inst[i][17]& inst[i][18]& inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]&!inst[i][18]& inst[i][19]&!inst[i][20]) |
 ( inst[i][16]&!inst[i][17]&!inst[i][18]& inst[i][19]&!inst[i][20]) | (!inst[i][16]&!inst[i][17]& inst[i][18]& inst[i][19]&!inst[i][20]) |
 ( inst[i][16]& inst[i][17]&!inst[i][18]& inst[i][19]&!inst[i][20]) | (!inst[i][16]& inst[i][17]&!inst[i][18]& inst[i][19]&!inst[i][20]))) |
- (!(temp2) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
+ (!(temp__2) & ((!inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]&!inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) | ( inst[i][26]& inst[i][27]& inst[i][28]& inst[i][29]&!inst[i][30]&!inst[i][31]) |
@@ -306,8 +301,8 @@ wire temp3 = (!inst[i][26]&!inst[i][27]& inst[i][28]& inst[i][29]& inst[i][30]&!
 ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) |
 (!inst[i][26]& inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][30]& inst[i][31]) | (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31]) |
 (!inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]);
-	assign	link	=	((temp2) & (( inst[i][16]) | (!inst[i][16]))) |
- (!(temp2) & (( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])));
+	assign	link	=	((temp__2) & (( inst[i][16]) | (!inst[i][16]))) |
+ (!(temp__2) & (( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30]&!inst[i][31])));
 /*autoDecoder_End*/ /*}}}*/
 		                end
     endgenerate

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:17
-// Last Modified : 2022/07/27 11:55
+// Last Modified : 2022/07/29 11:36
 // File Name     : WriteBack.v
 // Description   : 回写段，用于数据选择，数据前递和数据写入RegFile
 //         
@@ -27,10 +27,9 @@ module WriteBack (
     input	wire	                        PBA_allowin_w_i,
     input	wire	                        MEM_valid_w_i,
     // 异常互锁
-    input	wire                            PBA_hasRisk_w_i, 
+    // 无，最后一段
     // 总线数据输入
     input	wire	[`SINGLE_WORD]          data_rdata,
-    input	wire	                        data_data_ok,
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////     线信号输出      ///////////////{{{
@@ -116,7 +115,7 @@ module WriteBack (
     end
     /*}}}*/
     // 线信号处理{{{
-    assign WB_hasRisk_w_o  = MEM_exceptionRisk_r_i || PBA_hasRisk_w_i;
+    assign WB_hasRisk_w_o  = MEM_exceptionRisk_r_i;
     assign WB_writeNum_w_o = MEM_writeNum_r_i;
     assign WB_hasDangerous_w_o = MEM_isDangerous_r_i;
     // 流水线互锁

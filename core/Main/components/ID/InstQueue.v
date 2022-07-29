@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/27 15:25
+// Last Modified : 2022/07/29 11:36
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -64,7 +64,7 @@ module InstQueue (
     output  wire                                IQ_full  ,
     output  wire                                IQ_empty  ,
     output	wire	                            ID_stopFetch_o,
-    output  wire    [`IQ_NUMBER]                IQ_number_w  
+    output  wire    [`IQ_POINT]                 IQ_number_w  
     /*}}}*/
 );
     // 计数器比实际多一位,为了充分利用队列容量
@@ -86,12 +86,12 @@ module InstQueue (
     //End of automatic wire
     //End of automatic define
 /*}}}*/
-    assign IQ_number_w   = tail[`IQ_NUMBER]-head[`IQ_NUMBER];
+    assign IQ_number_w   = tail-head;
     //如果不考虑用于保存以及请求的指令的空隙，tail+1 == head表示队列,
     assign IQ_empty         =   tail == head;
     assign IQ_full          =   (tail[`IQ_NUMBER] == head[`IQ_NUMBER]) && 
                                 (tail[`IQ_POINT_SIGN]!=head[`IQ_POINT_SIGN]);
-    assign ID_stopFetch_o   =   (IQ_number_w>=`IQ_NUMBER_BIT 5) && !needClear;
+    assign ID_stopFetch_o   =   (IQ_number_w>=`IQ_POINT_BIT 5) && !needClear;
     wire    [`SINGLE_WORD]          IF_inst_up          [3:0];
     wire    [`SINGLE_WORD]          IF_predDest_up      [3:0];
     wire    [0:0]                   IF_predTake_up      [3:0];
@@ -157,7 +157,7 @@ module InstQueue (
                                                 IF_instEnable_i[2] ? 3'd3 :
                                                 IF_instEnable_i[1] ? 3'd2 :
                                                 IF_instEnable_i[0] ? 3'd1 : 3'd0);
-    wire    [`IQ_NUMBER] nextNumber = IQ_number_w + {{(`IQ_CAP_WIDTH-3){1'b0}},IF_supplyNum} - {{(`IQ_CAP_WIDTH-1){1'b0}},ID_upDateMode_i[0]} - {{(`IQ_CAP_WIDTH-1){1'b0}},ID_upDateMode_i[1]};
+    wire    [`IQ_POINT] nextNumber = IQ_number_w + IF_supplyNum - ID_upDateMode_i[0] - ID_upDateMode_i[1];
     assign enough = nextNumber >= 'd2;
     always @(posedge clk) begin
         if (!rst || needClear) begin

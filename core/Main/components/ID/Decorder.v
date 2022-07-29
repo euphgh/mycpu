@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/13 09:29
-// Last Modified : 2022/07/26 17:31
+// Last Modified : 2022/07/28 19:51
 // File Name     : Decorder.v
 // Description   : ID段的解码器，用于生成所有的控制信号
 //         
@@ -32,9 +32,7 @@ module Decorder(
     output  wire    [2*`EXTEND_ACTION]      extendAction_p,
     output	wire	[`ALUOP]                ID_up_aluOprator_o,         
     output	wire	[`ALUOP]                ID_down_aluOprator_o,
-    output	wire	[`EXCEPRION_SEL]        ID_up_exceptionSel_o,
     output	wire	[`EXCEPRION_SEL]        ID_down_exceptionSel_o,
-    output	wire	[`TRAP_KIND]            ID_up_trapKind_o,           // 自陷指令的种类
     output	wire	[`TRAP_KIND]            ID_down_trapKind_o,         // 自陷指令的种类
 /*}}}*/
     // 上流水线{{{
@@ -83,9 +81,7 @@ module Decorder(
     `PACK_ARRAY(`EXTEND_ACTION_LEN,2,extendAction_up,extendAction_p)
     assign  ID_up_aluOprator_o      = aluOprator_up[0];
     assign  ID_down_aluOprator_o    = aluOprator_up[1];
-    assign  ID_up_exceptionSel_o    = exceptionSel_up[0];
     assign  ID_down_exceptionSel_o  = exceptionSel_up[1];
-    assign  ID_up_trapKind_o        = trapKind_up[0];
     assign  ID_down_trapKind_o      = trapKind_up[1];
     // }}}
     // 自动解码{{{
@@ -389,15 +385,11 @@ wire temp_2_3 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30
  (!(temp_2_3) & (((temp_2_2) & ((!inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) |
 (!inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]))) |
  (!(temp_2_2) & (1'b0))));
-	assign	ID_down_writeHiLo_o[0]	=	((temp_2_3) & ((!inst[1][0]&!inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) |
-(!inst[1][0]& inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) | ( inst[1][0]& inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) |
-( inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
+	assign	ID_down_writeHiLo_o[0]	=	((temp_2_3) & (( inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
  (!(temp_2_3) & (((temp_2_2) & ((!inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) |
 (!inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]))) |
  (!(temp_2_2) & (1'b0))));
-	assign	ID_down_writeHiLo_o[1]	=	((temp_2_3) & ((!inst[1][0]&!inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) |
-(!inst[1][0]& inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) | ( inst[1][0]& inst[1][1]&!inst[1][2]& inst[1][3]& inst[1][4]&!inst[1][5]) |
-( inst[1][0]& inst[1][1]&!inst[1][2]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
+	assign	ID_down_writeHiLo_o[1]	=	((temp_2_3) & (( inst[1][0]& inst[1][1]&!inst[1][2]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
  (!(temp_2_3) & (((temp_2_2) & ((!inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]&!inst[1][2]&!inst[1][5]) |
 (!inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]) | ( inst[1][0]&!inst[1][1]& inst[1][2]&!inst[1][5]))) |
  (!(temp_2_2) & (1'b0))));
@@ -425,7 +417,8 @@ wire temp_2_3 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30
 	assign	ID_down_loadMode_o[6]	=	(!inst[1][26]& inst[1][27]& inst[1][28]&!inst[1][29]&!inst[1][30]);
 	assign	ID_down_storeMode_o[0]	=	(!inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]&!inst[1][30]);
 	assign	ID_down_storeMode_o[1]	=	( inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]&!inst[1][30]);
-	assign	ID_down_storeMode_o[2]	=	( inst[1][26]& inst[1][27]&!inst[1][28]& inst[1][29]&!inst[1][30]) | (!inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]& inst[1][30]);
+	assign	ID_down_storeMode_o[2]	=	(!inst[1][26]& inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]) | (!inst[1][26]& inst[1][27]& inst[1][28]&!inst[1][29]&!inst[1][30]) |
+( inst[1][26]& inst[1][27]&!inst[1][28]& inst[1][29]&!inst[1][30]) | (!inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]& inst[1][30]);
 	assign	ID_down_storeMode_o[3]	=	(!inst[1][26]& inst[1][27]&!inst[1][28]& inst[1][29]&!inst[1][30]);
 	assign	ID_down_storeMode_o[4]	=	(!inst[1][26]& inst[1][27]& inst[1][28]& inst[1][29]&!inst[1][30]);
 	assign	ID_down_isTLBInst_o	=	((temp_2_1) & (((temp_2_0) & ((!inst[1][1]&!inst[1][2]& inst[1][3]&!inst[1][4]) | (!inst[1][1]&!inst[1][2]&!inst[1][3]&!inst[1][4]) |

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/16 11:55
-// Last Modified : 2022/07/17 14:22
+// Last Modified : 2022/07/28 17:11
 // File Name     : MultiDivideUnit.v
 // Description   : 乘除模块
 //         
@@ -104,13 +104,15 @@ module MultiDivideUnit(
     assign divisor_i    = oprand_up[1];
     /*}}}*/ 
     assign MDU_Oprand_ok =  MDU_operator[`DIV_REQ]  ? div_oprand_ok    :
-                            (MDU_operator[`MUL_REQ] || MDU_operator[`ACCUM_REQ]) ? mulOprand_ok&&MduReq  : 1'b1;
+                            (MDU_operator[`MUL_REQ] || MDU_operator[`ACCUM_REQ]) ? mulOprand_ok&&MduReq  :  
+                            MDU_operator[`MT_REQ] ? MduReq : 1'b0;
+
     assign MDU_data_ok =  !cancel && (div_data_ok||mulData_ok||MDU_operator[`MT_REQ]) ;
 
-    assign MDU_writeEnable = (div_data_ok||mulData_ok) ? 2'b11 : {MDU_operator[`MT_DEST],MDU_operator[`MT_DEST]};
+    assign MDU_writeEnable = (div_data_ok||mulData_ok) ? 2'b11 : {MDU_operator[`MT_DEST],!MDU_operator[`MT_DEST]};
     assign MDU_writeData_p[31:0] =   div_data_ok ? quotient_o :
-                                mulData_ok  ? mulRes[31:0] : MDU_oprand[63:32];
+                                mulData_ok  ? mulRes[31:0] : MDU_oprand[31:0];
     assign MDU_writeData_p[63:32] =   div_data_ok ? reminder_o :
-                                mulData_ok  ? mulRes[63:32]: MDU_oprand[63:32];
+                                mulData_ok  ? mulRes[63:32]: MDU_oprand[31:0];
 endmodule
 
