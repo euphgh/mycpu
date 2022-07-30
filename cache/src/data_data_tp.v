@@ -28,7 +28,7 @@ module data_data_tp#(
 
     genvar i;
     generate
-        for (i = 0; i < (32*BLOCK-1); i = i + 1) begin
+        for (i = 0; i < (32*BLOCK); i = i + 1) begin
             assign collison_output[i] = wen_reg[i >> 3] ? wdata_reg[i] : doutb[i];
         end
     endgenerate
