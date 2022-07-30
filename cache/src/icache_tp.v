@@ -163,9 +163,11 @@ module icache_tp(
 `else
     assign inst_index_ok = (cache_stat != `RESET) && sin_req && (!sda_req || inst_data_ok);
 `endif 
-    assign inst_data_ok  = sda_req && (hit_run || hit_fill || inst_uncache_data_ok || sda_hasException);
-    assign inst_rdata    = sda_unCache ? inst_uncache_rdata :
-                           hit_fill    ? hit_fill_data      : hit_run_data;
+    assign inst_data_ok  = sda_req && (hit_run || inst_uncache_data_ok || sda_hasException);
+    assign inst_rdata    = sda_unCache ? inst_uncache_rdata : hit_run_data;
+    //assign inst_data_ok  = sda_req && (hit_run || hit_fill || inst_uncache_data_ok || sda_hasException);
+    // assign inst_rdata    = sda_unCache ? inst_uncache_rdata :
+    //                        hit_fill    ? hit_fill_data      : hit_run_data;
     //驱动inst_uncache
     assign inst_uncache_req  = !sda_hasException && sda_unCache && sda_req && !sda_uca_addr_ok;
     assign inst_uncache_addr = {sda_tag, sda_index, sda_offset, 4'b0000};
@@ -221,9 +223,9 @@ module icache_tp(
             sta_offset <= sin_offset;
         end else if (!sda_req) begin
             sta_req    <= 1'b0;
-            // sta_size   <= 2'b0;
-            // sta_index  <= 7'b0;
-            // sta_offset <= 1'b0;
+            sta_size   <= 2'b0;
+            sta_index  <= 7'b0;
+            sta_offset <= 1'b0;
         end else begin
         end
     end
@@ -261,7 +263,7 @@ module icache_tp(
             sda_rdata[3]     <= data_rdata[3]   ;
             sda_uca_addr_ok  <= !sta_unCache  && sta_hasException  ; // 如果存在异常，不请求uncache
         end
-        else if (cache_stat == `IDLE && sta_req) begin
+        else if (cache_stat == `IDLE) begin
             sda_tagv_back[0] <= tagv_back[0] ;
             sda_tagv_back[1] <= tagv_back[1] ;
             sda_tagv_back[2] <= tagv_back[2] ;
@@ -394,7 +396,7 @@ module icache_tp(
                         4'b0000;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter     :
                         (cache_stat == `FINISH ) ? fill_index        :
-                        (cache_stat == `IDLE && sta_req) ? sta_index         :
+                        (cache_stat == `IDLE) ? sta_index         :
                         (deal_cache_op         ) ? icache_addr[11:5] :
                         (cache_stat == `CA_OP  ) ? ca_index_reg      :
                         (cache_stat ==`RUN     ) ? sin_index : sda_index;
@@ -412,7 +414,7 @@ module icache_tp(
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
                         (cache_stat == `FINISH ) ? fill_index    : 
                         (cache_stat == `RUN    ) ? sin_index     :
-                        (cache_stat == `IDLE && sta_req) ? sta_index     : sda_index;
+                        (cache_stat == `IDLE) ? sta_index     : sda_index;
     assign tagv_wdata = fill_tag;
     assign tagv_valid = !(cache_stat == `RESET);
 `endif
