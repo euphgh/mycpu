@@ -261,7 +261,7 @@ module icache_tp(
             sda_rdata[3]     <= data_rdata[3]   ;
             sda_uca_addr_ok  <= !sta_unCache  && sta_hasException  ; // 如果存在异常，不请求uncache
         end
-        else if (cache_stat == `IDLE) begin
+        else if (cache_stat == `IDLE && sta_req) begin
             sda_tagv_back[0] <= tagv_back[0] ;
             sda_tagv_back[1] <= tagv_back[1] ;
             sda_tagv_back[2] <= tagv_back[2] ;
@@ -394,10 +394,10 @@ module icache_tp(
                         4'b0000;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter     :
                         (cache_stat == `FINISH ) ? fill_index        :
-                        (cache_stat == `RECOVER) ? sda_index         :
+                        (cache_stat == `IDLE && sta_req) ? sta_index         :
                         (deal_cache_op         ) ? icache_addr[11:5] :
                         (cache_stat == `CA_OP  ) ? ca_index_reg      :
-                        (cache_stat ==`RUN     ) ? sin_index : sta_index;
+                        (cache_stat ==`RUN     ) ? sin_index : sda_index;
     assign tagv_wdata = (cache_stat == `RESET  ) ? 20'b0      :
                         (cache_stat == `FINISH ) ? fill_tag : 
                         (cache_stat == `CA_OP  ) ? ca_wtag_reg : 20'b0;
@@ -412,7 +412,7 @@ module icache_tp(
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
                         (cache_stat == `FINISH ) ? fill_index    : 
                         (cache_stat == `RUN    ) ? sin_index     :
-                        (cache_stat == `IDLE   ) ? sta_index     : sda_index;
+                        (cache_stat == `IDLE && sta_req) ? sta_index     : sda_index;
     assign tagv_wdata = fill_tag;
     assign tagv_valid = !(cache_stat == `RESET);
 `endif
@@ -440,7 +440,7 @@ module icache_tp(
     assign data_wen[3] = {32{way[3] && (cache_stat == `FINISH)}}; 
     assign data_index  = (cache_stat == `FINISH ) ? fill_index : 
                          (cache_stat==`RUN ) ? sin_index : 
-                         (cache_stat==`IDLE) ? sta_index : sda_index;
+                         (cache_stat==`IDLE && sta_req) ? sta_index : sda_index;
     assign data_wdata  = {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4],
                           fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     generate
