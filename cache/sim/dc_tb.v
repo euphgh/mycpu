@@ -60,7 +60,7 @@ module dc_tb(  );
     reg  ref_data_wr;
     reg [3:0] no_use_data_wstrb;
     reg [31:0] ref_data_rdata;
-     reg real_data_ok;
+    reg real_data_ok;
     // index
     assign data_index = data_addr[11:0];
     // tag
@@ -378,7 +378,7 @@ module dc_tb(  );
     //     .s_axi_rready             (data_cache_rready )
     // );
     // DCACHE and DATA_UNCAHCE
-    dcache_2w8b128l u_dcache_tp (
+    dcache u_dcache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .data_req             (data_req            ),

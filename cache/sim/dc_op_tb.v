@@ -68,7 +68,8 @@ module dc_op_tb(  );
         //data_unCache <= $random %2;
         data_tag <= data_addr[31:12];
     end
-
+    
+    reg real_data_ok;
 
     always @(posedge aclk ) begin
         #1
@@ -81,19 +82,28 @@ module dc_op_tb(  );
     end
     always @(posedge aclk) begin
         #1;
-        if (data_data_ok) begin
+        if (real_data_ok) begin
             if (!($feof(data_data_trace_ref)) && aresetn) begin
                 $fscanf(data_data_trace_ref, "          %d %h %h %h %h %h", use_num ,ref_data_addr,ref_data_wr,no_use_data_wstrb,no_use_data_wdata,ref_data_rdata);
             end
         end
     end
     //TRACE比对
+    always @(posedge aclk ) begin
+        if (!aresetn) begin
+            real_data_ok <= 1'b0;
+        end else if (data_data_ok) begin
+            real_data_ok <= 1'b1;
+        end else begin
+            real_data_ok <= 1'b0;
+        end
+    end
     always @(posedge aclk) begin
         #2;
         if (!aresetn) begin
             test_err <= 1'b0;
         end
-        else if (!test_end && data_data_ok) begin
+        else if (!test_end && real_data_ok) begin
             data_cnt <= data_cnt + 1'b1;
             if (ref_data_wr) begin
                 
@@ -328,7 +338,7 @@ module dc_op_tb(  );
     wire         bvalid ;
     wire         bready ;
 
-    dcache_tp u_dcache_tp (
+    dcache u_dcache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
 
