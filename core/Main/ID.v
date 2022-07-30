@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/29 20:46
+// Last Modified : 2022/07/30 10:55
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -45,7 +45,6 @@ module ID (
     input	wire	CP0_excOccur_w_i,   
     // 流水线控制
     input	wire	                        EXE_down_allowin_w_i,        // 逐级互锁信号
-    input	wire	                        EXE_up_allowin_w_i,        // 逐级互锁信号
     // 数据回写
     input	wire	                        PBA_writeEnable_w_i,
     input	wire	[`GPR_NUM]              PBA_writeNum_w_i,   
@@ -434,10 +433,11 @@ module ID (
     wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
     wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
     wire stop = WAR_conflict || hasDangerous;
-    wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && EXE_up_allowin_w_i && !stop);
+    wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && !stop);
     assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : AB_issueMode_w;
-    assign ID_up_valid_w_o = (AB_issueMode_w[1]) && !stop;
-    assign ID_down_valid_w_o = (AB_issueMode_w[0]) && !stop;
+    wire    needInvalid = SBA_flush_w_i || CP0_excOccur_w_i;
+    assign ID_up_valid_w_o      = (AB_issueMode_w[1])   &&  !stop   &&  !needInvalid;
+    assign ID_down_valid_w_o    = (AB_issueMode_w[0])   &&  !stop   &&  !needInvalid;
 /*}}}*/
     // 异常处理{{{
     // 此处的存在异常发生仅仅包括CPU,RI,SYS,BP的可解码异常，之后传递ALU选择信号

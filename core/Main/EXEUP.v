@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/29 21:07
+// Last Modified : 2022/07/30 16:59
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -24,7 +24,6 @@ module EXEUP(
     /////////////////////////////////////////////////
     // 流水线控制
     input	wire	                        ID_up_valid_w_i,
-    input	wire	                        SBA_allowin_w_i,            
     input	wire	                        EXE_down_allowin_w_i,
     // 刷新流水线的信号
     input	wire	                        SBA_flush_w_i,            
@@ -72,7 +71,7 @@ module EXEUP(
     output	wire	                        EXE_up_forwardMode_w_o,    
     output	wire	[`GPR_NUM]              EXE_up_writeNum_w_o,    
     // 流水线控制
-    output	wire	                        EXE_up_allowin_w_o, // 只有上才有allowin，代表上下两端都可进
+    output	wire	                        EXE_up_okToChange_w_o, // 只有上才有allowin，代表上下两端都可进
     output	wire	                        EXE_up_valid_w_o,       // 用于给下一级流水线决定是否采样
 /*}}}*/
     /////////////////////////////////////////////////
@@ -192,30 +191,27 @@ module EXEUP(
     end
     /*}}}*/
 //  线信号处理{{{
-    assign EXE_up_writeNum_w_o = ID_up_writeNum_r_i;
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
+    assign EXE_up_okToChange_w_o = !hasData || ready;
     wire exceptionClean = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
-    assign EXE_up_forwardMode_w_o = hasData && ready;
+    wire needFlush = SBA_flush_w_i || exceptionClean;
     assign EXE_up_valid_w_o =   hasData && 
                                 ready && 
-                                EXE_down_allowin_w_i &&
+                                EXE_down_allowin_w_i && 
                                 !exceptionClean;
-    // 前递的要求
-    assign EXE_up_allowin_w_o = !hasData || (ready && SBA_allowin_w_i);
-    wire   ok_to_change = EXE_up_allowin_w_o && EXE_down_allowin_w_i ;
-    assign needUpdata = ok_to_change && ID_up_valid_w_i;
-    // TODO 是否需要在清空流水线的时候allowin
-    wire needFlush = SBA_flush_w_i || exceptionClean;
-    assign needClear  = (!ID_up_valid_w_i&&ok_to_change) || needFlush;
+    assign needUpdata = EXE_down_allowin_w_i && ID_up_valid_w_i;
+    assign needClear  = (!ID_up_valid_w_i&&EXE_down_allowin_w_i) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
-        else if (ok_to_change)
+        else if (EXE_down_allowin_w_i)
             hasData <=  ID_up_valid_w_i;
     end
+    assign EXE_up_forwardMode_w_o = hasData && ready;
+    assign EXE_up_writeNum_w_o = ID_up_writeNum_r_i;
 /*}}}*/
     ALU ALU_u(/*{{{*/
       /*autoinst*/
@@ -242,11 +238,30 @@ module EXEUP(
     assign srcIsReg[1] = ID_up_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
+            // WB段数据再保存{{{
+            reg [`SINGLE_WORD]  wb_savedData;
+            reg                 useSavedWb;
+            always @(posedge clk) begin
+                if (!rst || needClear || needUpdata) begin
+                    useSavedWb      <=  `FALSE;
+                end
+                else if (ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]) begin
+                    useSavedWb      <=  `TRUE;
+                end
+                if (!rst || needClear || needUpdata) begin
+                    wb_savedData    <=  `ZEROWORD;
+                end
+                else if (ID_up_forwardSel_up[i][`FORWARD_MEM_BIT] && !useSavedWb) begin
+                    wb_savedData    <=  WB_forwardData_w_i;
+                end
+            end
+            wire [`SINGLE_WORD] wb_data = useSavedWb ? wb_savedData : WB_forwardData_w_i;
+            // }}}
             assign updataRegFile_up[i] = ({32{ID_up_forwardSel_up[i][`FORWARD_ID_BIT]}} & readData_up[i])|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_SBA_BIT]}}         & SBA_aluRes_r_i            )|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_PREMEM_BIT]}}      & PREMEM_preliminaryRes_r_i )|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_REEXE_BIT]}}       & REEXE_regData_r_i         )|
-                            ({32{ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]}}         & WB_forwardData_w_i        )|
+                            ({32{ID_up_forwardSel_up[i][`FORWARD_MEM_BIT]}}         & wb_data        )|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_EXE_UP_BIT]}}      & EXE_up_aluRes_r_i         )|
                             ({32{ID_up_forwardSel_up[i][`FORWARD_EXE_DOWN_BIT] }}   & EXE_down_aluRes_r_i       );
             assign scr[i] = srcIsReg[i] ? updataRegFile_up[i] : ID_up_oprand_up[i];

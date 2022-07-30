@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:47
-// Last Modified : 2022/07/28 19:36
+// Last Modified : 2022/07/30 10:23
 // File Name     : PrimaryBranchAmend.v
 // Description   :
 //         
@@ -32,7 +32,7 @@ module PrimaryBranchAmend(
     // 前递模式控制
     output	wire	[`GPR_NUM]              PBA_writeNum_w_o,    
     // 流水线控制
-    output	wire	                        PBA_allowin_w_o,            // 逐级互锁信号
+    output	wire	                        PBA_okToChange_w_o,            // 逐级互锁信号
     //output	wire	                        PBA_valid_w_o,              
     // 数据前递
     output	wire	[`SINGLE_WORD]          PBA_forwardData_w_o,        // 将上一周期的运算结果前递
@@ -84,18 +84,16 @@ module PrimaryBranchAmend(
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
-    wire needFlash = 1'b0;
-    // 只要有一段有数据就说明有数据
-    wire PBA_valid_w_o = hasData && ready && WB_allowin_w_i;
-    assign PBA_allowin_w_o = !hasData || ready;
-    wire   ok_to_change = PBA_allowin_w_o && WB_allowin_w_i ;
-    assign needUpdata = ok_to_change && REEXE_valid_w_i;
-    assign needClear  = (!REEXE_valid_w_i&&ok_to_change) || needFlash;
+    assign PBA_okToChange_w_o = !hasData || ready;
+    wire needFlush = 1'b0;
+    wire PBA_valid_w_o = hasData && ready;
+    assign needUpdata = WB_allowin_w_i && REEXE_valid_w_i;
+    assign needClear  = (!REEXE_valid_w_i&&WB_allowin_w_i) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
-        else if (ok_to_change)
+        else if (WB_allowin_w_i)
             hasData <=  REEXE_valid_w_i;
     end
     /*}}}*/

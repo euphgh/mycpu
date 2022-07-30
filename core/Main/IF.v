@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/07 15:57
-// Last Modified : 2022/07/23 10:33
+// Last Modified : 2022/07/30 11:37
 // File Name     : IF.v
 // Description   : 取值段，包括PC寄存器，分支预测以及TLB
 //
@@ -79,7 +79,7 @@ module IF (
 
 	wire	[7:0]	BSC_repairAction_w_o;	wire	[7:0]	BSC_repairAction_w_i;
 	assign	BSC_repairAction_w_i	=	BSC_repairAction_w_o;
-	wire	[53:0]	BSC_allCheckPoint_w_o;	wire	[53:0]	BSC_allCheckPoint_w_i;
+	wire	[61:0]	BSC_allCheckPoint_w_o;	wire	[61:0]	BSC_allCheckPoint_w_i;
 	assign	BSC_allCheckPoint_w_i	=	BSC_allCheckPoint_w_o;
 	wire	[31:0]	BSC_erroVAdr_w_o;	wire	[31:0]	BSC_erroVAdr_w_i;
 	assign	BSC_erroVAdr_w_i	=	BSC_erroVAdr_w_o;
@@ -145,7 +145,7 @@ module IF (
 	assign	DSP_needDelaySlot_i	=	DSP_needDelaySlot_o;
 	wire	[127:0]	RAS_predDest_p_o;	wire	[127:0]	RAS_predDest_p_i;
 	assign	RAS_predDest_p_i	=	RAS_predDest_p_o;
-	wire	[143:0]	RAS_checkPoint_p_o;	wire	[143:0]	RAS_checkPoint_p_i;
+	wire	[133:0]	RAS_checkPoint_p_o;	wire	[133:0]	RAS_checkPoint_p_i;
 	assign	RAS_checkPoint_p_i	=	RAS_checkPoint_p_o;
 	wire	[0:0]	SCT_allowin_w_o;	wire	[0:0]	SCT_allowin_w_i;
 	assign	SCT_allowin_w_i	=	SCT_allowin_w_o;
@@ -179,7 +179,7 @@ module IF (
 	assign	SCT_IJTC_predDest_p_i	=	SCT_IJTC_predDest_p_o;
 	wire	[127:0]	SCT_RAS_predDest_p_o;	wire	[127:0]	SCT_RAS_predDest_p_i;
 	assign	SCT_RAS_predDest_p_i	=	SCT_RAS_predDest_p_o;
-	wire	[143:0]	SCT_RAS_checkPoint_p_o;	wire	[143:0]	SCT_RAS_checkPoint_p_i;
+	wire	[133:0]	SCT_RAS_checkPoint_p_o;	wire	[133:0]	SCT_RAS_checkPoint_p_i;
 	assign	SCT_RAS_checkPoint_p_i	=	SCT_RAS_checkPoint_p_o;
 	wire	[3:0]	SCT_PHT_predTake_p_o;	wire	[3:0]	SCT_PHT_predTake_p_i;
 	assign	SCT_PHT_predTake_p_i	=	SCT_PHT_predTake_p_o;
@@ -293,6 +293,7 @@ MemoryManagementUnit  u_MemoryManagementUnit (
     .clk                     ( clk                  ),
     .rst                     ( rst                  ),
     .PCR_VAddr_i             ( PCR_VAddr_i          ),
+    .FCT_hasException_i      ( FCT_hasException_i   ),
     .CP0_Config_w_i          ( CP0_Config_w_i       ),
     .inst_hit_i              ( inst_hit_i           ),
     .inst_index_i            ( inst_index_i         ),

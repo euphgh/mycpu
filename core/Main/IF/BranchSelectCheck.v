@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/07/26 16:58
+// Last Modified : 2022/07/30 13:47
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -121,11 +121,12 @@ module BranchSelectCheck (
     wire [`REPAIR_ACTION]     now_RepairAction                  ;
     wire [`SINGLE_WORD]         validDest_o                     ;
     wire                        validTake_o                     ;
+    wire    [4*`SINGLE_WORD]   inst_p    ;
     //}}}  
     // 生成BPU预测结果{{{
     TakeDestDecorder u_TakeDestDecorder(
     /*autoinst*/
-        .inst_rdata             (inst_rdata[`FOUR_WORDS]        ), //input
+        .inst_rdata             (inst_p                         ), //input
         .SCT_valid_i            (SCT_valid_i                    ),
         .takeDestSel_p          (takeDestSel_p[4*`B_SELECT]     )  //output
     );
@@ -212,7 +213,8 @@ module BranchSelectCheck (
     );
     // 指令
     wire    [`SINGLE_WORD]     inst_up   [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,inst_up,inst_rdata)
+    assign  inst_p = inst_rdata & {4*`SINGLE_WORD_LEN{!SCT_hasException_i}};
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,inst_up,inst_p)
     // 选择前的压缩
     wire    [`SINGLE_WORD_LEN + `ALL_CHECKPOINT_LEN + `SINGLE_WORD_LEN + 1 - 1 : 0 ]
             allInfo_up [3:0];
@@ -279,10 +281,10 @@ module BranchSelectCheck (
                          ({2{firstValidBit[3]}} & 2'b11);
     assign BPU_erroVAddr = {baseAddr,position,offset};
     wire [`SINGLE_WORD] firstBranchInst;
-    assign firstBranchInst =    ({32{firstValidBit[0]}} & inst_rdata[31:0]) |
-                                ({32{firstValidBit[1]}} & inst_rdata[63:32])|
-                                ({32{firstValidBit[2]}} & inst_rdata[95:64])|
-                                ({32{firstValidBit[3]}} & inst_rdata[127:96]);
+    assign firstBranchInst =    ({32{firstValidBit[0]}} & inst_up[0])|
+                                ({32{firstValidBit[1]}} & inst_up[1])|
+                                ({32{firstValidBit[2]}} & inst_up[2])|
+                                ({32{firstValidBit[3]}} & inst_up[3]);
     RepairDecorder RepairDecorder_u(
         /*autoinst*/
         .inst                   (firstBranchInst                      ), //input

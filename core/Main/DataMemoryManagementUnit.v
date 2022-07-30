@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 16:52
-// Last Modified : 2022/07/25 23:22
+// Last Modified : 2022/07/30 11:23
 // File Name     : DataMemoryManagementUnit.v
 // Description   :
 //         
@@ -30,7 +30,7 @@ module DataMemoryManagementUnit(
     // 映射的地址
     input	wire	[`SINGLE_WORD]          PREMEM_VAddr_w_i,
     // 异常处理
-    output	wire	[`EXCCODE]              DMMU_ExcCode_o, // 是否产生异常根据总线信号data_hasException
+    output	wire	[`EXCCODE]              DMMU_ExcCode_o,     // 是否产生异常根据总线信号data_hasException
     output	wire	                        DMMU_tlbRefill_o,   // 是否有重填异常
 /*}}}*/
     // Cache接口 {{{

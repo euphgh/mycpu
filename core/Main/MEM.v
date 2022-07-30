@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/29 21:25
+// Last Modified : 2022/07/30 16:59
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -23,10 +23,11 @@ module MEM(
     //////////////////////////////////////////////////
     //////////////     线信号输入      ///////////////{{{
     //////////////////////////////////////////////////
-    // 流水线控制
-    input	wire	                        REEXE_allowin_w_i,
+    // 前后流水线互锁 
     input	wire	                        WB_allowin_w_i,
     input	wire	                        PREMEM_valid_w_i,
+    // 上下流水线互锁
+    input	wire	                        REEXE_okToChange_w_i,
     // 异常互锁
     input	wire                            WB_hasRisk_w_i, 
     // 流水线刷新
@@ -195,36 +196,35 @@ module MEM(
     end
     /*}}}*/
     // 线信号处理{{{
-    assign MEM_writeNum_w_o = PREMEM_writeNum_r_i;
-    assign MEM_hasDangerous_w_o = PREMEM_isDangerous_r_i;
-    assign MEM_rtData_o = PREMEM_rtData_r_i;
-    assign MEM_VAddr_o = PREMEM_VAddr_r_i;
     // 流水线互锁
     reg hasData;
     wire ready = !PREMEM_memReq_r_i || data_data_ok;
-    assign MEM_forwardMode_w_o = hasData && ready && !PREMEM_memReq_r_i;
+    // 上下控制
+    assign MEM_allowin_w_o = REEXE_okToChange_w_i && (ready||!hasData) && WB_allowin_w_i;
+    // 上下不同部分
     wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i ;
-    // 只要有一段有数据就说明有数据
     assign MEM_valid_w_o =  hasData && 
                             ready && 
-                            REEXE_allowin_w_i &&
+                            MEM_allowin_w_o &&
                             !needFlush;
-    assign MEM_allowin_w_o = !hasData || (ready && WB_allowin_w_i);
-    wire   ok_to_change = MEM_allowin_w_o && REEXE_allowin_w_i ;
-    assign needUpdata = ok_to_change && PREMEM_valid_w_i;
-    assign needClear  = (!PREMEM_valid_w_i&&ok_to_change) || needFlush;
+    assign needUpdata = MEM_allowin_w_o && PREMEM_valid_w_i;
+    assign needClear  = (!PREMEM_valid_w_i&&MEM_allowin_w_o) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
-        else if (ok_to_change)
+        else if (MEM_allowin_w_o)
             hasData <=  PREMEM_valid_w_i;
     end
+    assign MEM_writeNum_w_o = PREMEM_writeNum_r_i;
+    assign MEM_hasDangerous_w_o = PREMEM_isDangerous_r_i;
+    assign MEM_rtData_o = PREMEM_rtData_r_i;
+    assign MEM_VAddr_o = PREMEM_VAddr_r_i;
+    assign MEM_forwardMode_w_o = hasData && ready && !PREMEM_memReq_r_i;
     /*}}}*/
     // 简单线信号传递{{{
     assign MEM_writeNum_o = PREMEM_writeNum_r_i;
     assign MEM_loadSel_o  = PREMEM_loadSel_r_i;
-    assign MEM_isDelaySlot_w_o = PREMEM_isDelaySlot_i;
     assign MEM_isDangerous_o = PREMEM_isDangerous_r_i;
     assign MEM_finalRes_o = PREMEM_readCp0_r_i ? CP0_readData_w_i : PREMEM_preliminaryRes_r_i;
     assign MEM_alignCheck_o = PREMEM_alignCheck_r_i;
@@ -234,7 +234,7 @@ module MEM(
     // 异常处理{{{
     // 中断生成
     wire has_int =  ((CP0_Cause_w_i[`IP7:`IP0] & CP0_Status_w_i[`IM7:`IM0])!=8'h00) && 
-                    (CP0_Status_w_i[`EXL]==1'b0);
+                    (CP0_Status_w_i[`EXL]==1'b0) && hasData;
     assign MEM_hasRisk_w_o  = PREMEM_exceptionRisk_r_i || WB_hasRisk_w_i || has_int;
     assign MEM_isInterrupt_w_o = has_int;
     assign MEM_ExcCode_w_o =    has_int ? `INT : 

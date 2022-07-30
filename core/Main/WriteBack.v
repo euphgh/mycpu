@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:17
-// Last Modified : 2022/07/29 11:36
+// Last Modified : 2022/07/30 10:29
 // File Name     : WriteBack.v
 // Description   : 回写段，用于数据选择，数据前递和数据写入RegFile
 //         
@@ -24,8 +24,9 @@ module WriteBack (
     //////////////     线信号输入      ///////////////{{{
     //////////////////////////////////////////////////
     // 流水线控制
-    input	wire	                        PBA_allowin_w_i,
     input	wire	                        MEM_valid_w_i,
+    // 上下流水线互锁
+    input	wire	                        PBA_okToChange_w_i,        // allowin共用一个，代表上下两端都可进
     // 异常互锁
     // 无，最后一段
     // 总线数据输入
@@ -121,18 +122,17 @@ module WriteBack (
     // 流水线互锁
     reg hasData;
     wire ready = 1'b1;
-    wire needFlash = 1'b0;
+    wire needFlush = 1'b0;
     // 只要有一段有数据就说明有数据
-    wire WB_valid_w_o = hasData && ready && PBA_allowin_w_i;
-    assign WB_allowin_w_o = !hasData || ready;
-    wire   ok_to_change = WB_allowin_w_o && PBA_allowin_w_i ;
-    assign needUpdata = ok_to_change && MEM_valid_w_i;
-    assign needClear  = (!MEM_valid_w_i&&ok_to_change) || needFlash;
+    wire WB_valid_w_o = hasData && ready;
+    assign WB_allowin_w_o = (ready || !hasData) && PBA_okToChange_w_i;
+    assign needUpdata = WB_allowin_w_o && MEM_valid_w_i;
+    assign needClear  = (!MEM_valid_w_i&&WB_allowin_w_o) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
-        else if (ok_to_change)
+        else if (WB_allowin_w_o)
             hasData <=  MEM_valid_w_i;
     end
     /*}}}*/

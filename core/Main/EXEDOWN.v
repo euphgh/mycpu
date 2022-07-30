@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/29 21:07
+// Last Modified : 2022/07/30 16:59
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -21,10 +21,11 @@ module EXEDOWN(
     /////////////////////////////////////////////////
     //////////////  线信号输入    ///////////////////{{{
     /////////////////////////////////////////////////
-    // 流水线控制
+    // 前后流水线互锁 
     input	wire	                        ID_down_valid_w_i,
-    input	wire	                        EXE_up_allowin_w_i,        // allowin共用一个，代表上下两端都可进
     input	wire	                        PREMEM_allowin_w_i,
+    // 上下流水线互锁
+    input	wire	                        EXE_up_okToChange_w_i,        // allowin共用一个，代表上下两端都可进
     // 异常互锁
     input	wire	                        PREMEM_hasRisk_w_i,
     // 非阻塞乘除
@@ -326,6 +327,25 @@ module EXEDOWN(
     end
     /*}}}*/
 //  线信号处理{{{
+    // 流水线互锁
+    reg hasData;
+    wire ready;
+    assign EXE_down_allowin_w_o = EXE_up_okToChange_w_i && (ready||!hasData) && PREMEM_allowin_w_i;
+    // 上下不同部分
+    wire needFlush = CP0_excOccur_w_i || SBA_flush_w_i;
+    assign EXE_down_valid_w_o = hasData && 
+                                ready && 
+                                EXE_down_allowin_w_o &&
+                                !CP0_excOccur_w_i;
+    assign needUpdata = EXE_down_allowin_w_o && ID_down_valid_w_i;
+    assign needClear  = (!ID_down_valid_w_i&&EXE_down_allowin_w_o) || needFlush;
+    always @(posedge clk) begin
+        if(!rst || needClear) begin
+            hasData <=  1'b0;
+        end
+        else if (EXE_down_allowin_w_o)
+            hasData <=  ID_down_valid_w_i;
+    end
     wire EXE_down_hasRisk_w_o  =    ID_down_exceptionRisk_r_i || 
                                     ID_up_branchRisk_r_i || 
                                     PREMEM_hasRisk_w_i;
@@ -337,27 +357,7 @@ module EXEDOWN(
                         !(|ID_down_readCp0_r_i) && 
                         !(|ID_down_readHiLo_r_i);
     assign EXE_down_hasDangerous_w_o = ID_down_isDangerous_r_i;
-    // 流水线互锁
-    reg hasData;
-    wire ready;
     assign EXE_down_forwardMode_w_o  = hasData && ready && !ID_down_memReq_r_i && isAluInst;
-    wire needFlash = CP0_excOccur_w_i || SBA_flush_w_i;
-    // 只要有一段有数据就说明有数据
-    assign EXE_down_valid_w_o = hasData && 
-                                ready && 
-                                EXE_up_allowin_w_i && 
-                                !CP0_excOccur_w_i;
-    assign EXE_down_allowin_w_o = !hasData || (ready && PREMEM_allowin_w_i);
-    wire   ok_to_change = EXE_down_allowin_w_o && EXE_up_allowin_w_i ;
-    assign needUpdata = ok_to_change && ID_down_valid_w_i;
-    assign needClear  = (!ID_down_valid_w_i&&ok_to_change) || needFlash;
-    always @(posedge clk) begin
-        if(!rst || needClear) begin
-            hasData <=  1'b0;
-        end
-        else if (ok_to_change)
-            hasData <=  ID_down_valid_w_i;
-    end
 /*}}}*/
     ALU ALU_u(/*{{{*/
       /*autoinst*/
@@ -385,11 +385,30 @@ module EXEDOWN(
     assign srcIsReg[1] = ID_down_oprand1IsReg_r_i;
     generate   
         for (genvar i = 0; i < 2; i=i+1)	begin     
+            // WB段数据再保存{{{
+            reg [`SINGLE_WORD]  wb_savedData;
+            reg                 useSavedWb;
+            always @(posedge clk) begin
+                if (!rst || needClear || needUpdata) begin
+                    useSavedWb      <=  `FALSE;
+                end
+                else if (ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]) begin
+                    useSavedWb      <=  `TRUE;
+                end
+                if (!rst || needClear || needUpdata) begin
+                    wb_savedData    <=  `ZEROWORD;
+                end
+                else if (ID_down_forwardSel_up[i][`FORWARD_MEM_BIT] && !useSavedWb) begin
+                    wb_savedData    <=  WB_forwardData_w_i;
+                end
+            end
+            wire [`SINGLE_WORD] wb_data = useSavedWb ? wb_savedData : WB_forwardData_w_i;
+            // }}}
             assign updataRegFile_up[i] = ({32{ID_down_forwardSel_up[i][`FORWARD_ID_BIT]}}&readData_up[i])|
             ({32{ID_down_forwardSel_up[i][`FORWARD_SBA_BIT]}}& SBA_aluRes_r_i)|
             ({32{ID_down_forwardSel_up[i][`FORWARD_PREMEM_BIT]}}& PREMEM_preliminaryRes_r_i)|
             ({32{ID_down_forwardSel_up[i][`FORWARD_REEXE_BIT]}}& REEXE_regData_r_i)|
-            ({32{ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]}}& WB_forwardData_w_i)|
+            ({32{ID_down_forwardSel_up[i][`FORWARD_MEM_BIT]}}& wb_data)|
             ({32{ID_down_forwardSel_up[i][`FORWARD_EXE_UP_BIT]}}& EXE_up_aluRes_r_i)|
             ({32{ID_down_forwardSel_up[i][`FORWARD_EXE_DOWN_BIT] }}& EXE_down_aluRes_r_i);
             assign scr[i] = !srcIsReg[i] ? ID_down_oprand_up[i] : updataRegFile_up[i];
@@ -542,15 +561,12 @@ module EXEDOWN(
                     !PREMEM_hasRisk_w_i &&
                     !SBA_branchRisk_w_i;
     always @(posedge clk) begin
-        if (!rst || needFlash) begin
+        if (!rst || needClear || needUpdata) begin
             isAccepted  <=  `FALSE;
         end
-        else if (EXE_up_allowin_w_i && !PREMEM_allowin_w_i) begin
-            isAccepted  <=  MDU_Oprand_ok || isAccepted;
+        else if (hasData) begin
+            isAccepted  <=  (MDU_Oprand_ok&&MduReq) || isAccepted;
         end
-        else begin
-            isAccepted  <=  `FALSE;
-        end 
     end
     // 需要MDU运算但是MDU没有接受
     wire mduConflict = isMduWrite && !(isAccepted||MDU_Oprand_ok);
@@ -621,7 +637,7 @@ module EXEDOWN(
                                     (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
-    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o;
+    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o && !ID_down_isDelaySlot_r_i;
     assign EXE_down_ExcCode_w_o         = EXE_down_ExcCode_o;                                      
     assign EXE_down_isDelaySlot_w_o     = EXE_down_isDelaySlot_o;                                     
     assign EXE_down_exceptPC_w_o        = EXE_down_VAddr_o;                                     

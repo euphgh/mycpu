@@ -60,7 +60,7 @@ module Main(
 //                                                                                   
 // sig                                                                               
 // tagValid -------------------------------------------------------------------------
-//                            +-------+
+//                            +-------+        
 // sig                        |       |                                                                                                      
 // data_ok  ------------------+       +----------------------------------------------
     input   wire    [`FOUR_WORDS]            inst_rdata,
@@ -310,8 +310,8 @@ module Main(
 	assign	CP0_Random_w_i	=	CP0_Random_w_o;
 	wire	[3:0]	CP0_exceptSeg_w_o;	wire	[3:0]	CP0_exceptSeg_w_i;
 	assign	CP0_exceptSeg_w_i	=	CP0_exceptSeg_w_o;
-	wire	[0:0]	REEXE_allowin_w_o;	wire	[0:0]	REEXE_allowin_w_i;
-	assign	REEXE_allowin_w_i	=	REEXE_allowin_w_o;
+	wire	[0:0]	REEXE_okToChange_w_o;	wire	[0:0]	REEXE_okToChange_w_i;
+	assign	REEXE_okToChange_w_i	=	REEXE_okToChange_w_o;
 	wire	[0:0]	REEXE_valid_w_o;	wire	[0:0]	REEXE_valid_w_i;
 	assign	REEXE_valid_w_i	=	REEXE_valid_w_o;
 	wire	[0:0]	REEXE_forwardMode_w_o;	wire	[0:0]	REEXE_forwardMode_w_i;
@@ -420,14 +420,14 @@ module Main(
 	assign	MEM_loadSel_i	=	MEM_loadSel_o;
 	wire	[4:0]	PBA_writeNum_w_o;	wire	[4:0]	PBA_writeNum_w_i;
 	assign	PBA_writeNum_w_i	=	PBA_writeNum_w_o;
-	wire	[0:0]	PBA_allowin_w_o;	wire	[0:0]	PBA_allowin_w_i;
-	assign	PBA_allowin_w_i	=	PBA_allowin_w_o;
+	wire	[0:0]	PBA_okToChange_w_o;	wire	[0:0]	PBA_okToChange_w_i;
+	assign	PBA_okToChange_w_i	=	PBA_okToChange_w_o;
 	wire	[31:0]	PBA_forwardData_w_o;	wire	[31:0]	PBA_forwardData_w_i;
 	assign	PBA_forwardData_w_i	=	PBA_forwardData_w_o;
 	wire	[0:0]	PBA_writeEnable_w_o;	wire	[0:0]	PBA_writeEnable_w_i;
 	assign	PBA_writeEnable_w_i	=	PBA_writeEnable_w_o;
-	wire	[0:0]	SBA_allowin_w_o;	wire	[0:0]	SBA_allowin_w_i;
-	assign	SBA_allowin_w_i	=	SBA_allowin_w_o;
+	wire	[0:0]	SBA_okToChange_w_o;	wire	[0:0]	SBA_okToChange_w_i;
+	assign	SBA_okToChange_w_i	=	SBA_okToChange_w_o;
 	wire	[0:0]	SBA_valid_w_o;	wire	[0:0]	SBA_valid_w_i;
 	assign	SBA_valid_w_i	=	SBA_valid_w_o;
 	wire	[0:0]	SBA_forwardMode_w_o;	wire	[0:0]	SBA_forwardMode_w_i;
@@ -490,8 +490,8 @@ module Main(
 	assign	EXE_up_forwardMode_w_i	=	EXE_up_forwardMode_w_o;
 	wire	[4:0]	EXE_up_writeNum_w_o;	wire	[4:0]	EXE_up_writeNum_w_i;
 	assign	EXE_up_writeNum_w_i	=	EXE_up_writeNum_w_o;
-	wire	[0:0]	EXE_up_allowin_w_o;	wire	[0:0]	EXE_up_allowin_w_i;
-	assign	EXE_up_allowin_w_i	=	EXE_up_allowin_w_o;
+	wire	[0:0]	EXE_up_okToChange_w_o;	wire	[0:0]	EXE_up_okToChange_w_i;
+	assign	EXE_up_okToChange_w_i	=	EXE_up_okToChange_w_o;
 	wire	[0:0]	EXE_up_valid_w_o;	wire	[0:0]	EXE_up_valid_w_i;
 	assign	EXE_up_valid_w_i	=	EXE_up_valid_w_o;
 	wire	[4:0]	EXE_up_writeNum_o;	wire	[4:0]	EXE_up_writeNum_i;
@@ -703,7 +703,6 @@ ID  u_ID (
     .SBA_flush_w_i              ( SBA_flush_w_i               ),
     .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
     .EXE_down_allowin_w_i       ( EXE_down_allowin_w_i        ),
-    .EXE_up_allowin_w_i         ( EXE_up_allowin_w_i          ),
     .PBA_writeEnable_w_i        ( PBA_writeEnable_w_i         ),
     .PBA_writeNum_w_i           ( PBA_writeNum_w_i            ),
     .PBA_forwardData_w_i        ( PBA_forwardData_w_i         ),
@@ -854,8 +853,8 @@ DataMemoryManagementUnit  u_DataMemoryManagementUnit (
 WriteBack  u_WriteBack (
     .clk                     ( clk                   ),
     .rst                     ( rst                   ),
-    .PBA_allowin_w_i         ( PBA_allowin_w_i       ),
     .MEM_valid_w_i           ( MEM_valid_w_i         ),
+    .PBA_okToChange_w_i      ( PBA_okToChange_w_i    ),
     .data_rdata              ( data_rdata            ),
     .MEM_writeNum_i          ( MEM_writeNum_i        ),
     .MEM_exceptionRisk_i     ( MEM_exceptionRisk_i   ),
@@ -943,14 +942,13 @@ PrimaryExceptionProcessor  u_PrimaryExceptionProcessor (
 REEXE  u_REEXE (
     .clk                     ( clk                     ),
     .rst                     ( rst                     ),
-    .PBA_allowin_w_i         ( PBA_allowin_w_i         ),
     .SBA_valid_w_i           ( SBA_valid_w_i           ),
     .MEM_allowin_w_i         ( MEM_allowin_w_i         ),
     .SBA_writeNum_i          ( SBA_writeNum_i          ),
     .SBA_VAddr_i             ( SBA_VAddr_i             ),
     .SBA_aluRes_i            ( SBA_aluRes_i            ),
 
-    .REEXE_allowin_w_o       ( REEXE_allowin_w_o       ),
+    .REEXE_okToChange_w_o    ( REEXE_okToChange_w_o    ),
     .REEXE_valid_w_o         ( REEXE_valid_w_o         ),
     .REEXE_forwardMode_w_o   ( REEXE_forwardMode_w_o   ),
     .REEXE_writeNum_w_o      ( REEXE_writeNum_w_o      ),
@@ -1008,9 +1006,9 @@ TLB  u_TLB (
 MEM  u_MEM (
     .clk                      ( clk                       ),
     .rst                      ( rst                       ),
-    .REEXE_allowin_w_i        ( REEXE_allowin_w_i         ),
     .WB_allowin_w_i           ( WB_allowin_w_i            ),
     .PREMEM_valid_w_i         ( PREMEM_valid_w_i          ),
+    .REEXE_okToChange_w_i     ( REEXE_okToChange_w_i      ),
     .WB_hasRisk_w_i           ( WB_hasRisk_w_i            ),
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
     .CP0_exceptSeg_w_i        ( CP0_exceptSeg_w_i         ),
@@ -1083,7 +1081,7 @@ PrimaryBranchAmend  u_PrimaryBranchAmend (
     .REEXE_regData_i         ( REEXE_regData_i       ),
 
     .PBA_writeNum_w_o        ( PBA_writeNum_w_o      ),
-    .PBA_allowin_w_o         ( PBA_allowin_w_o       ),
+    .PBA_okToChange_w_o      ( PBA_okToChange_w_o    ),
     .PBA_forwardData_w_o     ( PBA_forwardData_w_o   ),
     .PBA_writeEnable_w_o     ( PBA_writeEnable_w_o   ),
     .debug_wb_pc0            ( debug_wb_pc0          ),
@@ -1098,7 +1096,6 @@ SecondBranchAmend  u_SecondBranchAmend (
     .MEM_hasRisk_w_i         ( MEM_hasRisk_w_i         ),
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i        ),
     .CP0_exceptSeg_w_i       ( CP0_exceptSeg_w_i       ),
-    .REEXE_allowin_w_i       ( REEXE_allowin_w_i       ),
     .EXE_up_valid_w_i        ( EXE_up_valid_w_i        ),
     .PREMEM_allowin_w_i      ( PREMEM_allowin_w_i      ),
     .EXE_up_writeNum_i       ( EXE_up_writeNum_i       ),
@@ -1111,7 +1108,7 @@ SecondBranchAmend  u_SecondBranchAmend (
     .EXE_up_branchRisk_i     ( EXE_up_branchRisk_i     ),
     .EXE_down_nonBlockDS_i   ( EXE_down_nonBlockDS_i   ),
 
-    .SBA_allowin_w_o         ( SBA_allowin_w_o         ),
+    .SBA_okToChange_w_o      ( SBA_okToChange_w_o      ),
     .SBA_valid_w_o           ( SBA_valid_w_o           ),
     .SBA_forwardMode_w_o     ( SBA_forwardMode_w_o     ),
     .SBA_writeNum_w_o        ( SBA_writeNum_w_o        ),
@@ -1180,7 +1177,6 @@ EXEUP  u_EXEUP (
     .clk                      ( clk                       ),
     .rst                      ( rst                       ),
     .ID_up_valid_w_i          ( ID_up_valid_w_i           ),
-    .SBA_allowin_w_i          ( SBA_allowin_w_i           ),
     .EXE_down_allowin_w_i     ( EXE_down_allowin_w_i      ),
     .SBA_flush_w_i            ( SBA_flush_w_i             ),
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
@@ -1213,7 +1209,7 @@ EXEUP  u_EXEUP (
 
     .EXE_up_forwardMode_w_o   ( EXE_up_forwardMode_w_o    ),
     .EXE_up_writeNum_w_o      ( EXE_up_writeNum_w_o       ),
-    .EXE_up_allowin_w_o       ( EXE_up_allowin_w_o        ),
+    .EXE_up_okToChange_w_o    ( EXE_up_okToChange_w_o     ),
     .EXE_up_valid_w_o         ( EXE_up_valid_w_o          ),
     .EXE_up_writeNum_o        ( EXE_up_writeNum_o         ),
     .EXE_up_VAddr_o           ( EXE_up_VAddr_o            ),
@@ -1229,8 +1225,8 @@ EXEDOWN  u_EXEDOWN (
     .clk                          ( clk                           ),
     .rst                          ( rst                           ),
     .ID_down_valid_w_i            ( ID_down_valid_w_i             ),
-    .EXE_up_allowin_w_i           ( EXE_up_allowin_w_i            ),
     .PREMEM_allowin_w_i           ( PREMEM_allowin_w_i            ),
+    .EXE_up_okToChange_w_i        ( EXE_up_okToChange_w_i         ),
     .PREMEM_hasRisk_w_i           ( PREMEM_hasRisk_w_i            ),
     .CP0_nonBlockMark_w_i         ( CP0_nonBlockMark_w_i          ),
     .SBA_nonBlockDS_w_i           ( SBA_nonBlockDS_w_i            ),
@@ -1334,7 +1330,7 @@ PREMEM  u_PREMEM (
     .rst                         ( rst                          ),
     .MEM_allowin_w_i             ( MEM_allowin_w_i              ),
     .EXE_down_valid_w_i          ( EXE_down_valid_w_i           ),
-    .SBA_allowin_w_i             ( SBA_allowin_w_i              ),
+    .SBA_okToChange_w_i          ( SBA_okToChange_w_i           ),
     .MEM_hasRisk_w_i             ( MEM_hasRisk_w_i              ),
     .CP0_excOccur_w_i            ( CP0_excOccur_w_i             ),
     .CP0_exceptSeg_w_i           ( CP0_exceptSeg_w_i            ),

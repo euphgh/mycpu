@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 21:04
-// Last Modified : 2022/07/25 23:07
+// Last Modified : 2022/07/30 11:32
 // File Name     : MemoryManagementUnit.v
 // Description   :  1.  根据虚地址映射物理地址的高位
 //                  2.  检查TLB异常和非对齐异常 
@@ -22,6 +22,8 @@ module MemoryManagementUnit (
     input	wire	rst,
     // 映射虚地址
     input	wire	[`SINGLE_WORD]  PCR_VAddr_i,
+    // 该映射是否有非对齐异常,延后一个周期
+    input	wire	                FCT_hasException_i,
     // CP0交互{{{
     input   wire    [`SINGLE_WORD]  CP0_Config_w_i,
 /*}}}*/
@@ -98,7 +100,7 @@ module MemoryManagementUnit (
 /*}}}*/
     // 总线输出{{{
     assign otherUnCache = inst_c_i != `CACHED;
-    assign inst_hasException        =  MMU_hasException_o && isOther;
+    assign inst_hasException        =  (MMU_hasException_o && isOther) || FCT_hasException_i;
     assign inst_tag = isOther ? inst_pfn_i : unmapTag;
     assign inst_unCache =   (isOther && otherUnCache) |
                             (isKseg0 && kseg0UnCache) |

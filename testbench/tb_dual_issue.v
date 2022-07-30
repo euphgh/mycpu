@@ -155,7 +155,6 @@ begin
 	            end
 	            for(hiloNum=0; hiloNum<2; hiloNum=hiloNum+1) begin
                         tempHiLoFile[hiloNum] <=  soc_lite.u_cpu.u_Main.u_EXEDOWN.regHiLo[hiloNum];
-                        $display ("hilo:\t%h",tempHiLoFile[hiloNum]);
 	            end
                 ok_to_write <=  1'b1;
 	            $display ("`define STARTPOINT\t\t32'h%h\n`define STARTLINE\t%d",debug_wb_pc,line-1);
@@ -206,10 +205,14 @@ begin
     #2;
     if (!resetn) begin
         debug_wb_err <= 1'b0;
-    end else begin
+    end 
+    else if (debug_wb_pc[0]==`END_PC) begin
         compare(debug_wb_pc[0], debug_wb_wen[0], debug_wb_wnum[0], debug_wb_wdata[0]);
-        compare(debug_wb_pc[1], debug_wb_wen[1], debug_wb_wnum[1], debug_wb_wdata[1]);
     end
+    else begin
+        compare(debug_wb_pc[0], debug_wb_wen[0], debug_wb_wnum[0], debug_wb_wdata[0]);
+        compare(debug_wb_pc[1], debug_wb_wen[1], debug_wb_wnum[1], debug_wb_wdata[1]);    
+    end 
 end
 
 //monitor numeric display

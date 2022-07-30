@@ -1,9 +1,9 @@
-`define CONTINUE
+//`define CONTINUE
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
 `ifdef CONTINUE
-    `define STARTPOINT		32'hbfc00b64
-    `define STARTLINE	      84303
+    `define STARTPOINT		32'hbfc00be4
+    `define STARTLINE	      86450
 `endif
 `ifndef CONTINUE
     `define STARTPOINT  32'hbfc00000
@@ -60,23 +60,22 @@
 `define RAS_TIMES_LEN       4
 `define RAS_WIDTH_LEN       `RAS_PC_LEN+`RAS_TIMES_LEN
 `define RAS_ENRTY_WIDTH     `RAS_WIDTH_LEN-1:0
+`define RAS_TIMES           `RAS_PC_LEN+`RAS_TIMES_LEN-1:`RAS_PC_LEN
 `define RAS_PC              `RAS_PC_LEN-1:0
-`define RAS_TIMES           `RAS_PC_LEN+`RAS_TIMES_LEN-1:`RAS_PC_LEN-1
 `define RAS_ENRTY_NUM_LEN   $clog2(`RAS_SIZE)  
 `define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
-`define RAS_CHECKPOINT_LEN  `RAS_WIDTH_LEN+`RAS_ENRTY_NUM_LEN
-`define RAS_CHECK_TOP       `RAS_ENRTY_WIDTH
-`define RAS_CHECK_ENRTY     `RAS_WIDTH_LEN+RAS_ENRTY_NUM_LEN-1:`RAS_WIDTH_LEN
+`define RAS_CHECKPOINT_LEN  (`RAS_WIDTH_LEN+`RAS_ENRTY_NUM_LEN)
+`define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
+`define RAS_CHECK_TIMES     `RAS_CHECKPOINT_LEN-1:`RAS_PC_LEN+`RAS_ENRTY_NUM_LEN
+`define RAS_CHECK_PC        `RAS_PC_LEN+`RAS_ENRTY_NUM_LEN-1:`RAS_ENRTY_NUM_LEN
+`define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1:0
 //}}}
 `define ALL_CHECKPOINT  `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT   `ALL_CHECKPOINT_LEN'b0
 `define IJTC_CHECKPOINT `IJTC_CHECKPOINT_LEN-1:0         // 记录全局分支历史
 `define PHT_CHECKPOINT  `PHT_CHECKPOINT_LEN-1:0         // 记录局部分支历史,两位饱和计数器
-`define RAS_CHECKPOINT  `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
 `define ALL_CHECKPOINT_LEN (`RAS_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN+`IJTC_CHECKPOINT_LEN)
 `define PHT_CHECKPOINT_LEN 10
-`define RSA_CHECK_PC    
-`define RSA_CHECK_NUM
 `define IJTC_CHECKPOINT_LEN 8                           // 记录全局分支历史
 /*}}}*/
 // 分支恢复的所有动作和使能{{{

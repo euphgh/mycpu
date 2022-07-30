@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/29 21:06
+// Last Modified : 2022/07/30 10:35
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -28,7 +28,6 @@ module SecondBranchAmend (
     input	wire	                        CP0_excOccur_w_i,            
     input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
     // 流水线控制
-    input	wire	                        REEXE_allowin_w_i,
     input	wire	                        EXE_up_valid_w_i,
     input	wire	                        PREMEM_allowin_w_i,         // 上下段互锁
 /*}}}*/
@@ -36,7 +35,7 @@ module SecondBranchAmend (
     //////////////     线信号输出      ///////////////{{{
     //////////////////////////////////////////////////
     // 流水线控制
-    output	wire	                        SBA_allowin_w_o,            // 逐级互锁信号
+    output	wire	                        SBA_okToChange_w_o,            // 逐级互锁信号
     output	wire	                        SBA_valid_w_o,
     // 数据前递模式控制
     output	wire	                        SBA_forwardMode_w_o,    
@@ -119,6 +118,26 @@ module SecondBranchAmend (
     end
     ///*}}}*/
     // 线信号处理{{{
+    // 流水线互锁
+    reg hasData;
+    wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
+    assign SBA_okToChange_w_o = !hasData || ready;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i;
+    wire pre_valid = EXE_up_valid_w_i && !SBA_flush_w_o;
+    assign SBA_valid_w_o    =   hasData && 
+                                ready && 
+                                PREMEM_allowin_w_i &&
+                                !needFlush;
+    assign needUpdata = PREMEM_allowin_w_i && pre_valid;
+    assign needClear  = (!pre_valid&&PREMEM_allowin_w_i) || needFlush;
+    always @(posedge clk) begin
+        if(!rst || needClear) begin
+            hasData     <=  1'b0;
+        end
+        else if (PREMEM_allowin_w_i)
+            hasData     <=  EXE_up_valid_w_i ;
+    end
+    assign SBA_forwardMode_w_o  = ready && hasData;
     assign SBA_nonBlockDS_w_o = EXE_down_nonBlockDS_r_i;
     assign SBA_branchRisk_w_o   = EXE_up_branchRisk_r_i;
     assign SBA_writeNum_w_o     = EXE_up_writeNum_r_i;
@@ -128,31 +147,10 @@ module SecondBranchAmend (
     assign SBA_repairAction_w_o = EXE_up_repairAction_r_i;
     assign SBA_flush_w_o = (!MEM_hasRisk_w_i && EXE_up_repairAction_r_i[`NEED_REPAIR]) && !had_branch_flush;
     assign SBA_checkPoint_w_o = EXE_up_checkPoint_r_i;
-    // 流水线互锁
-    reg hasData;
-    wire ready = !(MEM_hasRisk_w_i&&EXE_up_repairAction_r_i[`NEED_REPAIR]);
-    assign SBA_forwardMode_w_o  = ready && hasData;
-    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i;
-    wire pre_valid = EXE_up_valid_w_i && !SBA_flush_w_o;
-    assign SBA_valid_w_o    =   hasData && 
-                                ready && 
-                                PREMEM_allowin_w_i && 
-                                !needFlush;
-    assign SBA_allowin_w_o  = !hasData || (ready && REEXE_allowin_w_i);
-    wire   ok_to_change = SBA_allowin_w_o && PREMEM_allowin_w_i;
-    assign needUpdata = ok_to_change && pre_valid;
-    assign needClear  = (!pre_valid&&ok_to_change) || needFlush;
-    always @(posedge clk) begin
-        if(!rst || needClear) begin
-            hasData     <=  1'b0;
-        end
-        else if (ok_to_change)
-            hasData     <=  EXE_up_valid_w_i ;
-    end
     // }}}
     // flush信号处理{{{
     always @(posedge clk) begin
-        if (!rst || ok_to_change) begin
+        if (!rst || needUpdata || needClear) begin
             had_branch_flush    <=  `FALSE;
         end
         else if (SBA_flush_w_o) begin

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/29 21:05
+// Last Modified : 2022/07/30 11:23
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -21,10 +21,11 @@ module PREMEM (
     //////////////////////////////////////////////////
     //////////////     线输入信号      ///////////////{{{
     //////////////////////////////////////////////////
-    // 流水线互锁信号 
+    // 前后流水线互锁 
     input	wire	                        MEM_allowin_w_i,
     input	wire	                        EXE_down_valid_w_i,
-    input	wire	                        SBA_allowin_w_i,
+    // 上下流水线互锁
+    input	wire	                        SBA_okToChange_w_i,
     // 异常互锁
     input	wire                            MEM_hasRisk_w_i, 
     // 流水线刷新
@@ -262,6 +263,31 @@ module PREMEM (
     end
     // }}}
     // 线信号处理{{{
+    // 流水线互锁
+    reg hasData;
+    // 如果因为非对齐异常导致没有请求从而cache不接受，则一直等待到异常被处理
+    wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
+    wire   store_conflict  = EXE_down_memReq_r_i && MEM_hasRisk_w_i;
+    wire   tlb_conflict    = EXE_down_isTLBInst_r_i && MEM_hasRisk_w_i;
+    wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
+    // 上下控制
+    assign PREMEM_allowin_w_o = SBA_okToChange_w_i && (ready||!hasData) && MEM_allowin_w_i;
+    // 上下不同部分
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
+    wire pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
+    assign PREMEM_valid_w_o =   hasData &&
+                                ready &&
+                                PREMEM_allowin_w_o&&
+                                !needFlush;
+    assign needUpdata = PREMEM_allowin_w_o && pre_valid;
+    assign needClear  = (!pre_valid&&PREMEM_allowin_w_o) || needFlush;
+    always @(posedge clk) begin
+        if(!rst || needClear) begin
+            hasData <=  1'b0;
+        end
+        else if (PREMEM_allowin_w_o)
+            hasData <=  pre_valid;
+    end
     assign PREMEM_VAddr_w_o  = EXE_down_aluRes_r_i;
     wire   ok_to_do_tlbInst  = !EXE_down_exceptionRisk_r_i && !MEM_hasRisk_w_i && EXE_down_isTLBInst_r_i;
     assign PREMEM_map_w_o    = !EXE_down_exceptionRisk_r_i && !MEM_hasRisk_w_i && EXE_down_memReq_r_i;
@@ -270,34 +296,10 @@ module PREMEM (
     assign PREMEM_writeR_w_o = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLWR];
     assign PREMEM_read_w_o   = ok_to_do_tlbInst && EXE_down_TLBInstOperator_r_i[`TLB_INST_TBLRI];
     // 冲突通过暂停解决
-    wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
-    wire   store_conflict  = EXE_down_memReq_r_i && MEM_hasRisk_w_i;
-    wire   tlb_conflict    = EXE_down_isTLBInst_r_i && MEM_hasRisk_w_i;
     assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || MEM_hasRisk_w_i || EXE_up_branchRisk_r_i;
     assign PREMEM_writeNum_w_o = EXE_down_writeNum_r_i;
     assign PREMEM_hasDangerous_w_o = EXE_down_isDangerous_r_i;
-    // 流水线互锁
-    reg hasData;
-    wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
     assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i && !EXE_down_readCp0_r_i;
-    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
-    // 只要有一段有数据就说明有数据
-    wire pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
-    assign PREMEM_valid_w_o =   hasData && 
-                                ready && 
-                                SBA_allowin_w_i &&
-                                !needFlush;
-    assign PREMEM_allowin_w_o = !hasData || (ready && MEM_allowin_w_i);
-    wire   ok_to_change = PREMEM_allowin_w_o && SBA_allowin_w_i;
-    assign needUpdata = ok_to_change && pre_valid;
-    assign needClear  = (!pre_valid&&ok_to_change) || needFlush;
-    always @(posedge clk) begin
-        if(!rst || needClear) begin
-            hasData <=  1'b0;
-        end
-        else if (ok_to_change)
-            hasData <=  pre_valid;
-    end
     /*}}}*/
     // 总线信号{{{
     assign data_req =  EXE_down_memReq_r_i && !MEM_hasRisk_w_i && !EXE_down_hasException_r_i && MEM_allowin_w_i;

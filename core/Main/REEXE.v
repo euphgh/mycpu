@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:35
-// Last Modified : 2022/07/29 21:25
+// Last Modified : 2022/07/30 10:36
 // File Name     : REEXE.v
 // Description   : 延迟执行段，先阶段只用于数据前递
 //         
@@ -23,7 +23,6 @@ module REEXE(
     //////////////     线信号输入      ///////////////{{{
     //////////////////////////////////////////////////
     // 流水线控制
-    input	wire	                        PBA_allowin_w_i,
     input	wire	                        SBA_valid_w_i,
     input	wire	                        MEM_allowin_w_i,
 /*}}}*/
@@ -31,7 +30,7 @@ module REEXE(
     //////////////     线信号输出      ///////////////{{{
     //////////////////////////////////////////////////
     // 流水线控制
-    output	wire	                        REEXE_allowin_w_o,            // 逐级互锁信号
+    output	wire	                        REEXE_okToChange_w_o,            // 逐级互锁信号
     output	wire	                        REEXE_valid_w_o,              // 给下一级流水线决定是否采样
     // 前递模式控制
     output	wire	                        REEXE_forwardMode_w_o,    
@@ -78,24 +77,25 @@ module REEXE(
     end
     ///*}}}*/
     // 线信号处理{{{
-    assign REEXE_writeNum_w_o     = SBA_writeNum_r_i;
     // 流水线互锁
     reg hasData;
+    assign REEXE_okToChange_w_o = !hasData || ready;
     wire ready = 1'b1;
-    assign REEXE_forwardMode_w_o  = hasData && ready;
-    assign REEXE_valid_w_o    = hasData && ready && MEM_allowin_w_i;
-    assign REEXE_allowin_w_o  = !hasData || (ready && PBA_allowin_w_i);
-    wire   ok_to_change = REEXE_allowin_w_o && MEM_allowin_w_i;
-    assign needUpdata = ok_to_change && SBA_valid_w_i;
-    // TODO 是否需要在清空流水线的时候allowin
-    assign needClear  = (!SBA_valid_w_i&&ok_to_change);
+    wire needFlush = 1'b0;
+    assign REEXE_valid_w_o    = hasData && 
+                                ready &&
+                                MEM_allowin_w_i;
+    assign needUpdata = MEM_allowin_w_i && SBA_valid_w_i;
+    assign needClear  = (!SBA_valid_w_i&&MEM_allowin_w_i) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;
         end
-        else if (ok_to_change)
+        else if (MEM_allowin_w_i)
             hasData <=  SBA_valid_w_i;
     end
+    assign REEXE_forwardMode_w_o  = hasData && ready;
+    assign REEXE_writeNum_w_o     = SBA_writeNum_r_i;
     // }}}
     // 简单寄存器输出{{{
     assign REEXE_writeNum_o     = SBA_writeNum_r_i;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/07/28 16:35
+// Last Modified : 2022/07/30 17:01
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -106,16 +106,15 @@ module PCRegister (
         // 只有在index_ok 和请求都有效的情况下才会刷新另一个请求
         else if (inst_req&&inst_index_ok || (!useBTBPC)) begin
             // 从三个PC来源中选出一个目标PC
-            nextNotAlignedPC <= (CP0_excDestPC_w_i & {32{CP0_excOccur_w_i}}) |
-                                (BSC_correctDest_w_i & {32{SBA_flush_w_i}})  |
-                                (DSP_predictPC_i & {32{useBTBPC}});
+            nextNotAlignedPC <= CP0_excOccur_w_i    ?   CP0_excDestPC_w_i   :
+                                SBA_flush_w_i       ?   BSC_correctDest_w_i : DSP_predictPC_i;
             PCR_needDelaySlot_o <= DSP_needDelaySlot_i;
         end
     end
 
     assign inst_index       = nextAlignedPC[`CACHE_INDEX];
     assign lastBase         = {nextAlignedPC[31:4]-1'b1,nextAlignedPC[3:0]};
-    assign PCR_instEnable_o = temp_instEnable & {4{!(|wordBoundary)}}; //字边界检查，如果有异常则全部不要
+    assign PCR_instEnable_o = temp_instEnable;
     assign PCR_VAddr_o      = nextAlignedPC;
     assign PCR_hasException_o  = (|wordBoundary);
     assign PCR_ExcCode_o       = `ADEL;
