@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/07 15:57
-// Last Modified : 2022/07/30 11:37
+// Last Modified : 2022/07/31 00:45
 // File Name     : IF.v
 // Description   : 取值段，包括PC寄存器，分支预测以及TLB
 //
@@ -145,7 +145,7 @@ module IF (
 	assign	DSP_needDelaySlot_i	=	DSP_needDelaySlot_o;
 	wire	[127:0]	RAS_predDest_p_o;	wire	[127:0]	RAS_predDest_p_i;
 	assign	RAS_predDest_p_i	=	RAS_predDest_p_o;
-	wire	[133:0]	RAS_checkPoint_p_o;	wire	[133:0]	RAS_checkPoint_p_i;
+	wire	[175:0]	RAS_checkPoint_p_o;	wire	[175:0]	RAS_checkPoint_p_i;
 	assign	RAS_checkPoint_p_i	=	RAS_checkPoint_p_o;
 	wire	[0:0]	SCT_allowin_w_o;	wire	[0:0]	SCT_allowin_w_i;
 	assign	SCT_allowin_w_i	=	SCT_allowin_w_o;
@@ -179,7 +179,7 @@ module IF (
 	assign	SCT_IJTC_predDest_p_i	=	SCT_IJTC_predDest_p_o;
 	wire	[127:0]	SCT_RAS_predDest_p_o;	wire	[127:0]	SCT_RAS_predDest_p_i;
 	assign	SCT_RAS_predDest_p_i	=	SCT_RAS_predDest_p_o;
-	wire	[133:0]	SCT_RAS_checkPoint_p_o;	wire	[133:0]	SCT_RAS_checkPoint_p_i;
+	wire	[175:0]	SCT_RAS_checkPoint_p_o;	wire	[175:0]	SCT_RAS_checkPoint_p_i;
 	assign	SCT_RAS_checkPoint_p_i	=	SCT_RAS_checkPoint_p_o;
 	wire	[3:0]	SCT_PHT_predTake_p_o;	wire	[3:0]	SCT_PHT_predTake_p_i;
 	assign	SCT_PHT_predTake_p_i	=	SCT_PHT_predTake_p_o;
@@ -345,6 +345,7 @@ PCRegister  u_PCRegister (
     .DSP_predictPC_i         ( DSP_predictPC_i       ),
     .DSP_needDelaySlot_i     ( DSP_needDelaySlot_i   ),
     .SBA_flush_w_i           ( SBA_flush_w_i         ),
+    .BSC_isDiffRes_w_i       ( BSC_isDiffRes_w_i     ),
     .BSC_correctDest_w_i     ( BSC_correctDest_w_i   ),
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
     .CP0_excDestPC_w_i       ( CP0_excDestPC_w_i     ),

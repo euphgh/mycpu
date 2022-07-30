@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/30 10:55
+// Last Modified : 2022/07/30 23:08
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/07/30 13:47
+// Last Modified : 2022/07/31 00:45
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -171,6 +171,7 @@ module BranchSelectCheck (
     endgenerate
     wire [4*`SINGLE_WORD]   BPU_predDest_p;
     wire [3:0]              BPU_predTake_p;
+    wire    needDelaySlot;
     `PACK_ARRAY(`SINGLE_WORD_LEN,4,BPU_predDest_up,BPU_predDest_p)
     `PACK_ARRAY(1,4,BPU_predTake_up,BPU_predTake_p)
     BranchFourToOne BranchFourToOne_u(
@@ -182,14 +183,15 @@ module BranchSelectCheck (
         .validDest_o            (validDest_o                      ), //output // INST_NEW
         .validTake_o            (validTake_o                      ), //output // INST_NEW
         .actualEnable_o         (actualEnable                     ), //output // INST_NEW
-        .needDelaySlot          (BSC_needDelaySlot_w_o            ), //output // INST_NEW
+        .needDelaySlot          (needDelaySlot                    ), //output // INST_NEW
         .firstValidBit          (firstValidBit                    )  //output
     );
-    assign BSC_DelaySlotIsGetted_w_o = SCT_needDelaySlot_i;
+    assign BSC_needDelaySlot_w_o = needDelaySlot && SCT_valid_i;
+    assign BSC_DelaySlotIsGetted_w_o = SCT_needDelaySlot_i && SCT_valid_i;
     assign isPredictSame =  (!(validTake_o || SCT_BTBValidTake_i))||
                             ((validTake_o && SCT_BTBValidTake_i)&& (validDest_o==SCT_BTBValidDest_i));
     assign BSC_isDiffRes_w_o = !(isEnableSame&&isPredictSame) && !SCT_needDelaySlot_i;
-    assign BSC_needCancel_w_o = BSC_isDiffRes_w_o || SBA_flush_w_i;
+    assign BSC_needCancel_w_o = (BSC_isDiffRes_w_o && SCT_valid_i) || SBA_flush_w_i;
     assign BSC_validDest_w_o = validDest_o;
     assign BSC_fifthVAddr_w_o = SCT_BTBfifthVAddr_i;
     assign BPU_checkPoint = BPU_checkPoint_up[0] | BPU_checkPoint_up[1] | BPU_checkPoint_up[2] | BPU_checkPoint_up[3];
