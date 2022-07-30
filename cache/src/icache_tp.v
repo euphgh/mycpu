@@ -221,9 +221,9 @@ module icache_tp(
             sta_offset <= sin_offset;
         end else if (!sda_req) begin
             sta_req    <= 1'b0;
-            sta_size   <= 2'b0;
-            sta_index  <= 7'b0;
-            sta_offset <= 1'b0;
+            // sta_size   <= 2'b0;
+            // sta_index  <= 7'b0;
+            // sta_offset <= 1'b0;
         end else begin
         end
     end

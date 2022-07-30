@@ -728,10 +728,11 @@ module dcache_tp(
         if (!rst) begin
             ok_send_arv <= 1'b0;
         end
+        else if (arready) begin
+            ok_send_arv <= 1'b0;
+        end 
         else if (sda_req && !sda_unCache && !hit_run && victim_stat==`VIC_IDLE && (cache_stat == `RUN || cache_stat == `MISS)) begin
             ok_send_arv <= 1'b1;
-        end else if (arready) begin
-            ok_send_arv <= 1'b0;
         end
     end
     
