@@ -1,4 +1,5 @@
 //`define CONTINUE
+`define OPEN_CACHE
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
 `ifdef CONTINUE
@@ -66,6 +67,7 @@
 `define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
 `define RAS_CHECKPOINT_LEN  (`RAS_WIDTH_LEN+`RAS_ENRTY_NUM_LEN)
 `define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
+// {4'times,30'PC,10'top}
 `define RAS_CHECK_TIMES     `RAS_CHECKPOINT_LEN-1:`RAS_PC_LEN+`RAS_ENRTY_NUM_LEN
 `define RAS_CHECK_PC        `RAS_PC_LEN+`RAS_ENRTY_NUM_LEN-1:`RAS_ENRTY_NUM_LEN
 `define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1:0

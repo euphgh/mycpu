@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 21:04
-// Last Modified : 2022/07/30 11:32
+// Last Modified : 2022/07/30 18:27
 // File Name     : MemoryManagementUnit.v
 // Description   :  1.  根据虚地址映射物理地址的高位
 //                  2.  检查TLB异常和非对齐异常 
@@ -73,7 +73,11 @@ module MemoryManagementUnit (
     //End of automatic define
     // }}}
     // 线信号处理{{{
+`ifdef OPEN_CACHE
+    assign kseg1UnCache = `FALSE;
+`else
     assign kseg1UnCache = `TRUE;
+`endif
     assign PCinput = PCR_VAddr_i[`CACHE_TAG];
     assign inst_tlbReq_o = inst_req && inst_index_ok && isOther;
 /*}}}*/

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 19:58
-// Last Modified : 2022/07/30 17:13
+// Last Modified : 2022/07/30 18:16
 // File Name     : Arbitrator.v
 // Description   : 根据初步解码的指令类型和寄存器读写，进行发射分配和生成InstQueue的指令需求
 //         
