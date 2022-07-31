@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 10:52
-// Last Modified : 2022/07/23 10:59
+// Last Modified : 2022/07/31 19:09
 // File Name     : TLB.v
 // Description   : 页翻译缓存
 //         
@@ -24,9 +24,9 @@ module TLB (
     input	wire	[`VPN2]         inst_vpn2_i,
     input	wire                    inst_oddPage_i,
     input	wire	[`ASID]         inst_asid_i,
-    output	reg	                    inst_hit_o,
-    output	reg	    [`TLB_WIDTH]    inst_index_o,
-    output	reg	    [`CACHE_TAG]    inst_pfn_o,
+    output	wire	                inst_hit_o,
+    output	wire	[`TLB_WIDTH]    inst_index_o,
+    output	wire	[`CACHE_TAG]    inst_pfn_o,
     output	wire	[`CBITS]        inst_c_o,
     output	wire	                inst_d_o,
     output	wire	                inst_v_o,
@@ -36,9 +36,9 @@ module TLB (
     input	wire	[`VPN2]         data_vpn2_i,
     input	wire	                data_oddPage_i,
     input	wire	[`ASID]         data_asid_i,
-    output	reg	    [`TLB_WIDTH]    data_index_o,
-    output	reg	    [`CACHE_TAG]    data_pfn_o,
-    output	reg	                    data_hit_o,
+    output	wire	[`TLB_WIDTH]    data_index_o,
+    output	wire	[`CACHE_TAG]    data_pfn_o,
+    output	wire	                data_hit_o,
     output	wire	[`CBITS]        data_c_o,
     output	wire	                data_d_o,
     output	wire	                data_v_o,
@@ -58,16 +58,36 @@ module TLB (
     // TLBR
     input	wire	                r_enbale_i,
     input	wire	[`TLB_WIDTH]    r_index_i,
-    output	reg     [`VPN2]         r_vpn2_o,
-    output	reg	    [`ASID]         r_asid_o,
-    output	reg	    [`MASK]         r_mask_o,
-    output	reg	                    r_g_o,
-    output	reg	    [`CACHE_TAG]    r_pfn0_o,
-    output	reg	    [`FLAG0]        r_flags0_o,
-    output	reg	    [`CACHE_TAG]    r_pfn1_o,
-    output	reg	    [`FLAG1]        r_flags1_o
+    output	wire    [`VPN2]         r_vpn2_o,
+    output	wire	[`ASID]         r_asid_o,
+    output	wire	[`MASK]         r_mask_o,
+    output	wire	                r_g_o,
+    output	wire	[`CACHE_TAG]    r_pfn0_o,
+    output	wire	[`FLAG0]        r_flags0_o,
+    output	wire	[`CACHE_TAG]    r_pfn1_o,
+    output	wire	[`FLAG1]        r_flags1_o
 );
     //* Structure:
     //* bit:     |89    71|70    63|62        51| 50 |49    30|29   25|24    5|4     0|
     //* field:   |  vpn2  |  asid  |  pagemask  |  G |  pfn0  | c,d,v |  pfn1 | c,d,v |
+    assign inst_hit_o = 'd0;
+    assign inst_index_o = 'd0;
+    assign inst_pfn_o = 'd0;
+    assign inst_c_o = 'd0;
+    assign inst_d_o = 'd0;
+    assign inst_v_o = 'd0;
+    assign data_index_o = 'd0;
+    assign data_pfn_o = 'd0;
+    assign data_hit_o = 'd0;
+    assign data_c_o = 'd0;
+    assign data_d_o = 'd0;
+    assign data_v_o = 'd0;
+    assign r_vpn2_o = 'd0;
+    assign r_asid_o = 'd0;
+    assign r_mask_o = 'd0;
+    assign r_g_o = 'd0;
+    assign r_pfn0_o = 'd0;
+    assign r_flags0_o = 'd0;
+    assign r_pfn1_o = 'd0;
+    assign r_flags1_o = 'd0;
     endmodule
