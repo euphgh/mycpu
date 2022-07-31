@@ -326,7 +326,7 @@ module dcache_tp(
             sda_tag          <= 20'b0;
             sda_hasException <= 1'b0 ;
             sda_unCache      <= 1'b0 ;
-            sta_wstrb        <= 4'b0 ;
+            sda_wstrb        <= 4'b0 ;
             sda_wdata        <= 32'b0;
             for (i = 0; i < 4; i = i+1) begin 
                 sda_tagv_back[i] <= 21'b0 ;
