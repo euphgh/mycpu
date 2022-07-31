@@ -1,4 +1,4 @@
-`define CONTINUE
+//`define CONTINUE
 `define OPEN_CACHE
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"

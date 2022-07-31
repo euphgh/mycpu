@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/07 15:57
-// Last Modified : 2022/07/31 09:10
+// Last Modified : 2022/07/31 17:18
 // File Name     : IF.v
 // Description   : 取值段，包括PC寄存器，分支预测以及TLB
 //
@@ -58,16 +58,16 @@ module IF (
     input   wire    [`SINGLE_WORD]      CP0_Config_w_i,
 /*}}}*/
     // TLB交互{{{
-    output  wire                    inst_tlbReq_o,
-    output	wire	[`VPN2]         inst_vpn2_o,
-    output	wire	                inst_oddPage_o,
-    output	wire	[`ASID]         inst_asid_o,
+    output  wire                        inst_tlbReq_o,
+    output	wire	[`VPN2]             inst_vpn2_o,
+    output	wire	                    inst_oddPage_o,
+    output	wire	[`ASID]             inst_asid_o,
     input	wire	                    inst_hit_i,
     input	wire	    [`TLB_WIDTH]    inst_index_i,
     input	wire	    [`CACHE_TAG]    inst_pfn_i,
-    input	wire	[`CBITS]        inst_c_i,
-    input	wire	                inst_d_i,
-    input	wire	                inst_v_i,
+    input	wire	[`CBITS]            inst_c_i,
+    input	wire	                    inst_d_i,
+    input	wire	                    inst_v_i,
 /*}}}*/
     input wire clk,
     input wire rst
@@ -79,7 +79,7 @@ module IF (
 
 	wire	[7:0]	BSC_repairAction_w_o;	wire	[7:0]	BSC_repairAction_w_i;
 	assign	BSC_repairAction_w_i	=	BSC_repairAction_w_o;
-	wire	[61:0]	BSC_allCheckPoint_w_o;	wire	[61:0]	BSC_allCheckPoint_w_i;
+	wire	[60:0]	BSC_allCheckPoint_w_o;	wire	[60:0]	BSC_allCheckPoint_w_i;
 	assign	BSC_allCheckPoint_w_i	=	BSC_allCheckPoint_w_o;
 	wire	[31:0]	BSC_erroVAdr_w_o;	wire	[31:0]	BSC_erroVAdr_w_i;
 	assign	BSC_erroVAdr_w_i	=	BSC_erroVAdr_w_o;
@@ -145,7 +145,7 @@ module IF (
 	assign	DSP_needDelaySlot_i	=	DSP_needDelaySlot_o;
 	wire	[127:0]	RAS_predDest_p_o;	wire	[127:0]	RAS_predDest_p_i;
 	assign	RAS_predDest_p_i	=	RAS_predDest_p_o;
-	wire	[175:0]	RAS_checkPoint_p_o;	wire	[175:0]	RAS_checkPoint_p_i;
+	wire	[171:0]	RAS_checkPoint_p_o;	wire	[171:0]	RAS_checkPoint_p_i;
 	assign	RAS_checkPoint_p_i	=	RAS_checkPoint_p_o;
 	wire	[0:0]	SCT_allowin_w_o;	wire	[0:0]	SCT_allowin_w_i;
 	assign	SCT_allowin_w_i	=	SCT_allowin_w_o;
@@ -179,12 +179,22 @@ module IF (
 	assign	SCT_IJTC_predDest_p_i	=	SCT_IJTC_predDest_p_o;
 	wire	[127:0]	SCT_RAS_predDest_p_o;	wire	[127:0]	SCT_RAS_predDest_p_i;
 	assign	SCT_RAS_predDest_p_i	=	SCT_RAS_predDest_p_o;
-	wire	[175:0]	SCT_RAS_checkPoint_p_o;	wire	[175:0]	SCT_RAS_checkPoint_p_i;
+	wire	[171:0]	SCT_RAS_checkPoint_p_o;	wire	[171:0]	SCT_RAS_checkPoint_p_i;
 	assign	SCT_RAS_checkPoint_p_i	=	SCT_RAS_checkPoint_p_o;
 	wire	[3:0]	SCT_PHT_predTake_p_o;	wire	[3:0]	SCT_PHT_predTake_p_i;
 	assign	SCT_PHT_predTake_p_i	=	SCT_PHT_predTake_p_o;
 	wire	[39:0]	SCT_PHT_checkPoint_p_o;	wire	[39:0]	SCT_PHT_checkPoint_p_i;
 	assign	SCT_PHT_checkPoint_p_i	=	SCT_PHT_checkPoint_p_o;
+	wire	[7:0]	FU_repairAction_w_o;	wire	[7:0]	FU_repairAction_w_i;
+	assign	FU_repairAction_w_i	=	FU_repairAction_w_o;
+	wire	[60:0]	FU_allCheckPoint_w_o;	wire	[60:0]	FU_allCheckPoint_w_i;
+	assign	FU_allCheckPoint_w_i	=	FU_allCheckPoint_w_o;
+	wire	[31:0]	FU_erroVAddr_w_o;	wire	[31:0]	FU_erroVAddr_w_i;
+	assign	FU_erroVAddr_w_i	=	FU_erroVAddr_w_o;
+	wire	[0:0]	FU_correctTake_w_o;	wire	[0:0]	FU_correctTake_w_i;
+	assign	FU_correctTake_w_i	=	FU_correctTake_w_o;
+	wire	[31:0]	FU_correctDest_w_o;	wire	[31:0]	FU_correctDest_w_i;
+	assign	FU_correctDest_w_i	=	FU_correctDest_w_o;
 	wire	[31:0]	IJTC_checkPoint_p_o;	wire	[31:0]	IJTC_checkPoint_p_i;
 	assign	IJTC_checkPoint_p_i	=	IJTC_checkPoint_p_o;
 	wire	[127:0]	IJTC_predDest_p_o;	wire	[127:0]	IJTC_predDest_p_i;
@@ -215,12 +225,6 @@ module IF (
 	assign	FCT_isCanceled_i	=	FCT_isCanceled_o;
 
 BranchSelectCheck  u_BranchSelectCheck (
-    .SBA_flush_w_i                      ( SBA_flush_w_i                       ),
-    .SBA_erroVAddr_w_i                  ( SBA_erroVAddr_w_i                   ),
-    .SBA_corrDest_w_i                   ( SBA_corrDest_w_i                    ),
-    .SBA_corrTake_w_i                   ( SBA_corrTake_w_i                    ),
-    .SBA_checkPoint_w_i                 ( SBA_checkPoint_w_i                  ),
-    .SBA_repairAction_w_i               ( SBA_repairAction_w_i                ),
     .inst_rdata                         ( inst_rdata                          ),
     .SCT_predDest_p_i                   ( SCT_predDest_p_i                    ),
     .SCT_BTBInstEnable_i                ( SCT_BTBInstEnable_i                 ),
@@ -266,18 +270,18 @@ BranchSelectCheck  u_BranchSelectCheck (
 );
 
 PatternHistoryTable  u_PatternHistoryTable (
-    .clk                     ( clk                     ),
-    .rst                     ( rst                     ),
-    .inst_index_ok           ( inst_index_ok           ),
-    .inst_req                ( inst_req                ),
-    .PCR_VAddr_i             ( PCR_VAddr_i             ),
-    .BSC_repairAction_w_i    ( BSC_repairAction_w_i    ),
-    .BSC_allCheckPoint_w_i   ( BSC_allCheckPoint_w_i   ),
-    .BSC_erroVAdr_w_i        ( BSC_erroVAdr_w_i        ),
-    .BSC_correctTake_w_i     ( BSC_correctTake_w_i     ),
+    .clk                     ( clk                    ),
+    .rst                     ( rst                    ),
+    .inst_index_ok           ( inst_index_ok          ),
+    .inst_req                ( inst_req               ),
+    .PCR_VAddr_i             ( PCR_VAddr_i            ),
+    .FU_repairAction_w_i     ( FU_repairAction_w_i    ),
+    .FU_allCheckPoint_w_i    ( FU_allCheckPoint_w_i   ),
+    .FU_erroVAddr_w_i        ( FU_erroVAddr_w_i       ),
+    .FU_correctTake_w_i      ( FU_correctTake_w_i     ),
 
-    .PHT_predTake_p_o        ( PHT_predTake_p_o        ),
-    .PHT_checkPoint_p_o      ( PHT_checkPoint_p_o      )
+    .PHT_predTake_p_o        ( PHT_predTake_p_o       ),
+    .PHT_checkPoint_p_o      ( PHT_checkPoint_p_o     )
 );
 
 PCGenerator  u_PCGenerator (
@@ -322,11 +326,11 @@ BranchTargetBuffer  u_BranchTargetBuffer (
     .PCR_instEnable_i         ( PCR_instEnable_i          ),
     .PCG_VAddr_p_i            ( PCG_VAddr_p_i             ),
     .PCG_needDelaySlot_i      ( PCG_needDelaySlot_i       ),
-    .BSC_repairAction_w_i     ( BSC_repairAction_w_i      ),
-    .BSC_allCheckPoint_w_i    ( BSC_allCheckPoint_w_i     ),
-    .BSC_erroVAdr_w_i         ( BSC_erroVAdr_w_i          ),
-    .BSC_correctTake_w_i      ( BSC_correctTake_w_i       ),
-    .BSC_correctDest_w_i      ( BSC_correctDest_w_i       ),
+    .FU_repairAction_w_i      ( FU_repairAction_w_i       ),
+    .FU_allCheckPoint_w_i     ( FU_allCheckPoint_w_i      ),
+    .FU_erroVAddr_w_i         ( FU_erroVAddr_w_i          ),
+    .FU_correctTake_w_i       ( FU_correctTake_w_i        ),
+    .FU_correctDest_w_i       ( FU_correctDest_w_i        ),
 
     .BTB_fifthVAddr_o         ( BTB_fifthVAddr_o          ),
     .BTB_predDest_p_o         ( BTB_predDest_p_o          ),
@@ -345,8 +349,8 @@ PCRegister  u_PCRegister (
     .DSP_predictPC_i         ( DSP_predictPC_i       ),
     .DSP_needDelaySlot_i     ( DSP_needDelaySlot_i   ),
     .SBA_flush_w_i           ( SBA_flush_w_i         ),
+    .SBA_corrDest_w_i        ( SBA_corrDest_w_i      ),
     .BSC_isDiffRes_w_i       ( BSC_isDiffRes_w_i     ),
-    .BSC_correctDest_w_i     ( BSC_correctDest_w_i   ),
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
     .CP0_excDestPC_w_i       ( CP0_excDestPC_w_i     ),
 
@@ -379,18 +383,18 @@ DelaySlotProcessor  u_DelaySlotProcessor (
 );
 
 ReturnAddressStack  u_ReturnAddressStack (
-    .clk                     ( clk                     ),
-    .rst                     ( rst                     ),
-    .inst_index_ok           ( inst_index_ok           ),
-    .inst_req                ( inst_req                ),
-    .PCR_VAddr_i             ( PCR_VAddr_i             ),
-    .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i        ),
-    .BSC_repairAction_w_i    ( BSC_repairAction_w_i    ),
-    .BSC_allCheckPoint_w_i   ( BSC_allCheckPoint_w_i   ),
-    .BSC_erroVAdr_w_i        ( BSC_erroVAdr_w_i        ),
+    .clk                     ( clk                    ),
+    .rst                     ( rst                    ),
+    .inst_index_ok           ( inst_index_ok          ),
+    .inst_req                ( inst_req               ),
+    .PCR_VAddr_i             ( PCR_VAddr_i            ),
+    .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i       ),
+    .FU_repairAction_w_i     ( FU_repairAction_w_i    ),
+    .FU_allCheckPoint_w_i    ( FU_allCheckPoint_w_i   ),
+    .FU_erroVAddr_w_i        ( FU_erroVAddr_w_i       ),
 
-    .RAS_predDest_p_o        ( RAS_predDest_p_o        ),
-    .RAS_checkPoint_p_o      ( RAS_checkPoint_p_o      )
+    .RAS_predDest_p_o        ( RAS_predDest_p_o       ),
+    .RAS_checkPoint_p_o      ( RAS_checkPoint_p_o     )
 );
 
 SecondCacheTrace  u_SecondCacheTrace (
@@ -405,6 +409,7 @@ SecondCacheTrace  u_SecondCacheTrace (
     .inst_data_ok             ( inst_data_ok              ),
     .BSC_needCancel_w_i       ( BSC_needCancel_w_i        ),
     .CP0_excOccur_w_i         ( CP0_excOccur_w_i          ),
+    .SBA_flush_w_i            ( SBA_flush_w_i             ),
     .MMU_ExcCode_i            ( MMU_ExcCode_i             ),
     .MMU_hasException_i       ( MMU_hasException_i        ),
     .MMU_isRefill_i           ( MMU_isRefill_i            ),
@@ -442,21 +447,42 @@ SecondCacheTrace  u_SecondCacheTrace (
     .SCT_PHT_checkPoint_p_o   ( SCT_PHT_checkPoint_p_o    )
 );
 
-IndirectJumpTargetCache  u_IndirectJumpTargetCache (
-    .clk                     ( clk                     ),
-    .rst                     ( rst                     ),
-    .inst_index_ok           ( inst_index_ok           ),
-    .inst_req                ( inst_req                ),
-    .PCR_VAddr_i             ( PCR_VAddr_i             ),
-    .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i        ),
+FixUnit  u_FixUnit (
+    .SBA_flush_w_i           ( SBA_flush_w_i           ),
+    .SBA_erroVAddr_w_i       ( SBA_erroVAddr_w_i       ),
+    .SBA_corrDest_w_i        ( SBA_corrDest_w_i        ),
+    .SBA_corrTake_w_i        ( SBA_corrTake_w_i        ),
+    .SBA_checkPoint_w_i      ( SBA_checkPoint_w_i      ),
+    .SBA_repairAction_w_i    ( SBA_repairAction_w_i    ),
+    .BSC_isDiffRes_w_i       ( BSC_isDiffRes_w_i       ),
     .BSC_repairAction_w_i    ( BSC_repairAction_w_i    ),
     .BSC_allCheckPoint_w_i   ( BSC_allCheckPoint_w_i   ),
     .BSC_erroVAdr_w_i        ( BSC_erroVAdr_w_i        ),
     .BSC_correctTake_w_i     ( BSC_correctTake_w_i     ),
     .BSC_correctDest_w_i     ( BSC_correctDest_w_i     ),
 
-    .IJTC_checkPoint_p_o     ( IJTC_checkPoint_p_o     ),
-    .IJTC_predDest_p_o       ( IJTC_predDest_p_o       )
+    .FU_repairAction_w_o     ( FU_repairAction_w_o     ),
+    .FU_allCheckPoint_w_o    ( FU_allCheckPoint_w_o    ),
+    .FU_erroVAddr_w_o        ( FU_erroVAddr_w_o        ),
+    .FU_correctTake_w_o      ( FU_correctTake_w_o      ),
+    .FU_correctDest_w_o      ( FU_correctDest_w_o      )
+);
+
+IndirectJumpTargetCache  u_IndirectJumpTargetCache (
+    .clk                     ( clk                    ),
+    .rst                     ( rst                    ),
+    .inst_index_ok           ( inst_index_ok          ),
+    .inst_req                ( inst_req               ),
+    .PCR_VAddr_i             ( PCR_VAddr_i            ),
+    .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i       ),
+    .FU_repairAction_w_i     ( FU_repairAction_w_i    ),
+    .FU_allCheckPoint_w_i    ( FU_allCheckPoint_w_i   ),
+    .FU_erroVAddr_w_i        ( FU_erroVAddr_w_i       ),
+    .FU_correctTake_w_i      ( FU_correctTake_w_i     ),
+    .FU_correctDest_w_i      ( FU_correctDest_w_i     ),
+
+    .IJTC_checkPoint_p_o     ( IJTC_checkPoint_p_o    ),
+    .IJTC_predDest_p_o       ( IJTC_predDest_p_o      )
 );
 
 FirstCacheTrace  u_FirstCacheTrace (
@@ -470,6 +496,7 @@ FirstCacheTrace  u_FirstCacheTrace (
     .PCR_hasException_i      ( PCR_hasException_i    ),
     .BSC_needCancel_w_i      ( BSC_needCancel_w_i    ),
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
+    .SBA_flush_w_i           ( SBA_flush_w_i         ),
     .BTB_predDest_p_i        ( BTB_predDest_p_i      ),
     .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i      ),
     .BTB_instEnable_i        ( BTB_instEnable_i      ),

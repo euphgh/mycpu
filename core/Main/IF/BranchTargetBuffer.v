@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/07/23 21:19
+// Last Modified : 2022/07/31 17:18
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
@@ -25,11 +25,11 @@ module BranchTargetBuffer (
     input	wire	                PCG_needDelaySlot_i,
 
     // BPU input
-    input	wire	[`REPAIR_ACTION]    BSC_repairAction_w_i,   // IJTC行为
-    input	wire	[`ALL_CHECKPOINT]   BSC_allCheckPoint_w_i,  // 三个分支预测单元共用一个
-    input	wire	[`SINGLE_WORD]      BSC_erroVAdr_w_i,
-    input	wire	                    BSC_correctTake_w_i,      // 跳转方向
-    input	wire	[`SINGLE_WORD]      BSC_correctDest_w_i,      // 跳转目的
+    input	wire	[`REPAIR_ACTION]    FU_repairAction_w_i,   // IJTC行为
+    input	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_i,  // 三个分支预测单元共用一个
+    input	wire	[`SINGLE_WORD]      FU_erroVAddr_w_i,
+    input	wire	                    FU_correctTake_w_i,      // 跳转方向
+    input	wire	[`SINGLE_WORD]      FU_correctDest_w_i,      // 跳转目的
 
     // 给BPU的信号
     output	wire	[`SINGLE_WORD]      BTB_fifthVAddr_o,        // VAddr开始的第5条指令

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:23
-// Last Modified : 2022/07/30 13:49
+// Last Modified : 2022/07/31 17:43
 // File Name     : FirstCacheTrace.v
 // Description   : 用于模拟Cache三段流水的过程，掌握Cache取数据的过程
 //         
@@ -31,8 +31,9 @@ module FirstCacheTrace (
     input	wire 	                    PCR_hasException_i,  // 表明存在异常
 /*}}}*/
     // 取消信号{{{
-    input	wire	                    BSC_needCancel_w_i,
-    input	wire	                    CP0_excOccur_w_i,
+    input	wire	                    BSC_needCancel_w_i, // 两种分支预测结果不同
+    input	wire	                    CP0_excOccur_w_i,   // 异常发生
+    input	wire	                    SBA_flush_w_i,      // 分支预测恢复
 /*}}}*/
     // BTB接口{{{
     input	wire	[4*`SINGLE_WORD]    BTB_predDest_p_i,
@@ -65,8 +66,8 @@ module FirstCacheTrace (
 /*}}}*/
 );
     reg hasData;
-    assign FCT_valid_o = hasData;
-    wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i);
+    assign FCT_valid_o = hasData ;
+    wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i || SBA_flush_w_i);
     // 断言: 在indexok的时候，Cache的第二段寄存器中一定没有数据
     wire myAsset = !(inst_req && inst_index_ok && !SCT_allowin_w_i);
     wire ready_go = hasData && SCT_allowin_w_i;
@@ -90,7 +91,7 @@ module FirstCacheTrace (
             FCT_VAddr_o     <=  PCR_VAddr_i;
             FCT_hasException_o  <=  PCR_hasException_i;
             FCT_ExcCode_o   <=  PCR_ExcCode_i;
-            FCT_isCanceled_o<=  (BSC_needCancel_w_i||CP0_excOccur_w_i);
+            FCT_isCanceled_o<=  needCancel;
             FCT_predDest_p_o<=  BTB_predDest_p_i ;
 
             FCT_BTBValidTake_o  <=  BTB_validTake_i; 

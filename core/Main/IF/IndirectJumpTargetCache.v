@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 10:17
-// Last Modified : 2022/07/26 16:50
+// Last Modified : 2022/07/31 17:16
 // File Name     : IndirectJumpTargetCache.v
 // Description   : 用于预测j*r $1-30指令的目的地址,采用Gshare方法,在
 //                  finalConfirme的时候需要Info对GHR进行回复
@@ -38,11 +38,11 @@ module IndirectJumpTargetCache (
     // IJTC direct 在任何前段分支预测之后，需要以下输入
     // 1. 预测的该指令是否跳转
     // 2. 该指令的PC
-    input	wire	[`REPAIR_ACTION]    BSC_repairAction_w_i,   // IJTC行为
-    input	wire	[`ALL_CHECKPOINT]   BSC_allCheckPoint_w_i,  // 三个分支预测单元共用一个
-    input	wire	[`SINGLE_WORD]      BSC_erroVAdr_w_i,
-    input	wire	                    BSC_correctTake_w_i,      // 跳转方向
-    input	wire	[`SINGLE_WORD]      BSC_correctDest_w_i       // 跳转目的
+    input	wire	[`REPAIR_ACTION]    FU_repairAction_w_i,   // IJTC行为
+    input	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_i,  // 三个分支预测单元共用一个
+    input	wire	[`SINGLE_WORD]      FU_erroVAddr_w_i,
+    input	wire	                    FU_correctTake_w_i,      // 跳转方向
+    input	wire	[`SINGLE_WORD]      FU_correctDest_w_i       // 跳转目的
 /*}}}*/
 );
     // 信号定义和打包{{{

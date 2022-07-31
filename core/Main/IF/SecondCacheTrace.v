@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:41
-// Last Modified : 2022/07/30 11:36
+// Last Modified : 2022/07/31 17:32
 // File Name     : SecondCacheTrace.v
 // Description   : 跟踪Cache的数据流动
 //         
@@ -36,8 +36,9 @@ module SecondCacheTrace (
     input	wire	                    inst_data_ok,
 /*}}}*/
     // 取消信号{{{
-    input	wire	                    BSC_needCancel_w_i,
-    input	wire	                    CP0_excOccur_w_i,
+    input	wire	                    BSC_needCancel_w_i, // 两种分支预测结果不同
+    input	wire	                    CP0_excOccur_w_i,   // 异常发生
+    input	wire	                    SBA_flush_w_i,      // 分支预测恢复
 /*}}}*/
     // MMU异常信息{{{
     input	wire    [`EXCCODE]          MMU_ExcCode_i,
@@ -101,7 +102,7 @@ module SecondCacheTrace (
     reg hasData;
     assign SCT_valid_o = inst_data_ok && !SCT_isCanceled_o;
     assign SCT_allowin_w_o = !hasData || inst_data_ok;
-    wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i);
+    wire needCancel = (BSC_needCancel_w_i || CP0_excOccur_w_i || SBA_flush_w_i);
     always @(posedge clk) begin
         if(!rst || (inst_data_ok && !FCT_valid_i)) begin
             hasData             <=  `FALSE;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 08:52
-// Last Modified : 2022/07/28 21:37
+// Last Modified : 2022/07/31 17:15
 // File Name     : ReturnAddressStack.v
 // Description   : 预测j.*r指令和jr $31指令的跳转返回关系
 //                  1. 在preComfirm阶段修改preSatck,如果是call，就用PC(call+8)
@@ -47,9 +47,9 @@ module ReturnAddressStack (
     // 1、 该分支指令的PC+8
     // RAS Pop  在前段分支预测为ret 之后，需要以下输入
     // 无
-    input	wire	[`REPAIR_ACTION]    BSC_repairAction_w_i,   // RAS行为
-    input	wire	[`ALL_CHECKPOINT]   BSC_allCheckPoint_w_i,  // 三个分支预测单元共用一个
-    input	wire	[`SINGLE_WORD]      BSC_erroVAdr_w_i        // PC
+    input	wire	[`REPAIR_ACTION]    FU_repairAction_w_i,   // RAS行为
+    input	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_i,  // 三个分支预测单元共用一个
+    input	wire	[`SINGLE_WORD]      FU_erroVAddr_w_i        // PC
 /*}}}*/
 );
     // 信号定义和打包{{{

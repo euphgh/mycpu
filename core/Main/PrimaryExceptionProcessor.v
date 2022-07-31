@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/18 10:45
-// Last Modified : 2022/07/31 16:03
+// Last Modified : 2022/07/31 18:01
 // File Name     : PrimaryExceptionProcessor.v
 // Description   :  接受异常请求和修改TLB的请求,对CP0寄存器进行读写
 //                  此外还需在异常触发的时候发送刷新流水线的信号
@@ -169,9 +169,9 @@ module PrimaryExceptionProcessor (
          eret
         } = selectedInfo;
     wire    isExceptionInNormal = (hasException && !Status[`EXL]) ? `TRUE : `FALSE;
-    assign CP0_exceptSeg_w_o =  !PREMEM_hasRisk_w_i    ? `EXCEP_EXE_CODE :
-                                !MEM_hasRisk_w_i    ? `EXCEP_PREMEM_CODE :
-                                !WB_hasRisk_w_i    ? `EXCEP_PREMEM_CODE  : 'd0;
+    assign CP0_exceptSeg_w_o =  !PREMEM_hasRisk_w_i     ?   `EXCEP_EXE_CODE :
+                                !MEM_hasRisk_w_i        ?   `EXCEP_PREMEM_CODE :
+                                !WB_hasRisk_w_i         ?   `EXCEP_MEM_CODE  : 'd0;
 
     /*}}}*/
     ////////////////    Status  ////////////////{{{

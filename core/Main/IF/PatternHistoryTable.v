@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 08:40
-// Last Modified : 2022/07/26 16:49
+// Last Modified : 2022/07/31 17:17
 // File Name     : PatternHistoryTable.v
 // Description   : 用于预测条件跳转指令的方向
 //
@@ -36,10 +36,10 @@ module  PatternHistoryTable (
     // PHT direct 在前段分支预测之后，需要以下输入
     // 1. 预测出该指令是否跳转
     // 2. 该指令的PC
-    input	wire	[`REPAIR_ACTION]    BSC_repairAction_w_i,   // PHT行为
-    input	wire	[`ALL_CHECKPOINT]   BSC_allCheckPoint_w_i,  // 三个分支预测单元共用一个
-    input	wire	[`SINGLE_WORD]      BSC_erroVAdr_w_i,
-    input	wire	                    BSC_correctTake_w_i
+    input	wire	[`REPAIR_ACTION]    FU_repairAction_w_i,   // PHT行为
+    input	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_i,  // 三个分支预测单元共用一个
+    input	wire	[`SINGLE_WORD]      FU_erroVAddr_w_i,
+    input	wire	                    FU_correctTake_w_i
 /*}}}*/
 );
     // 信号定义和打包{{{
