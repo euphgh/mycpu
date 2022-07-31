@@ -79,8 +79,8 @@ module REEXE(
     // 线信号处理{{{
     // 流水线互锁
     reg hasData;
-    assign REEXE_okToChange_w_o = !hasData || ready;
     wire ready = 1'b1;
+    assign REEXE_okToChange_w_o = !hasData || ready;
     wire needFlush = 1'b0;
     assign REEXE_valid_w_o    = hasData && 
                                 ready &&

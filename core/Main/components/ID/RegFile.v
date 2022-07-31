@@ -3,7 +3,7 @@
 // Device        :  Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/12 19:37
-// Last Modified : 2022/07/29 13:45
+// Last Modified : 2022/07/29 11:16
 // File Name     : RegFile.v
 // Description   : 多端口的寄存器堆,支持4读2写,且前递数据优先读出
 //         

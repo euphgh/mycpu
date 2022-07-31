@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/07/31 17:18
+// Last Modified : 2022/07/31 20:55
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
@@ -25,11 +25,10 @@ module BranchTargetBuffer (
     input	wire	                PCG_needDelaySlot_i,
 
     // BPU input
-    input	wire	[`REPAIR_ACTION]    FU_repairAction_w_i,   // IJTC行为
-    input	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_i,  // 三个分支预测单元共用一个
-    input	wire	[`SINGLE_WORD]      FU_erroVAddr_w_i,
-    input	wire	                    FU_correctTake_w_i,      // 跳转方向
-    input	wire	[`SINGLE_WORD]      FU_correctDest_w_i,      // 跳转目的
+    input	wire	[`REPAIR_ACTION]    BSC_repairAction_w_i,   // IJTC行为
+    input	wire	[`SINGLE_WORD]      BSC_erroVAdr_w_i,
+    input	wire	                    BSC_correctTake_w_i,      // 跳转方向
+    input	wire	[`SINGLE_WORD]      BSC_correctDest_w_i,      // 跳转目的
 
     // 给BPU的信号
     output	wire	[`SINGLE_WORD]      BTB_fifthVAddr_o,        // VAddr开始的第5条指令
@@ -48,6 +47,7 @@ module BranchTargetBuffer (
 * 考虑原则按照原计划分支和延迟槽的计划来
 * 也测结果为不跳转的时候，即Valid = Flase目的为PC+8
 */
+    // 自动定义{{{
     /*autodef*/
     //Start of automatic define
     //Start of automatic reg
@@ -63,20 +63,56 @@ module BranchTargetBuffer (
     //End of automatic define
     wire [31:0]                 VAddr_i                         ;
     wire [31:0]                 nextVAddr_i                     ;
-    wire [`SINGLE_WORD] destination[3:0];
-    `PACK_ARRAY(`SINGLE_WORD_LEN,4,destination,BTB_predDest_p_o)
+    // }}}
+    // 顺序预测{{{
+    wire [`SINGLE_WORD] seq_dest[3:0];
+    wire [3:0]          BTB_predTake_p_o;
     assign VAddr_i = PCG_VAddr_p_i[31:0];
     assign nextVAddr_i = {VAddr_i[31:4]+28'b1,2'b00,VAddr_i[1:0]};
-    assign destination[0] = {VAddr_i[31:4],2'b10,VAddr_i[1:0]};
-    assign destination[1] = {VAddr_i[31:4],2'b11,VAddr_i[1:0]};
-    assign destination[2] = {nextVAddr_i[31:4],2'b00,VAddr_i[1:0]};
-    assign destination[3] = {nextVAddr_i[31:4],2'b01,nextVAddr_i[1:0]};
-    wire   [3:0] BTB_predTake_p_o = 4'b0;
-
+    assign seq_dest[0] = {VAddr_i[31:4],2'b10,VAddr_i[1:0]};
+    assign seq_dest[1] = {VAddr_i[31:4],2'b11,VAddr_i[1:0]};
+    assign seq_dest[2] = {nextVAddr_i[31:4],2'b00,VAddr_i[1:0]};
+    assign seq_dest[3] = {nextVAddr_i[31:4],2'b01,nextVAddr_i[1:0]};
     assign BTB_fifthVAddr_o = nextVAddr_i;
     assign BTB_DelaySlotIsGetted_o  = !PCG_needDelaySlot_i;
     assign BTB_needDelaySlot_o      = needDelaySlot;
-    BranchFourToOne BranchFourToOne_u(
+    // }}}
+    // BTB存储器{{{
+    wire    [`SINGLE_WORD]  PCG_VAddr_up    [3:0];
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,PCG_VAddr_up,PCG_VAddr_p_i)
+    wire    [`SINGLE_WORD]  BTB_predDest_up [3:0];
+    `PACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,BTB_predDest_p_o)
+    wire    [0:0]           BTB_predTake_up [3:0];
+    `PACK_ARRAY(1,4,BTB_predTake_up,BTB_predTake_p_o)
+    wire    [`SINGLE_WORD]  predDest_up     [3:0];
+    wire    [1:0]           number          [3:0];
+    assign  number[0] = 2'b00;
+    assign  number[1] = 2'b01;
+    assign  number[2] = 2'b10;
+    assign  number[3] = 2'b11;
+    generate
+        for (genvar i = 0; i < 4; i = i+1)	begin
+            reg [30:0]  btbReg  [255:0];
+            assign predDest_up[i] = {btbReg[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}][29:0],2'b0};
+            assign BTB_predTake_up[i] = btbReg[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}][30];
+            wire    wen =   BSC_erroVAdr_w_i[3:2]==number[i]    && 
+                            BSC_repairAction_w_i[`NEED_REPAIR]  &&
+                            BSC_repairAction_w_i[`BTB_ACTION];
+            always @(posedge clk) begin
+                if (!rst) begin
+                end
+                else if (wen) begin
+                    btbReg[{BSC_erroVAdr_w_i[29],BSC_erroVAdr_w_i[10:4]}]   <=  {
+                        BSC_correctTake_w_i,
+                        BSC_correctDest_w_i[31:2]
+                        };
+                end
+            end
+            assign BTB_predDest_up[i] = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];
+        end
+    endgenerate
+    //}}}
+    BranchFourToOne BranchFourToOne_u(/*{{{*/
         .fifthPC_i              (BTB_fifthVAddr_o                 ), //input
         .originEnable_i         (PCR_instEnable_i                 ), //input
         .predTake_p_i           (BTB_predTake_p_o                 ), //input
@@ -88,5 +124,5 @@ module BranchTargetBuffer (
         /*autoinst*/
         .needDelaySlot          (needDelaySlot                  )  //output
     );
+/*}}}*/
 endmodule
-

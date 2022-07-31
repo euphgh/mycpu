@@ -144,7 +144,7 @@ module Main(
 	assign	ID_up_predDest_i	=	ID_up_predDest_o;
 	wire	[0:0]	ID_up_predTake_o;	wire	[0:0]	ID_up_predTake_i;
 	assign	ID_up_predTake_i	=	ID_up_predTake_o;
-	wire	[61:0]	ID_up_checkPoint_o;	wire	[61:0]	ID_up_checkPoint_i;
+	wire	[60:0]	ID_up_checkPoint_o;	wire	[60:0]	ID_up_checkPoint_i;
 	assign	ID_up_checkPoint_i	=	ID_up_checkPoint_o;
 	wire	[5:0]	ID_up_branchKind_o;	wire	[5:0]	ID_up_branchKind_i;
 	assign	ID_up_branchKind_i	=	ID_up_branchKind_o;
@@ -446,7 +446,7 @@ module Main(
 	assign	SBA_corrDest_w_i	=	SBA_corrDest_w_o;
 	wire	[0:0]	SBA_corrTake_w_o;	wire	[0:0]	SBA_corrTake_w_i;
 	assign	SBA_corrTake_w_i	=	SBA_corrTake_w_o;
-	wire	[61:0]	SBA_checkPoint_w_o;	wire	[61:0]	SBA_checkPoint_w_i;
+	wire	[60:0]	SBA_checkPoint_w_o;	wire	[60:0]	SBA_checkPoint_w_i;
 	assign	SBA_checkPoint_w_i	=	SBA_checkPoint_w_o;
 	wire	[7:0]	SBA_repairAction_w_o;	wire	[7:0]	SBA_repairAction_w_i;
 	assign	SBA_repairAction_w_i	=	SBA_repairAction_w_o;
@@ -460,7 +460,7 @@ module Main(
 	assign	IF_predDest_p_i	=	IF_predDest_p_o;
 	wire	[3:0]	IF_predTake_p_o;	wire	[3:0]	IF_predTake_p_i;
 	assign	IF_predTake_p_i	=	IF_predTake_p_o;
-	wire	[247:0]	IF_predInfo_p_o;	wire	[247:0]	IF_predInfo_p_i;
+	wire	[243:0]	IF_predInfo_p_o;	wire	[243:0]	IF_predInfo_p_i;
 	assign	IF_predInfo_p_i	=	IF_predInfo_p_o;
 	wire	[31:0]	IF_instBasePC_o;	wire	[31:0]	IF_instBasePC_i;
 	assign	IF_instBasePC_i	=	IF_instBasePC_o;
@@ -506,7 +506,7 @@ module Main(
 	assign	EXE_up_corrTake_i	=	EXE_up_corrTake_o;
 	wire	[7:0]	EXE_up_repairAction_o;	wire	[7:0]	EXE_up_repairAction_i;
 	assign	EXE_up_repairAction_i	=	EXE_up_repairAction_o;
-	wire	[61:0]	EXE_up_checkPoint_o;	wire	[61:0]	EXE_up_checkPoint_i;
+	wire	[60:0]	EXE_up_checkPoint_o;	wire	[60:0]	EXE_up_checkPoint_i;
 	assign	EXE_up_checkPoint_i	=	EXE_up_checkPoint_o;
 	wire	[0:0]	EXE_up_branchRisk_o;	wire	[0:0]	EXE_up_branchRisk_i;
 	assign	EXE_up_branchRisk_i	=	EXE_up_branchRisk_o;

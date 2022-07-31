@@ -83,6 +83,7 @@ module Decorder(
     assign  ID_down_aluOprator_o    = aluOprator_up[1];
     assign  ID_down_exceptionSel_o  = exceptionSel_up[1];
     assign  ID_down_trapKind_o      = trapKind_up[1];
+    assign  ID_down_CacheOperator_o = 'd0;
     // }}}
     // 自动解码{{{
     generate
