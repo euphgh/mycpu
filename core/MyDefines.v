@@ -1,10 +1,10 @@
-//`define CONTINUE
+`define CONTINUE
 `define OPEN_CACHE
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
 `ifdef CONTINUE
-    `define STARTPOINT		32'hbfc00be4
-    `define STARTLINE	      86450
+`define STARTPOINT		32'hbfc00bb4
+`define STARTLINE	      85706
 `endif
 `ifndef CONTINUE
     `define STARTPOINT  32'hbfc00000

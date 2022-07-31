@@ -36,4 +36,4 @@ module DelaySlotProcessor (
         ((!BTB_DelaySlotIsGetted_i && BTB_needDelaySlot_i) ? BTB_fifthVAddr_i : BTB_validDest_i) ;
     assign DSP_needDelaySlot_o = BSC_isDiffRes_w_i ?  BSC_needDelaySlot_w_i : BTB_needDelaySlot_i;
 endmodule
-
+          

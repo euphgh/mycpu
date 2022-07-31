@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/16 11:55
-// Last Modified : 2022/07/30 18:27
+// Last Modified : 2022/07/31 15:49
 // File Name     : MultiDivideUnit.v
 // Description   : 乘除模块
 //         
@@ -29,6 +29,7 @@ module MultiDivideUnit(
     output	wire                        MDU_Oprand_ok,  //操作数ok
     output	wire                        MDU_data_ok,    //计算结果ok
     output	wire	[`HILO]             MDU_writeEnable,
+    output	reg	                        HiLo_busy,
     output	wire	[2*`SINGLE_WORD]    MDU_writeData_p
 );
     /*autodef*/
@@ -103,11 +104,21 @@ module MultiDivideUnit(
     assign divident_i   = oprand_up[0];
     assign divisor_i    = oprand_up[1];
     /*}}}*/ 
-    assign MDU_Oprand_ok =  MDU_operator[`DIV_REQ]  ? div_oprand_ok    :
-                            (MDU_operator[`MUL_REQ] || MDU_operator[`ACCUM_REQ]) ? mulOprand_ok&&MduReq  :  
-                            MDU_operator[`MT_REQ] ? MduReq : 1'b0;
+    // HiLo模块和MDU模块的交互{{{
+    always @(posedge clk) begin
+        if(!rst || cancel || MDU_data_ok) begin
+            HiLo_busy   <=  `FALSE;
+        end
+        else if (MDU_Oprand_ok && MduReq) begin
+            HiLo_busy   <=  `TRUE;
+        end 
+    end
+/*}}}*/
+    assign MDU_Oprand_ok =  (MDU_operator[`DIV_REQ] ?   div_oprand_ok :
+                            (MDU_operator[`MUL_REQ] ||  MDU_operator[`ACCUM_REQ]) ? mulOprand_ok :  
+                             MDU_operator[`MT_REQ]  ?   1'b1 : 1'b0) && (MduReq && !HiLo_busy);
 
-    assign MDU_data_ok =  !cancel && (div_data_ok||mulData_ok||MDU_operator[`MT_REQ]);
+    assign MDU_data_ok =  !cancel && (div_data_ok||mulData_ok||(MDU_Oprand_ok && MDU_operator[`MT_REQ]));
 
     assign MDU_writeEnable = (div_data_ok||mulData_ok) ? 2'b11 : {MDU_operator[`MT_DEST],!MDU_operator[`MT_DEST]};
     assign MDU_writeData_p[31:0] =   div_data_ok ? quotient_o :
