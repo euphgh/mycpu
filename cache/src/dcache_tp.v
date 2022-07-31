@@ -304,7 +304,7 @@ module dcache_tp(
             sta_wstrb        <= sin_wstrb       ;
             sta_wdata        <= sin_wdata       ;
         end
-        else if (!sda_req) begin
+        else if (data_data_ok | !sda_req) begin
             sta_req          <= 1'b0 ;
             sta_wr           <= 1'b0 ;
             sta_size         <= 2'b0 ;
@@ -334,7 +334,7 @@ module dcache_tp(
             end
         end
         //接收信号
-        else if (data_index_ok | !sda_req) begin
+        else if (data_data_ok | !sda_req) begin
             sda_req          <= sta_req         ;
             sda_wr           <= sta_wr          ;
             sda_size         <= sta_size        ;
@@ -793,7 +793,7 @@ module dcache_tp(
                 end
                 `DC_HWI:begin
                     ca_tag_wen   <= 4'b0  ;//不写tag
-                    ca_val_wen   <= ca_hit;//修改val为0   
+                    ca_val_wen   <= ca_hit;//修改val为0
                     ca_val_reg   <= 1'b0  ;
                     ca_dirty_wen <= ca_hit;//修改dirty为0
                     ca_dirty_reg <= 1'b0  ;
