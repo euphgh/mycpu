@@ -56,7 +56,7 @@
 /*}}}*/
 //分支预测检查点长度定义{{{
 //RAS的检查点{{{
-`define RAS_SIZE            1024
+`define RAS_SIZE            512
 `define RAS_PC_LEN          30
 `define RAS_TIMES_LEN       4
 `define RAS_WIDTH_LEN       `RAS_PC_LEN+`RAS_TIMES_LEN
