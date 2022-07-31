@@ -221,7 +221,7 @@ module icache_tp(
             sta_size   <= sin_size  ;
             sta_index  <= sin_index ;
             sta_offset <= sin_offset;
-        end else if (!sda_req) begin
+        end else if (inst_data_ok | !sda_req) begin
             sta_req    <= 1'b0;
             sta_size   <= 2'b0;
             sta_index  <= 7'b0;
@@ -245,7 +245,7 @@ module icache_tp(
                 sda_rdata[i]     <= 255'b0;
             end
         end
-        else if (inst_index_ok | !sda_req) begin
+        else if (inst_data_ok | !sda_req) begin
             sda_req          <= sta_req         ;
             sda_size         <= sta_size        ;
             sda_index        <= sta_index       ;
@@ -273,9 +273,9 @@ module icache_tp(
             sda_rdata[2]     <= data_rdata[2];
             sda_rdata[3]     <= data_rdata[3];
         end
-        else if (inst_data_ok) begin
-            sda_req          <= 1'b0;
-        end
+        // else if (inst_data_ok) begin
+        //     sda_req          <= 1'b0;
+        // end
         else if (inst_uncache_addr_ok) begin
             sda_uca_addr_ok  <= 1'b1;
         end else begin
