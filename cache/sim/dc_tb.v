@@ -378,7 +378,7 @@ module dc_tb(  );
     //     .s_axi_rready             (data_cache_rready )
     // );
     // DCACHE and DATA_UNCAHCE
-    dcache u_dcache_tp (
+    dcache_tp u_dcache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .data_req             (data_req            ),
