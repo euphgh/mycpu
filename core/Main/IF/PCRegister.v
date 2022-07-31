@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/07/31 00:44
+// Last Modified : 2022/07/31 12:10
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -109,7 +109,7 @@ module PCRegister (
             // 从三个PC来源中选出一个目标PC
             nextNotAlignedPC <= CP0_excOccur_w_i    ?   CP0_excDestPC_w_i   :
                                 SBA_flush_w_i       ?   BSC_correctDest_w_i : DSP_predictPC_i;
-            PCR_needDelaySlot_o <= DSP_needDelaySlot_i;
+            PCR_needDelaySlot_o <= DSP_needDelaySlot_i && useBTBPC;
         end
     end
 

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/30 16:59
+// Last Modified : 2022/07/31 16:06
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -61,7 +61,7 @@ module EXEDOWN(
     //最后一段不需要传递给其他段
     //output	wire	                        EXE_down_hasRisk_w_o,     //
 /*}}}*/
-    ////////////////////////////////////////////////
+   ////////////////////////////////////////////////
     //////////////    寄存器输入      //////////////{{{
     ////////////////////////////////////////////////
     // 基本状态信息{{{
@@ -492,7 +492,7 @@ module EXEDOWN(
     assign EXE_down_writeNum_o = ID_down_writeNum_r_i;
     assign EXE_down_ExcCode_o = ID_down_ExcCode_r_i;
     // 该信号用于下一段前递，表示这周期的运算结果是否有风险，可以慢
-    assign EXE_down_exceptionRisk_o = EXE_down_hasException_o || tlbRisk || ID_down_writeCp0_r_i;
+    assign EXE_down_exceptionRisk_o = EXE_down_hasException_o || tlbRisk || ID_down_writeCp0_r_i || ID_down_eret_r_i;
     assign EXE_down_VAddr_o = ID_down_VAddr_r_i;
     assign EXE_down_eret_o = ID_down_eret_r_i;
     assign EXE_down_exceptBadVAddr_o = ID_down_hasException_r_i ? ID_down_VAddr_r_i : aluso;
@@ -514,7 +514,7 @@ module EXEDOWN(
 /*}}}*/
     // 乘除法指令的操作{{{
     // 信号声明和赋值{{{
-    reg                 HiLo_busy;
+    wire                 HiLo_busy;
     reg [`SINGLE_WORD]  regHiLo [1:0];
     // MDU模块的信号
     wire [1:0] MDU_writeEnable;
@@ -532,6 +532,7 @@ module EXEDOWN(
         .MDU_Oprand_ok          (MDU_Oprand_ok                       ), //output
         .MDU_writeEnable        (MDU_writeEnable[`HILO]              ), //output
         .MDU_writeData_p        (MDU_writeData_p[2*`SINGLE_WORD]     ), //output
+        .HiLo_busy              (HiLo_busy                           ),
         /*autoinst*/
         .mulrReq                (mulrReq                        ), //input // INST_NEW
         .mulr_data_ok           (mulr_data_ok                   ), //output // INST_NEW
@@ -575,19 +576,6 @@ module EXEDOWN(
     // 需要写HiLo寄存器但是前面有风险,包括乘除
     wire writeHiLoConflict = isMduWrite && PREMEM_hasRisk_w_i;
 /*}}}*/
-    // HiLo模块和MDU模块的交互{{{
-    always @(posedge clk) begin
-        if(!rst || cancel || MDU_data_ok) begin
-            HiLo_busy   <=  `FALSE;
-        end
-        else if (MDU_Oprand_ok && MduReq) begin
-            HiLo_busy   <=  `TRUE;
-        end 
-    end
-    assign EXE_down_mduRes_o = ID_down_readHiLo_r_i[`HI_READ] ? regHiLo[1] : regHiLo[0];
-    assign EXE_down_nonBlockMark_o  = HiLo_busy;
-    assign EXE_down_nonBlockDS_o    = HiLo_busy || ID_down_isDelaySlot_r_i;
-/*}}}*/
     // HiLo寄存器{{{
     generate
         for (genvar i = 0; i < 2; i = i+1)	begin
@@ -605,6 +593,9 @@ module EXEDOWN(
             end
         end
     endgenerate/*}}}*/
+    assign EXE_down_mduRes_o = ID_down_readHiLo_r_i[`HI_READ] ? regHiLo[1] : regHiLo[0];
+    assign EXE_down_nonBlockMark_o  = HiLo_busy;
+    assign EXE_down_nonBlockDS_o    = HiLo_busy || ID_down_isDelaySlot_r_i;
 /*}}}*/
     // CLO,CLZ,MUL指令{{{
     wire clReq      = ID_down_mduOperator_r_i[`MDU_CLZ] || ID_down_mduOperator_r_i[`MDU_CLO];
@@ -637,7 +628,7 @@ module EXEDOWN(
                                     (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
-    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o && !ID_down_isDelaySlot_r_i;
+    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o && !ID_down_isDelaySlot_r_i;  // 为了使得分支跳转在异常处理之前
     assign EXE_down_ExcCode_w_o         = EXE_down_ExcCode_o;                                      
     assign EXE_down_isDelaySlot_w_o     = EXE_down_isDelaySlot_o;                                     
     assign EXE_down_exceptPC_w_o        = EXE_down_VAddr_o;                                     

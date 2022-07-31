@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/30 11:23
+// Last Modified : 2022/07/31 16:08
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -330,7 +330,7 @@ module PREMEM (
 /*}}}*/
     // 异常处理{{{
     assign PREMEM_hasException_o    = EXE_down_hasException_r_i;
-    assign PREMEM_exceptionRisk_o   = PREMEM_hasException_o;
+    assign PREMEM_exceptionRisk_o   = PREMEM_hasException_o || EXE_down_exceptionRisk_r_i;
     assign PREMEM_ExcCode_o         = EXE_down_ExcCode_r_i;
     assign PREMEM_readCp0_o         = EXE_down_readCp0_r_i;
     assign PREMEM_writeCp0_o        = EXE_down_writeCp0_r_i;
