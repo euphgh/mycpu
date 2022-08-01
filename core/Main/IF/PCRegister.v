@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/07/31 17:18
+// Last Modified : 2022/08/01 11:08
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -81,7 +81,7 @@ module PCRegister (
     reg  [`SINGLE_WORD]         nextNotAlignedPC                ;
     wire [1:0]                  wordBoundary                    ;
     wire [`SINGLE_WORD]         nextAlignedPC                   ;
-    wire [3:0]                  temp_enable                     ;
+    reg  [3:0]                  temp_enable                     ;
     wire [3:2]                  position                        ;
     wire [3:0]                  temp_instEnable                 ;
     wire [`SINGLE_WORD]         lastBase                        ;/*}}}*/
@@ -91,7 +91,6 @@ module PCRegister (
     assign wordBoundary = nextNotAlignedPC[1:0];
     assign nextAlignedPC = {nextNotAlignedPC[31:4],2'b00,wordBoundary};
     // 根据最低为生成指令使能
-    assign temp_enable = {{3{!(useDSP&&DSP_needDelaySlot_i)}},1'b1};// 在没有异常和失败的条件下且是延迟槽
     assign position = nextNotAlignedPC[3:2];
     assign temp_instEnable =         ({4{position==2'b00}} & temp_enable) |
                                      ({4{position==2'b01}} & 4'b1110) |
@@ -106,6 +105,7 @@ module PCRegister (
         if (!rst) begin
             nextNotAlignedPC    <=  `STARTPOINT;
             PCR_needDelaySlot_o <=  `FALSE;
+            temp_enable         <=  4'b1111;// 在没有异常和失败的条件下且是延迟槽
         end
         // 只有在index_ok 和请求都有效的情况下才会刷新另一个请求
         else if (ok_to_change) begin
@@ -113,6 +113,7 @@ module PCRegister (
             nextNotAlignedPC    <=  CP0_excOccur_w_i    ?   CP0_excDestPC_w_i   :
                                     SBA_flush_w_i       ?   SBA_corrDest_w_i    :   DSP_predictPC_i;
             PCR_needDelaySlot_o <=  DSP_needDelaySlot_i &&  useDSP;
+            temp_enable         <= {{3{!(useDSP&&DSP_needDelaySlot_i)}},1'b1};// 在没有异常和失败的条件下且是延迟槽
         end
     end
 

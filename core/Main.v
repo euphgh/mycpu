@@ -280,6 +280,8 @@ module Main(
 	assign	WB_allowin_w_i	=	WB_allowin_w_o;
 	wire	[31:0]	WB_forwardData_w_o;	wire	[31:0]	WB_forwardData_w_i;
 	assign	WB_forwardData_w_i	=	WB_forwardData_w_o;
+	wire	[31:0]	WB_finalRes_w_o;	wire	[31:0]	WB_finalRes_w_i;
+	assign	WB_finalRes_w_i	=	WB_finalRes_w_o;
 	wire	[0:0]	WB_writeEnable_w_o;	wire	[0:0]	WB_writeEnable_w_i;
 	assign	WB_writeEnable_w_i	=	WB_writeEnable_w_o;
 	wire	[31:0]	CP0_Status_w_o;	wire	[31:0]	CP0_Status_w_i;
@@ -708,7 +710,7 @@ ID  u_ID (
     .PBA_forwardData_w_i        ( PBA_forwardData_w_i         ),
     .WB_writeEnable_w_i         ( WB_writeEnable_w_i          ),
     .WB_writeNum_w_i            ( WB_writeNum_w_i             ),
-    .WB_forwardData_w_i         ( WB_forwardData_w_i          ),
+    .WB_finalRes_w_i            ( WB_finalRes_w_i             ),
     .EXE_up_writeNum_w_i        ( EXE_up_writeNum_w_i         ),
     .EXE_down_writeNum_w_i      ( EXE_down_writeNum_w_i       ),
     .SBA_writeNum_w_i           ( SBA_writeNum_w_i            ),
@@ -871,6 +873,7 @@ WriteBack  u_WriteBack (
     .WB_hasRisk_w_o          ( WB_hasRisk_w_o        ),
     .WB_allowin_w_o          ( WB_allowin_w_o        ),
     .WB_forwardData_w_o      ( WB_forwardData_w_o    ),
+    .WB_finalRes_w_o         ( WB_finalRes_w_o       ),
     .WB_writeEnable_w_o      ( WB_writeEnable_w_o    ),
     .debug_wb_pc1            ( debug_wb_pc1          ),
     .debug_wb_rf_wen1        ( debug_wb_rf_wen1      ),

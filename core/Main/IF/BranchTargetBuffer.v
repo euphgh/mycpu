@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/08/01 07:05
+// Last Modified : 2022/08/01 15:20
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
@@ -74,7 +74,7 @@ module BranchTargetBuffer (
     assign seq_dest[2] = {nextVAddr_i[31:4],2'b00,VAddr_i[1:0]};
     assign seq_dest[3] = {nextVAddr_i[31:4],2'b01,nextVAddr_i[1:0]};
     assign BTB_fifthVAddr_o = nextVAddr_i;
-    assign BTB_DelaySlotIsGetted_o  = !PCG_needDelaySlot_i;
+    assign BTB_DelaySlotIsGetted_o  = PCG_needDelaySlot_i;
     assign BTB_needDelaySlot_o      = needDelaySlot;
     // }}}
     // BTB存储器{{{
@@ -90,22 +90,29 @@ module BranchTargetBuffer (
     assign  number[1] = 2'b01;
     assign  number[2] = 2'b10;
     assign  number[3] = 2'b11;
+    `define BTB_ENRTY_NUM   256 
+    `define BTB_INDEX       `BTB_ENRTY_NUM-1:0
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
-            reg [30:0]  btbReg  [255:0];
+            reg [29:0]  btbReg  [`BTB_INDEX];
+            reg [`BTB_INDEX]    btbValid;
             assign predDest_up[i] = {btbReg[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}][29:0],2'b0};
-            assign BTB_predTake_up[i] = btbReg[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}][30];
+            assign BTB_predTake_up[i] = btbValid[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}];
             wire    wen =   FU_erroVAddr_w_i[3:2]==number[i]    && 
                             FU_repairAction_w_i[`NEED_REPAIR]  &&
                             FU_repairAction_w_i[`BTB_ACTION];
             always @(posedge clk) begin
                 if (!rst) begin
+                    btbValid    <=  'd0;
                 end
-                else if (wen) begin
+                if (wen) begin
                     btbReg[{FU_erroVAddr_w_i[29],FU_erroVAddr_w_i[10:4]}]   <=  {
-                        FU_correctTake_w_i,
                         FU_correctDest_w_i[31:2]
                         };
+                    btbValid[{FU_erroVAddr_w_i[29],FU_erroVAddr_w_i[10:4]}] <=  FU_correctTake_w_i;
+                end
+                if (!rst && BTB_predTake_up[i]) begin
+                    $display("predict hit: branch %h should go to %h",PCG_VAddr_up[i],predDest_up[i]);
                 end
             end
             assign BTB_predDest_up[i] = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];
@@ -126,3 +133,4 @@ module BranchTargetBuffer (
     );
 /*}}}*/
 endmodule
+

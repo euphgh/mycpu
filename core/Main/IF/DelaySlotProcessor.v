@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/09 10:18
-// Last Modified : 2022/07/26 16:22
+// Last Modified : 2022/08/01 15:20
 // File Name     : DelaySlotProcessor.v
 // Description   : 根据BSC和BTB的分支预测结果选择合适的PC送入PC寄存器
 //         
@@ -31,9 +31,9 @@ module DelaySlotProcessor (
     output	wire	[`SINGLE_WORD]      DSP_predictPC_o,
     output	wire	                    DSP_needDelaySlot_o
 );
-    assign DSP_predictPC_o = BSC_isDiffRes_w_i ?  
-        ((!BSC_DelaySlotIsGetted_w_i && BSC_needDelaySlot_w_i) ? BSC_fifthVAddr_w_i : BSC_validDest_w_i) :
-        ((!BTB_DelaySlotIsGetted_i && BTB_needDelaySlot_i) ? BTB_fifthVAddr_i : BTB_validDest_i) ;
+    assign DSP_predictPC_o = BSC_isDiffRes_w_i ?
+        ((!BSC_DelaySlotIsGetted_w_i    && BSC_needDelaySlot_w_i) ? BSC_fifthVAddr_w_i  : BSC_validDest_w_i ) :
+        ((!BTB_DelaySlotIsGetted_i      && BTB_needDelaySlot_i  ) ? BTB_fifthVAddr_i    : BTB_validDest_i   ) ;
     assign DSP_needDelaySlot_o = BSC_isDiffRes_w_i ?  BSC_needDelaySlot_w_i : BTB_needDelaySlot_i;
 endmodule
           

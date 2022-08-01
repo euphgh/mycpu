@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 20:47
-// Last Modified : 2022/07/30 23:08
+// Last Modified : 2022/08/01 10:54
 // File Name     : ID.v
 // Description   : 从InstQueue取指令,解码,确定发射模式,读寄存器,发射
 //         
@@ -51,7 +51,7 @@ module ID (
     input	wire	[`SINGLE_WORD]          PBA_forwardData_w_i,
     input	wire	                        WB_writeEnable_w_i, 
     input	wire	[`GPR_NUM]              WB_writeNum_w_i,    
-    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i, 
+    input	wire	[`SINGLE_WORD]          WB_finalRes_w_i, 
 
     // 其他段写寄存器状态送回回写段,用于数据前递
     input	wire	[`GPR_NUM]              EXE_up_writeNum_w_i,    
@@ -290,7 +290,7 @@ module ID (
         .PBA_forwardData_w_i    (PBA_forwardData_w_i[`SINGLE_WORD]     ), //input
         .WB_writeEnable_w_i     (WB_writeEnable_w_i                    ), //input
         .WB_writeNum_w_i        (WB_writeNum_w_i[`GPR_NUM]             ), //input
-        .WB_forwardData_w_i     (WB_forwardData_w_i[`SINGLE_WORD]      )  //input
+        .WB_forwardData_w_i     (WB_finalRes_w_i[`SINGLE_WORD]      )  //input
     );
     wire    [`GPR_NUM]      readNum     [1:0][1:0]; // 第一个下标代表流水线，第二个代表rs,rt
     wire    [0:0]           needRead    [1:0][1:0]; // 第一个下标代表流水线，第二个代表rs,rt

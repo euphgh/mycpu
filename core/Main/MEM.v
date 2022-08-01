@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/07/31 18:01
+// Last Modified : 2022/08/01 09:49
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -220,7 +220,8 @@ module MEM(
     assign MEM_hasDangerous_w_o = PREMEM_isDangerous_r_i;
     assign MEM_rtData_o = PREMEM_rtData_r_i;
     assign MEM_VAddr_o = PREMEM_VAddr_r_i;
-    assign MEM_forwardMode_w_o = hasData && ready && !PREMEM_memReq_r_i;
+    wire    cannotForward = PREMEM_memReq_r_i && (!PREMEM_loadSel_r_i[`LOAD_LW_BIT]);
+    assign MEM_forwardMode_w_o = hasData && ready && !cannotForward;
     /*}}}*/
     // 简单线信号传递{{{
     assign MEM_writeNum_o = PREMEM_writeNum_r_i;

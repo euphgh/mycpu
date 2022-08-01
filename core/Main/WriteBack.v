@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/03 14:17
-// Last Modified : 2022/07/30 10:29
+// Last Modified : 2022/08/01 15:44
 // File Name     : WriteBack.v
 // Description   : 回写段，用于数据选择，数据前递和数据写入RegFile
 //         
@@ -46,6 +46,7 @@ module WriteBack (
     //output	wire	                        WB_valid_w_o,              
     // 数据前递信号
     output	wire	[`SINGLE_WORD]          WB_forwardData_w_o,     // EXE计算结果前递
+    output	wire	[`SINGLE_WORD]          WB_finalRes_w_o,        // 送回寄存器堆的数据
     // ID回写信号
     output	wire	                        WB_writeEnable_w_o,       // 回写使能
 /*}}}*/
@@ -161,7 +162,8 @@ module WriteBack (
                                                                         {MEM_rtData_r_i[31:24],data_rdata  [31:8 ]} ;
     wire    lwr_sel = MEM_loadSel_r_i[`LOAD_R1_BIT] || MEM_loadSel_r_i[`LOAD_R2_BIT] || MEM_loadSel_r_i[`LOAD_R3_BIT];
     wire    not_load = !MEM_memReq_r_i;
-    assign WB_forwardData_w_o = not_load ? MEM_finalRes_r_i :
+    assign WB_forwardData_w_o = MEM_memReq_r_i ? data_rdata : MEM_finalRes_r_i;
+    assign WB_finalRes_w_o = not_load ? MEM_finalRes_r_i :
                                (({32{lb_sel}} & lb_data) |
                                 ({32{lh_sel}} & lh_data) |
                                 ({32{lw_sel}} & lw_data) |
@@ -183,7 +185,7 @@ module WriteBack (
             debug_wb_pc1        <=  MEM_VAddr_r_i;
             debug_wb_rf_wen1    <=  {4{WB_writeEnable_w_o}};
             debug_wb_rf_wnum1   <=  WB_writeNum_w_o;
-            debug_wb_rf_wdata1  <=  WB_forwardData_w_o;
+            debug_wb_rf_wdata1  <=  WB_finalRes_w_o;
         end
     end
     // }}}

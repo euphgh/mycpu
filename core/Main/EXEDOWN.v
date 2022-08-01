@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/07/31 20:54
+// Last Modified : 2022/08/01 10:54
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -628,7 +628,7 @@ module EXEDOWN(
                                     (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
-    assign EXE_down_hasExceprion_w_o    = EXE_down_hasException_o && !ID_down_isDelaySlot_r_i;  // 为了使得分支跳转在异常处理之前
+    assign EXE_down_hasExceprion_w_o    = ID_down_hasException_r_i && !ID_down_isDelaySlot_r_i;  // 为了使得分支跳转在异常处理之前
     assign EXE_down_ExcCode_w_o         = EXE_down_ExcCode_o;                                      
     assign EXE_down_isDelaySlot_w_o     = EXE_down_isDelaySlot_o;                                     
     assign EXE_down_exceptPC_w_o        = EXE_down_VAddr_o;                                     
