@@ -171,8 +171,8 @@ begin
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
             if (ok_to_write) begin
-                reg_record = $fopen(`REG_FILE,"w");
-                hilo_record = $fopen(`HILO_FILE,"w");
+                //reg_record = $fopen(`REG_FILE,"w");
+                //hilo_record = $fopen(`HILO_FILE,"w");
 	            for(regNum=1; regNum<32; regNum=regNum+1) begin
 	                $fdisplay(reg_record,"%h",tempRegFile[regNum]);
 	            end
@@ -324,7 +324,7 @@ always @(posedge cpu_clk) begin
         $display("==============================================================");
         $display("Test end!");
         #40;
-        $fclose(trace_ref);
+        //$fclose(trace_ref);
         $timeformat(-6, 0, " us", 10);
         if (global_err) begin
             $display("Fail!!!Total %d errors!",err_count);
@@ -336,8 +336,16 @@ always @(posedge cpu_clk) begin
             //$display("dcache req = %d, dcache miss         = %d", dcache_req, dcache_miss);
             //$display("dcache wb  = %d, dcache write victim = %d", dcache_wb, dcache_wvc);
         end
-	    $finish;
+
 	end
 end
 
+always @(*) begin
+    if (debug_end) begin
+        resetn = 1'b0;
+        #2000;
+        resetn = 1'b1;
+    end
+    
+end
 endmodule

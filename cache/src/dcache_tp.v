@@ -624,7 +624,7 @@ module dcache_tp(
         end
         // 如果命中且为写操作，则直接修改对应行的dirty为1
         else if (hit_write) begin
-            dirty[sta_index][hit_way] <= 1'b1;
+            dirty[sda_index][hit_way] <= 1'b1;
         end
 `ifdef EN_DCACHE_OP
         else if (cache_stat == `CA_OP && |ca_dirty_wen) begin
@@ -656,13 +656,13 @@ module dcache_tp(
             case(victim_stat)
 `ifdef EN_DCACHE_OP
                 `VIC_IDLE  : victim_stat   <= (sda_req && !hit_run) || (ca_need_wb && cache_stat == `CA_OP)         ? `VIC_MISS  : `VIC_IDLE;
-                `VIC_MISS  : victim_stat   <= (dirty[sda_index][dirty_loc]) || (cache_stat == `CA_WB)   ? `VIC_AWRITE: `VIC_IDLE;
+                `VIC_MISS  : victim_stat   <= (sda_tagv_back[dirty_loc][0]&&dirty[sda_index][dirty_loc]) || (cache_stat == `CA_WB)   ? `VIC_AWRITE: `VIC_IDLE;
                 `VIC_AWRITE: victim_stat   <= (awready)                      ? `VIC_WRITE : `VIC_AWRITE;
                 `VIC_WRITE : victim_stat   <= (wlast)                        ? `VIC_RES   : `VIC_WRITE;
                 `VIC_RES   : victim_stat   <= (bvalid)                       ? `VIC_IDLE  : `VIC_RES;
 `else
                 `VIC_IDLE  : victim_stat   <= (sda_req && !hit_run)          ? `VIC_MISS  : `VIC_IDLE;
-                `VIC_MISS  : victim_stat   <= (dirty[sda_index][dirty_loc])  ? `VIC_AWRITE: `VIC_IDLE;
+                `VIC_MISS  : victim_stat   <= (sda_tagv_back[dirty_loc][0]&&dirty[sda_index][dirty_loc])  ? `VIC_AWRITE: `VIC_IDLE;
                 `VIC_AWRITE: victim_stat   <= (awready)                      ? `VIC_WRITE : `VIC_AWRITE;
                 `VIC_WRITE : victim_stat   <= (wlast)                        ? `VIC_RES   : `VIC_WRITE;
                 `VIC_RES   : victim_stat   <= (bvalid)                       ? `VIC_IDLE  : `VIC_RES;
