@@ -34,11 +34,13 @@ module ALU(
     assign lui_res = {scr1[15:0],16'b0};
     //加、减、无符号比较、有符号比较
     wire [31:0] add_sub_res;
+    wire        crFlag;
     adder #(.BUS(32)) u_adder (
               .add_a                   ( scr0      ),
               .add_b                   ( scr1      ),
               .cin_i                   ( 1'b0      ),
               .adder_op                ( {add_op,sub_op,slt_op,sltu_op}   ),
+              .crFlag                  (crFlag      ),
 
               .add_res                 ( add_sub_res    ),
               .overflow                ( overflow       )

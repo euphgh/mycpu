@@ -327,7 +327,6 @@ BranchTargetBuffer  u_BranchTargetBuffer (
     .PCG_VAddr_p_i            ( PCG_VAddr_p_i             ),
     .PCG_needDelaySlot_i      ( PCG_needDelaySlot_i       ),
     .FU_repairAction_w_i      ( FU_repairAction_w_i       ),
-    .FU_allCheckPoint_w_i     ( FU_allCheckPoint_w_i      ),
     .FU_erroVAddr_w_i         ( FU_erroVAddr_w_i          ),
     .FU_correctTake_w_i       ( FU_correctTake_w_i        ),
     .FU_correctDest_w_i       ( FU_correctDest_w_i        ),
