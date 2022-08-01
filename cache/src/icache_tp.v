@@ -161,7 +161,7 @@ module icache_tp(
     assign inst_index_ok = !deal_cache_op && sin_req && (!sda_req || inst_data_ok)
                            && (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL);                          
 `else
-    assign inst_index_ok = (cache_stat != `RESET) && sin_req && (!sda_req || inst_data_ok);
+    assign inst_index_ok = (cache_stat != `RESET && cache_stat != `IDLE) && sin_req && (!sda_req || inst_data_ok);
 `endif 
     assign inst_data_ok  = sda_req && (hit_run || inst_uncache_data_ok || sda_hasException);
     assign inst_rdata    = sda_unCache ? inst_uncache_rdata : hit_run_data;
