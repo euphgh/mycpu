@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/15 20:49
-// Last Modified : 2022/07/28 11:20
+// Last Modified : 2022/07/31 20:43
 // File Name     : MyMultiplier.v
 // Description   :
 //         
