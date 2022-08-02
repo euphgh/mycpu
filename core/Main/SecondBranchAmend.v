@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/07/30 10:35
+// Last Modified : 2022/08/02 11:38
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -138,15 +138,15 @@ module SecondBranchAmend (
             hasData     <=  EXE_up_valid_w_i ;
     end
     assign SBA_forwardMode_w_o  = ready && hasData;
-    assign SBA_nonBlockDS_w_o = EXE_down_nonBlockDS_r_i;
+    assign SBA_nonBlockDS_w_o   = EXE_down_nonBlockDS_r_i;
     assign SBA_branchRisk_w_o   = EXE_up_branchRisk_r_i;
     assign SBA_writeNum_w_o     = EXE_up_writeNum_r_i;
-    assign SBA_erroVAddr_w_o = EXE_up_VAddr_r_i;
-    assign SBA_corrDest_w_o = EXE_up_corrDest_r_i;
-    assign SBA_corrTake_w_o = EXE_up_corrTake_r_i;
+    assign SBA_erroVAddr_w_o    = EXE_up_VAddr_r_i;
+    assign SBA_corrDest_w_o     = EXE_up_corrDest_r_i;
+    assign SBA_corrTake_w_o     = EXE_up_corrTake_r_i;
     assign SBA_repairAction_w_o = EXE_up_repairAction_r_i;
-    assign SBA_flush_w_o = (!MEM_hasRisk_w_i && EXE_up_repairAction_r_i[`NEED_REPAIR]) && !had_branch_flush;
-    assign SBA_checkPoint_w_o = EXE_up_checkPoint_r_i;
+    assign SBA_flush_w_o        = (!MEM_hasRisk_w_i && EXE_up_repairAction_r_i[`NEED_REPAIR]) && !had_branch_flush;
+    assign SBA_checkPoint_w_o   = EXE_up_checkPoint_r_i;
     // }}}
     // flush信号处理{{{
     always @(posedge clk) begin

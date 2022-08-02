@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:41
-// Last Modified : 2022/07/31 17:32
+// Last Modified : 2022/08/02 09:04
 // File Name     : SecondCacheTrace.v
 // Description   : 跟踪Cache的数据流动
 //         
@@ -57,6 +57,7 @@ module SecondCacheTrace (
     input	wire	[`EXCCODE]          FCT_ExcCode_i,
     input	wire		                FCT_isCanceled_i,
     input	wire  	[4*`SINGLE_WORD]    FCT_predDest_p_i,
+    input	wire  	[3:0]               FCT_predTake_p_i,
     // 控制信号
     //  BTB中间变量
     input   wire    [`INST_NUM]         FCT_BTBInstEnable_i,    // 表示BTB读出的4条目标指令那些是需要
@@ -70,11 +71,12 @@ module SecondCacheTrace (
     // 寄存器输出{{{
     //  BTB信息{{{
     output	reg 	[4*`SINGLE_WORD]    SCT_predDest_p_o,
-    output  reg     [`INST_NUM]     SCT_BTBInstEnable_o,    // 表示BTB读出的4条目标指令那些是需要
-    output	reg	    [`SINGLE_WORD]  SCT_BTBfifthVAddr_o,
-    output	reg	                    SCT_needDelaySlot_o,
-    output	reg	    [`SINGLE_WORD]  SCT_BTBValidDest_o,
-    output	reg	                    SCT_BTBValidTake_o,
+    output	reg 	[3:0]               SCT_predTake_p_o,
+    output  reg     [`INST_NUM]         SCT_BTBInstEnable_o,    // 表示BTB读出的4条目标指令那些是需要
+    output	reg	    [`SINGLE_WORD]      SCT_BTBfifthVAddr_o,
+    output	reg	                        SCT_needDelaySlot_o,
+    output	reg	    [`SINGLE_WORD]      SCT_BTBValidDest_o,
+    output	reg	                        SCT_BTBValidTake_o,
 /*}}}*/
     // 基本信息{{{
     output	reg		[`INST_NUM]     SCT_originEnable_o,     // PCR寄存器的使能
@@ -112,7 +114,8 @@ module SecondCacheTrace (
             SCT_hasException_o  <=  `FALSE;
             SCT_ExcCode_o       <=  `NOEXCCODE;
             SCT_isCanceled_o    <=  `FALSE;
-            SCT_predDest_p_o    <=  0;
+            SCT_predDest_p_o    <=  'd0;
+            SCT_predTake_p_o    <=  'd0;
             SCT_BTBValidDest_o  <=  `ZEROWORD;
             SCT_BTBValidTake_o  <=  `FALSE;
             SCT_BTBfifthVAddr_o <=  `ZEROWORD;
@@ -133,6 +136,7 @@ module SecondCacheTrace (
             SCT_ExcCode_o       <=  FCT_hasException_i ? FCT_ExcCode_i : MMU_ExcCode_i;
             SCT_isCanceled_o    <=  FCT_isCanceled_i || needCancel;
             SCT_predDest_p_o    <=  FCT_predDest_p_i;
+            SCT_predTake_p_o    <=  FCT_predTake_p_i;
             SCT_BTBValidDest_o  <=  FCT_BTBValidDest_i;
             SCT_BTBValidTake_o  <=  FCT_BTBValidTake_i;
             SCT_BTBfifthVAddr_o <=  FCT_BTBfifthVAddr_i;

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/08/01 15:20
+// Last Modified : 2022/08/02 17:25
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
@@ -33,6 +33,7 @@ module BranchTargetBuffer (
     // 给BPU的信号
     output	wire	[`SINGLE_WORD]      BTB_fifthVAddr_o,        // VAddr开始的第5条指令
     output	wire	[4*`SINGLE_WORD]    BTB_predDest_p_o,
+    output	wire	[3:0]               BTB_predTake_p_o,
     output  wire    [`INST_NUM]         BTB_instEnable_o,       // 表示BTB读出的4条目标指令那些是需要
 
     // 给DelaySlopt的信号
@@ -66,7 +67,6 @@ module BranchTargetBuffer (
     // }}}
     // 顺序预测{{{
     wire [`SINGLE_WORD] seq_dest[3:0];
-    wire [3:0]          BTB_predTake_p_o;
     assign VAddr_i = PCG_VAddr_p_i[31:0];
     assign nextVAddr_i = {VAddr_i[31:4]+28'b1,2'b00,VAddr_i[1:0]};
     assign seq_dest[0] = {VAddr_i[31:4],2'b10,VAddr_i[1:0]};
@@ -75,7 +75,9 @@ module BranchTargetBuffer (
     assign seq_dest[3] = {nextVAddr_i[31:4],2'b01,nextVAddr_i[1:0]};
     assign BTB_fifthVAddr_o = nextVAddr_i;
     assign BTB_DelaySlotIsGetted_o  = PCG_needDelaySlot_i;
-    assign BTB_needDelaySlot_o      = needDelaySlot;
+    // 由于本次预测的PC是用原分支的PC进行的必定会有需要延迟槽，所以本次取延迟
+    // 槽不会再有延迟槽指令，需要拉低该信号
+    assign BTB_needDelaySlot_o      = needDelaySlot && !PCG_needDelaySlot_i;
     // }}}
     // BTB存储器{{{
     wire    [`SINGLE_WORD]  PCG_VAddr_up    [3:0];
@@ -90,38 +92,43 @@ module BranchTargetBuffer (
     assign  number[1] = 2'b01;
     assign  number[2] = 2'b10;
     assign  number[3] = 2'b11;
-    `define BTB_ENRTY_NUM   256 
+    `define BTB_ENRTY_NUM   16 
+    `define PC_INDEX        $clog2(`BTB_ENRTY_NUM)-1+4:4
     `define BTB_INDEX       `BTB_ENRTY_NUM-1:0
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
-            reg [29:0]  btbReg  [`BTB_INDEX];
+            reg [31:2]  btbReg  [`BTB_INDEX];
             reg [`BTB_INDEX]    btbValid;
-            assign predDest_up[i] = {btbReg[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}][29:0],2'b0};
-            assign BTB_predTake_up[i] = btbValid[{PCG_VAddr_up[i][29],PCG_VAddr_up[i][10:4]}];
-            wire    wen =   FU_erroVAddr_w_i[3:2]==number[i]    && 
+            assign predDest_up[i] = {btbReg[{PCG_VAddr_up[i][`PC_INDEX]}],2'b0};
+            assign BTB_predTake_up[i] = btbValid[{PCG_VAddr_up[i][`PC_INDEX]}];
+            wire    wen =   FU_erroVAddr_w_i[3:2]==number[i]   && 
                             FU_repairAction_w_i[`NEED_REPAIR]  &&
                             FU_repairAction_w_i[`BTB_ACTION];
+            wire    [`BTB_INDEX]  addr = {FU_erroVAddr_w_i[`PC_INDEX]};
             always @(posedge clk) begin
                 if (!rst) begin
                     btbValid    <=  'd0;
                 end
-                if (wen) begin
-                    btbReg[{FU_erroVAddr_w_i[29],FU_erroVAddr_w_i[10:4]}]   <=  {
+                else if (wen) begin
+                    btbReg[addr]   <=  {
                         FU_correctDest_w_i[31:2]
                         };
-                    btbValid[{FU_erroVAddr_w_i[29],FU_erroVAddr_w_i[10:4]}] <=  FU_correctTake_w_i;
-                end
-                if (!rst && BTB_predTake_up[i]) begin
-                    $display("predict hit: branch %h should go to %h",PCG_VAddr_up[i],predDest_up[i]);
+                    btbValid[addr] <=  FU_correctTake_w_i;
+                `ifdef DEBUG
+                    $display("btb modify: next pc %h  will %b goto %h, in slot %h %d",
+                        FU_erroVAddr_w_i,FU_correctTake_w_i,FU_correctDest_w_i,number[i],addr);
+                `endif
                 end
             end
-            assign BTB_predDest_up[i] = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];
+            assign BTB_predDest_up[i]   = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];
+            assign BTB_predTake_p_o[i]  = BTB_predTake_up[i];
         end
     endgenerate
     //}}}
+    wire [3:0]  fakeEnable = PCG_needDelaySlot_i ? 4'b1000 : PCR_instEnable_i;
     BranchFourToOne BranchFourToOne_u(/*{{{*/
         .fifthPC_i              (BTB_fifthVAddr_o                 ), //input
-        .originEnable_i         (PCR_instEnable_i                 ), //input
+        .originEnable_i         (fakeEnable                       ), //input
         .predTake_p_i           (BTB_predTake_p_o                 ), //input
         .predDest_p_i           (BTB_predDest_p_o                 ), //input
         .validDest_o            (BTB_validDest_o                  ), //output

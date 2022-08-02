@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/08/01 15:20
+// Last Modified : 2022/08/02 11:54
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -25,6 +25,7 @@ module BranchSelectCheck (
     // 寄存器输入{{{
     //  BTB信息{{{
     input   wire 	[4*`SINGLE_WORD]        SCT_predDest_p_i,
+    input   wire 	[3:0]                   SCT_predTake_p_i,
     input   wire    [`INST_NUM]             SCT_BTBInstEnable_i,    // 表示BTB读出的4条目标指令那些是需要
     input	wire	[`SINGLE_WORD]          SCT_BTBfifthVAddr_i,
     input	wire	                        SCT_needDelaySlot_i,
@@ -116,6 +117,7 @@ module BranchSelectCheck (
     wire    [4*`SINGLE_WORD]   inst_p    ;
     //}}}  
     // 生成BPU预测结果{{{
+    // 例化模块与信号打包{{{
     TakeDestDecorder u_TakeDestDecorder(
     /*autoinst*/
         .inst_rdata             (inst_p                         ), //input
@@ -127,6 +129,7 @@ module BranchSelectCheck (
     wire [0:0] PHT_predTake [3:0];
     `UNPACK_ARRAY(1,4,PHT_predTake,SCT_PHT_predTake_p_i)
     wire [`SINGLE_WORD] BTB_predDest_up [3:0];
+    wire [3:0]          BTB_predTake_up  = SCT_predTake_p_i;
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,SCT_predDest_p_i)
     wire [`SINGLE_WORD] RAS_predDest [3:0];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,RAS_predDest,SCT_RAS_predDest_p_i)
@@ -140,6 +143,7 @@ module BranchSelectCheck (
     `UNPACK_ARRAY(`RAS_CHECKPOINT_LEN,4,RAS_checkPoint_up,SCT_RAS_checkPoint_p_i)
     `UNPACK_ARRAY(`PHT_CHECKPOINT_LEN,4,PHT_checkPoint_up,SCT_PHT_checkPoint_p_i)
     `UNPACK_ARRAY(`IJTC_CHECKPOINT_LEN,4,IJTC_checkPoint_up,SCT_IJTC_checkPoint_p_i)
+    // }}}
     generate
     genvar k;
     for (k = 0; k < 4; k=k+1)	begin
@@ -153,14 +157,23 @@ module BranchSelectCheck (
     generate
     genvar i;
     for (i=0; i<4; i=i+1)	begin
+        `ifdef BTB_ONLY
+        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && BTB_predTake_up[i]) ||
+                                    (takeDestSel[i][`MUST_TAKE]);
+        assign BPU_predDest_up[i] = takeDestSel[i][`BTB_DEST] ? BTB_predDest_up[i]  : 
+                                    takeDestSel[i][`RAS_DEST] ? BTB_predDest_up[i]  :
+                                    takeDestSel[i][`IJTC_DEST]? BTB_predDest_up[i]  :   SCT_BTBfifthVAddr_i;
+        `else
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && PHT_predTake[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = ({32{takeDestSel[i][`BTB_DEST]}} & BTB_predDest_up[i])  |
-                                    ({32{takeDestSel[i][`RAS_DEST]}} & RAS_predDest[i])     |
-                                    ({32{takeDestSel[i][`IJTC_DEST]}} & IJTC_predDest[i])   ;
+        assign BPU_predDest_up[i] = takeDestSel[i][`BTB_DEST] ? BTB_predDest_up[i]  : 
+                                    takeDestSel[i][`RAS_DEST] ? RAS_predDest[i]     :
+                                    takeDestSel[i][`IJTC_DEST]? IJTC_predDest[i]    :   SCT_BTBfifthVAddr_i;
+        `endif
         assign BPU_checkPoint_up[i] = ({`ALL_CHECKPOINT_LEN{firstValidBit[i]}} & allCheckPoint_up[i]);
         end
     endgenerate
+    // {{{
     wire [4*`SINGLE_WORD]   BPU_predDest_p;
     wire [3:0]              BPU_predTake_p;
     wire    needDelaySlot;
@@ -177,7 +190,7 @@ module BranchSelectCheck (
         .actualEnable_o         (actualEnable                     ), //output // INST_NEW
         .needDelaySlot          (needDelaySlot                    ), //output // INST_NEW
         .firstValidBit          (firstValidBit                    )  //output
-    );
+    );/*}}}*/
     assign isPredictSame =  (!(validTake_o || SCT_BTBValidTake_i))||
                             ((validTake_o && SCT_BTBValidTake_i)&& (validDest_o==SCT_BTBValidDest_i));
     assign BPU_checkPoint               = BPU_checkPoint_up[0] | BPU_checkPoint_up[1] | BPU_checkPoint_up[2] | BPU_checkPoint_up[3];
@@ -264,11 +277,11 @@ module BranchSelectCheck (
     // 分支恢复逻辑{{{
     assign BSC_allCheckPoint_w_o = BPU_checkPoint;
     assign BSC_erroVAdr_w_o      = BPU_erroVAddr;
-    assign BSC_correctTake_w_o   = validTake_o;
     assign BSC_correctDest_w_o   = validDest_o;
     assign BSC_repairAction_w_o  = now_RepairAction;
     assign baseAddr = SCT_VAddr_i[31:4];
     assign offset = SCT_VAddr_i[1:0];
+    assign BSC_correctTake_w_o   = validTake_o;
     assign position =    ({2{firstValidBit[0]}} & 2'b00)|
                          ({2{firstValidBit[1]}} & 2'b01)|
                          ({2{firstValidBit[2]}} & 2'b10)|

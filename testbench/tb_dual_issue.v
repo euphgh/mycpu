@@ -80,6 +80,12 @@ wire [31:0] debug_wb_pc     [1:0];
 wire [3 :0] debug_wb_wen    [1:0];
 wire [4 :0] debug_wb_wnum   [1:0];
 wire [31:0] debug_wb_wdata  [1:0];
+wire [63:0] btrue;
+wire [63:0] bfalse;
+wire [63:0] btrueHit;
+assign btrue = soc_lite.u_cpu.u_Main.u_EXEUP.truep;
+assign btrueHit = soc_lite.u_cpu.u_Main.u_EXEUP.truehit;
+assign bfalse = soc_lite.u_cpu.u_Main.u_EXEUP.falsep;
 
 assign cpu_clk           = soc_lite.cpu_clk;
 assign sys_clk           = soc_lite.sys_clk;
@@ -95,17 +101,8 @@ assign debug_wb_wnum [1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wnum1;
 assign debug_wb_wdata[1] = soc_lite.u_cpu.u_Main.debug_wb_rf_wdata1;
 // open the trace file
 integer trace_ref,status;
-integer reg_record;
-integer hilo_record;
-integer line;
 initial begin
     trace_ref = $fopen(`TRACE_REF_FILE, "r");
-    status = $fseek(trace_ref,24*(`STARTLINE-1),0);
-    line = `STARTLINE;
-    if (status!='d0) begin
-        $display("some error of file happen!\nerror Code:\t%h",status);
-        $finish(0);
-    end
 end
 //get reference result in falling edge
 reg        trace_cmp_flag;
@@ -130,9 +127,6 @@ end
 endfunction
 
 reg debug_wb_err;
-reg ok_to_write = 1'b0;
-reg [`SINGLE_WORD]  tempRegFile     [31:1];
-reg [`SINGLE_WORD]  tempHiLoFile    [1:0];
 task compare (
     input [31:0] debug_wb_pc  ,
     input [3 :0] debug_wb_wen ,
@@ -146,19 +140,6 @@ begin
             $fscanf(trace_ref, "%h %h %h %h", trace_cmp_flag,
                     ref_wb_pc, ref_wb_wnum, ref_wb_wdata);
         end
-        line = line + 1 ;      
-        if  (({debug_wb_pc[31:12],8'b0,debug_wb_pc[3:0]}==32'hbfc00004)     && 
-                (debug_wb_pc[11:4]<=8'hc9)                                  &&
-                (debug_wb_pc[11:4]>=8'h72)) begin
-	            for(regNum=1; regNum<32; regNum=regNum+1) begin
-                        tempRegFile[regNum]  <=  soc_lite.u_cpu.u_Main.u_ID.RegFile_u.regfile[regNum];
-	            end
-	            for(hiloNum=0; hiloNum<2; hiloNum=hiloNum+1) begin
-                        tempHiLoFile[hiloNum] <=  soc_lite.u_cpu.u_Main.u_EXEDOWN.regHiLo[hiloNum];
-	            end
-                ok_to_write <=  1'b1;
-	            $display ("`define STARTPOINT\t\t32'h%h\n`define STARTLINE\t%d",debug_wb_pc,line-1);
-            end
         if ((debug_wb_pc !== ref_wb_pc)     ||
             (debug_wb_wnum !== ref_wb_wnum) ||
             (get_valid_wdata(debug_wb_wdata, debug_wb_wen) !== get_valid_wdata(ref_wb_wdata, debug_wb_wen))) begin
@@ -170,18 +151,6 @@ begin
                       debug_wb_pc, debug_wb_wnum, get_valid_wdata(debug_wb_wdata, debug_wb_wen));
             $display("--------------------------------------------------------------");
             debug_wb_err <= 1'b1;
-            if (ok_to_write) begin
-                //reg_record = $fopen(`REG_FILE,"w");
-                //hilo_record = $fopen(`HILO_FILE,"w");
-	            for(regNum=1; regNum<32; regNum=regNum+1) begin
-	                $fdisplay(reg_record,"%h",tempRegFile[regNum]);
-	            end
-	            for(hiloNum=0; hiloNum<2; hiloNum=hiloNum+1) begin
-	                $fdisplay(hilo_record,"%h",tempHiLoFile[hiloNum]);
-	            end
-	            $fclose(reg_record);
-	            $fclose(hilo_record);
-            end
             #15;
             $finish;
         end
@@ -240,6 +209,7 @@ always @(posedge sys_clk) begin
         end
         else begin
             $display("----[%t] Number 8'd%02d Functional Test Point PASS!!!", $time, confreg_num_reg[31:24]);
+            $display("branch rate:\nright:\t%d\ntotal:\t%d\nhit:\t%d",btrue,(btrue+bfalse),btrueHit);
         end
     end
 end
