@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/08/01 11:08
+// Last Modified : 2022/08/02 14:56
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -123,7 +123,6 @@ module PCRegister (
     assign PCR_VAddr_o      = nextAlignedPC;
     assign PCR_hasException_o  = (|wordBoundary);
     assign PCR_ExcCode_o       = `ADEL;
-
     assign inst_wdata   = `ZEROWORD;
     assign inst_wr      = `SRAM_READ;
     assign inst_size    = 2'b11;

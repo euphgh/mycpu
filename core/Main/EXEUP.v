@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/01 16:24
-// Last Modified : 2022/07/30 16:59
+// Last Modified : 2022/08/02 16:54
 // File Name     : EXEUP.v
 // Description   : EXE上段,需要执行算数,移动,分支,自陷指令
 //         
@@ -287,12 +287,36 @@ module EXEUP(
                                 ID_up_branchKind_r_i[`BRANCH_GE]    ? bge_take : ID_up_branchRisk_r_i;
     wire isLink = ID_up_repairAction_r_i[`NEED_REPAIR] && |(ID_up_writeNum_r_i);
     assign EXE_up_aluRes_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;
-    assign EXE_up_corrDest_o = aluso;
+    assign EXE_up_corrDest_o = EXE_up_corrTake_o ? aluso : {ID_up_VAddr_r_i[31:3]+1'b1,ID_up_VAddr_r_i[2:0]};
     assign EXE_up_repairAction_o = {EXE_up_branchRisk_o,ID_up_repairAction_r_i[`REPAIR_ACTION_LEN-2:0]};
     assign EXE_up_checkPoint_o   = ID_up_checkPoint_r_i;
-    assign EXE_up_branchRisk_o   =  ((EXE_up_corrTake_o != ID_up_predTake_r_i) ||
-                                    ((EXE_up_corrDest_o!=ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i)) &&
-                                    ID_up_branchRisk_r_i;
+    wire   errorPredict = ((EXE_up_corrTake_o != ID_up_predTake_r_i) ||((EXE_up_corrDest_o!=ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i));
+    assign EXE_up_branchRisk_o   =  errorPredict && ID_up_branchRisk_r_i ;
+    reg [31:0] truep,falsep;
+    reg [31:0] truehit;
+    always @(posedge clk) begin
+        if (!rst) begin
+            truep   <=  'd0;
+            falsep  <=  'd0;
+            truehit <=  'd0;
+        end
+        else if (ID_up_branchRisk_r_i && !errorPredict) begin
+            truep <= truep +1;
+            truehit <=  truehit + (EXE_up_corrTake_o && ID_up_predTake_r_i);
+        `ifdef DEBUG
+            $display("predict right: pc %h, %b goto %h",EXE_up_VAddr_o,ID_up_predTake_r_i,ID_up_predDest_r_i);
+        `endif
+        end
+        else if (rst && ID_up_branchRisk_r_i && errorPredict) begin
+            falsep <= falsep +1;
+        `ifdef DEBUG
+            $display("predict error: pc %h, pred %b goto %h, but %b goto %h",EXE_up_VAddr_o,ID_up_predTake_r_i,ID_up_predDest_r_i,EXE_up_corrTake_o,EXE_up_corrDest_o);
+         `endif
+         `ifdef BREAK
+            $finish(0);
+          `endif
+        end
+    end
 /*}}}*/
 endmodule
 

@@ -1,5 +1,8 @@
 //`define CONTINUE
-`define OPEN_CACHE
+//`define OPEN_CACHE
+`define BTB_ONLY
+//`define DEBUG 
+//`define BREAK
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
 `ifdef CONTINUE
@@ -106,8 +109,9 @@
 `define BTB_REPAIRE         1'b1
 `define BTB_NOACTION        1'b0 /*}}}*/
 //InstQueue{{{
+`define TEST1
 `define IQ_LENTH        `IQ_ENTRY_LEN-1:0
-`define IQ_ENTRY_LEN    156
+`define IQ_ENTRY_LEN    165
 `define IQ_VALID        1:0
 `define IQ_VALID_SINGLE 2'b01
 `define IQ_VALID_DUAL   2'b11

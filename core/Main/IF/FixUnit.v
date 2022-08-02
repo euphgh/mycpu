@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/31 16:39
-// Last Modified : 2022/08/01 16:58
+// Last Modified : 2022/07/31 16:49
 // File Name     : FixUnit.v
 // Description   : 收集后段分支恢复和前段分支恢复信息，修复分支预测模块
 //         

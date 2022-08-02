@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/07 15:57
-// Last Modified : 2022/07/31 17:18
+// Last Modified : 2022/08/02 09:42
 // File Name     : IF.v
 // Description   : 取值段，包括PC寄存器，分支预测以及TLB
 //
@@ -117,6 +117,8 @@ module IF (
 	assign	BTB_fifthVAddr_i	=	BTB_fifthVAddr_o;
 	wire	[127:0]	BTB_predDest_p_o;	wire	[127:0]	BTB_predDest_p_i;
 	assign	BTB_predDest_p_i	=	BTB_predDest_p_o;
+	wire	[3:0]	BTB_predTake_p_o;	wire	[3:0]	BTB_predTake_p_i;
+	assign	BTB_predTake_p_i	=	BTB_predTake_p_o;
 	wire	[3:0]	BTB_instEnable_o;	wire	[3:0]	BTB_instEnable_i;
 	assign	BTB_instEnable_i	=	BTB_instEnable_o;
 	wire	[31:0]	BTB_validDest_o;	wire	[31:0]	BTB_validDest_i;
@@ -153,6 +155,8 @@ module IF (
 	assign	SCT_valid_i	=	SCT_valid_o;
 	wire	[127:0]	SCT_predDest_p_o;	wire	[127:0]	SCT_predDest_p_i;
 	assign	SCT_predDest_p_i	=	SCT_predDest_p_o;
+	wire	[3:0]	SCT_predTake_p_o;	wire	[3:0]	SCT_predTake_p_i;
+	assign	SCT_predTake_p_i	=	SCT_predTake_p_o;
 	wire	[3:0]	SCT_BTBInstEnable_o;	wire	[3:0]	SCT_BTBInstEnable_i;
 	assign	SCT_BTBInstEnable_i	=	SCT_BTBInstEnable_o;
 	wire	[31:0]	SCT_BTBfifthVAddr_o;	wire	[31:0]	SCT_BTBfifthVAddr_i;
@@ -203,6 +207,8 @@ module IF (
 	assign	FCT_valid_i	=	FCT_valid_o;
 	wire	[127:0]	FCT_predDest_p_o;	wire	[127:0]	FCT_predDest_p_i;
 	assign	FCT_predDest_p_i	=	FCT_predDest_p_o;
+	wire	[3:0]	FCT_predTake_p_o;	wire	[3:0]	FCT_predTake_p_i;
+	assign	FCT_predTake_p_i	=	FCT_predTake_p_o;
 	wire	[3:0]	FCT_BTBInstEnable_o;	wire	[3:0]	FCT_BTBInstEnable_i;
 	assign	FCT_BTBInstEnable_i	=	FCT_BTBInstEnable_o;
 	wire	[31:0]	FCT_BTBfifthVAddr_o;	wire	[31:0]	FCT_BTBfifthVAddr_i;
@@ -227,6 +233,7 @@ module IF (
 BranchSelectCheck  u_BranchSelectCheck (
     .inst_rdata                         ( inst_rdata                          ),
     .SCT_predDest_p_i                   ( SCT_predDest_p_i                    ),
+    .SCT_predTake_p_i                   ( SCT_predTake_p_i                    ),
     .SCT_BTBInstEnable_i                ( SCT_BTBInstEnable_i                 ),
     .SCT_BTBfifthVAddr_i                ( SCT_BTBfifthVAddr_i                 ),
     .SCT_needDelaySlot_i                ( SCT_needDelaySlot_i                 ),
@@ -333,6 +340,7 @@ BranchTargetBuffer  u_BranchTargetBuffer (
 
     .BTB_fifthVAddr_o         ( BTB_fifthVAddr_o          ),
     .BTB_predDest_p_o         ( BTB_predDest_p_o          ),
+    .BTB_predTake_p_o         ( BTB_predTake_p_o          ),
     .BTB_instEnable_o         ( BTB_instEnable_o          ),
     .BTB_validDest_o          ( BTB_validDest_o           ),
     .BTB_validTake_o          ( BTB_validTake_o           ),
@@ -418,6 +426,7 @@ SecondCacheTrace  u_SecondCacheTrace (
     .FCT_ExcCode_i            ( FCT_ExcCode_i             ),
     .FCT_isCanceled_i         ( FCT_isCanceled_i          ),
     .FCT_predDest_p_i         ( FCT_predDest_p_i          ),
+    .FCT_predTake_p_i         ( FCT_predTake_p_i          ),
     .FCT_BTBInstEnable_i      ( FCT_BTBInstEnable_i       ),
     .FCT_BTBfifthVAddr_i      ( FCT_BTBfifthVAddr_i       ),
     .FCT_needDelaySlot_i      ( FCT_needDelaySlot_i       ),
@@ -428,6 +437,7 @@ SecondCacheTrace  u_SecondCacheTrace (
     .SCT_allowin_w_o          ( SCT_allowin_w_o           ),
     .SCT_valid_o              ( SCT_valid_o               ),
     .SCT_predDest_p_o         ( SCT_predDest_p_o          ),
+    .SCT_predTake_p_o         ( SCT_predTake_p_o          ),
     .SCT_BTBInstEnable_o      ( SCT_BTBInstEnable_o       ),
     .SCT_BTBfifthVAddr_o      ( SCT_BTBfifthVAddr_o       ),
     .SCT_needDelaySlot_o      ( SCT_needDelaySlot_o       ),
@@ -497,6 +507,7 @@ FirstCacheTrace  u_FirstCacheTrace (
     .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
     .SBA_flush_w_i           ( SBA_flush_w_i         ),
     .BTB_predDest_p_i        ( BTB_predDest_p_i      ),
+    .BTB_predTake_p_i        ( BTB_predTake_p_i      ),
     .BTB_fifthVAddr_i        ( BTB_fifthVAddr_i      ),
     .BTB_instEnable_i        ( BTB_instEnable_i      ),
     .BTB_validDest_i         ( BTB_validDest_i       ),
@@ -506,6 +517,7 @@ FirstCacheTrace  u_FirstCacheTrace (
 
     .FCT_valid_o             ( FCT_valid_o           ),
     .FCT_predDest_p_o        ( FCT_predDest_p_o      ),
+    .FCT_predTake_p_o        ( FCT_predTake_p_o      ),
     .FCT_BTBInstEnable_o     ( FCT_BTBInstEnable_o   ),
     .FCT_BTBfifthVAddr_o     ( FCT_BTBfifthVAddr_o   ),
     .FCT_needDelaySlot_o     ( FCT_needDelaySlot_o   ),

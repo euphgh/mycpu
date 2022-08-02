@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/18 10:45
-// Last Modified : 2022/07/31 18:01
+// Last Modified : 2022/08/02 08:36
 // File Name     : PrimaryExceptionProcessor.v
 // Description   :  接受异常请求和修改TLB的请求,对CP0寄存器进行读写
 //                  此外还需在异常触发的时候发送刷新流水线的信号
@@ -195,7 +195,10 @@ module PrimaryExceptionProcessor (
     //  im7~im0{{{
     reg     [`IM7:`IM0]     Status_im;
     always @(posedge clk) begin
-        if (mtc0_wen && mtc0_addr==`ADDR_STATUS) begin
+        if (!rst) begin
+            Status_im   <=  'd0;
+        end
+        else if (mtc0_wen && mtc0_addr==`ADDR_STATUS) begin
             Status_im   <=  mtc0_wdata[`IM7:`IM0];
         end
     end

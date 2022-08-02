@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:23
-// Last Modified : 2022/07/31 20:15
+// Last Modified : 2022/08/02 09:53
 // File Name     : FirstCacheTrace.v
 // Description   : 用于模拟Cache三段流水的过程，掌握Cache取数据的过程
 //         
@@ -37,6 +37,7 @@ module FirstCacheTrace (
 /*}}}*/
     // BTB接口{{{
     input	wire	[4*`SINGLE_WORD]    BTB_predDest_p_i,
+    input	wire	[3:0]               BTB_predTake_p_i,
     input	wire	[`SINGLE_WORD]      BTB_fifthVAddr_i,
     input   wire    [`INST_NUM]         BTB_instEnable_i,   // 表示BTB读出的4条目标指令那些是需要
     // BTB最终预测结果
@@ -51,6 +52,7 @@ module FirstCacheTrace (
     //  寄存器输出{{{
     // BTB信息
     output	reg 	[4*`SINGLE_WORD]    FCT_predDest_p_o,
+    output	reg 	[3:0]               FCT_predTake_p_o,
     output  reg     [`INST_NUM]         FCT_BTBInstEnable_o,    // 表示BTB读出的4条目标指令那些是需要
     output	reg	    [`SINGLE_WORD]      FCT_BTBfifthVAddr_o,
     output	reg	                        FCT_needDelaySlot_o,
@@ -77,7 +79,8 @@ module FirstCacheTrace (
             FCT_VAddr_o     <=  `ZEROWORD;
             FCT_hasException_o   <=  `FALSE;
             FCT_ExcCode_o   <=  `NOEXCCODE;
-            FCT_predDest_p_o<=  0 ;
+            FCT_predDest_p_o<=  'd0 ;
+            FCT_predTake_p_o<=  'd0 ;
             FCT_BTBValidTake_o  <=  `FALSE; 
             FCT_BTBValidDest_o  <=  `ZEROWORD;
             FCT_BTBInstEnable_o <=  4'b0;
@@ -92,7 +95,8 @@ module FirstCacheTrace (
             FCT_hasException_o  <=  PCR_hasException_i;
             FCT_ExcCode_o   <=  PCR_ExcCode_i;
             FCT_isCanceled_o<=  needCancel;
-            FCT_predDest_p_o<=  BTB_predDest_p_i ;
+            FCT_predDest_p_o<=  BTB_predDest_p_i;
+            FCT_predTake_p_o<=  BTB_predTake_p_i;
 
             FCT_BTBValidTake_o  <=  BTB_validTake_i; 
             FCT_BTBValidDest_o  <=  BTB_validDest_i;

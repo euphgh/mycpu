@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/09 09:38
-// Last Modified : 2022/08/01 12:10
+// Last Modified : 2022/08/02 15:01
 // File Name     : BranchFourToOne.v
 // Description   : 根据分支预测器预测的take，选择出正确的Dest和相应的数据
 //         
@@ -48,16 +48,20 @@ module BranchFourToOne(
                             isFirstBranch[1] ? 4'b0111 : 4'b1111 ;
     assign actualEnable_o  = branchEnable & originEnable_i;
     assign firstValidBit = {isFirstBranch[3],isFirstBranch[2],isFirstBranch[1],isFirstBranch[0]};
-    wire    [`SINGLE_WORD]   validDest_up    [3:0];
+    // 四条指令中存在有效分支时，有效分支的目的地址
+    // 四条指令中不存在有效分支时，使用最后一条有效PC的NNPC
+    wire    [`SINGLE_WORD]   validBDest_up    [3:0];    
+    wire    [`SINGLE_WORD]   validNDest_up = originEnable_i[3] ? fifthPC_i :        // 第5PC,即下一个四字对齐
+                                                                (fifthPC_i-'d12);   // 第2PC,即00延迟槽指令后一条
     generate
     genvar i;
     for (i=0; i<4; i=i+1)	begin
-            assign validDest_up[i] = {32{isFirstBranch[i]}} & predDest[i];
+            assign validBDest_up[i] = {32{isFirstBranch[i]}} & predDest[i];
         end
     endgenerate
     wire NoBranch = !(|isFirstBranch);
-    assign validDest_o = validDest_up[0]|validDest_up[1]|validDest_up[2]|validDest_up[3]|
-                        ({32{NoBranch}} & fifthPC_i);
+    assign validDest_o = validBDest_up[0]|validBDest_up[1]|validBDest_up[2]|validBDest_up[3]|
+                        ({32{NoBranch}} & validNDest_up);
     assign validTake_o = |(predTake_p_i & firstValidBit);
     assign needDelaySlot = firstValidBit[3];
 endmodule

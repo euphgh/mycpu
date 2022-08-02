@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/07/31 20:54
+// Last Modified : 2022/08/02 17:02
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -118,19 +118,19 @@ module InstQueue (
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
             assign packedInfo[i] = {
-                    IF_predDest_up[i],
-                    IF_predTake_up[i],
+                    IF_isRefill_i,
+                    IF_ExcCode_i,
                     IF_predInfo_up[i],
                     IF_hasException_i,
-                    IF_ExcCode_i,
-                    IF_isRefill_i,
+                    IF_predTake_up[i],
+                    IF_predDest_up[i],
                     IF_inst_up[i],
                     IF_instBasePC_up[i]
                     };
         end
     endgenerate
     wire ok_toWrite = rst && IF_valid_i;
-    always @(posedge clk) begin
+    always @(posedge clk) begin/*{{{*/
         if (!ok_toWrite) begin end
         else if (IF_instEnable_i[3]) begin
             queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 3] <= packedInfo[3];
@@ -150,7 +150,7 @@ module InstQueue (
         else if (IF_instEnable_i[0]) begin
             queue[tail[`IQ_NUMBER]+`IQ_NUMBER_BIT 0] <= packedInfo[0];
         end
-    end
+    end/*}}}*/
 /*}}}*/
     //读出逻辑{{{
     wire    [2:0] IF_supplyNum = {3{IF_valid_i}} & (  IF_instEnable_i[3] ? 3'd4 :
@@ -172,7 +172,7 @@ module InstQueue (
         end
     end
     // 少一周期的组合逻辑写法{{{
-    wire    [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  
+    wire    [`SINGLE_WORD]              IQ_VAddr_up             [1:0];  /*{{{*/
     wire    [`SINGLE_WORD]              IQ_inst_up              [1:0];  
     wire	[0:0]                       IQ_hasException_up      [1:0];  
     wire    [`EXCCODE]                  IQ_ExcCode_up           [1:0];  
@@ -182,16 +182,16 @@ module InstQueue (
     wire    [0:0]                       IQ_isRefill_up          [1:0];
     wire    [`IQ_NUMBER_WID]            number [1:0];
     assign  number[0] = `IQ_NUMBER_BIT 0;
-    assign  number[1] = `IQ_NUMBER_BIT 1;
+    assign  number[1] = `IQ_NUMBER_BIT 1;/*}}}*/
     generate
         for (genvar i = 0; i < 2; i = i+1)	begin
             assign  {
-                IQ_predDest_up[i],
-                IQ_predTake_up[i],
+                IQ_isRefill_up[i],
+                IQ_ExcCode_up[i],
                 IQ_checkPoint_up[i],
                 IQ_hasException_up[i],
-                IQ_ExcCode_up[i],
-                IQ_isRefill_up[i],
+                IQ_predTake_up[i],
+                IQ_predDest_up[i],
                 IQ_inst_up[i],
                 IQ_VAddr_up[i]
                 }   =  queue[head[`IQ_NUMBER]+number[i]];
