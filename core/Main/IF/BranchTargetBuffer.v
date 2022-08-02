@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/08/02 16:57
+// Last Modified : 2022/08/02 17:25
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
