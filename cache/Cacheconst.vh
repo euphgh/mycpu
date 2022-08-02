@@ -26,11 +26,11 @@
 `define WB_IDLE  4'b0000
 `define WB_WRITE 4'b0001
 //VICTIM BUFFER
-`define VIC_IDLE   4'b0000
-`define VIC_MISS   4'b0001
-`define VIC_AWRITE 4'b0010
-`define VIC_WRITE  4'b0100
-`define VIC_RES    4'b0101
+`define VIC_IDLE   3'b000
+`define VIC_MISS   3'b001
+`define VIC_AWRITE 3'b010
+`define VIC_WRITE  3'b011
+`define VIC_RES    3'b100
 //FUNCTION
 `define encoder4_2(x) {{x[2] | x[3]}, {x[1] | x[3]}}
 `define encoder2_1(x) {x[1]}

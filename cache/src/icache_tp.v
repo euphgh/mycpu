@@ -34,7 +34,7 @@ module icache_tp(
     output [1 :0] arburst,
     output [1 :0] arlock ,
     output [3 :0] arcache,
-    output [2 :0] arprot , 
+    output [2 :0] arprot ,
     output        arvalid,
     input         arready,
 
@@ -119,7 +119,7 @@ module icache_tp(
     wire [127:0] hit_fill_data;
     //PLRU
     reg [2:0] plru [127:0];
-    reg [3:0] way         ;  
+    reg [3:0] way         ;
     // 初始化使用的循环控制变量
     integer i;
     // 命中信号
@@ -323,12 +323,12 @@ module icache_tp(
     //RESET 相关
     //持续128个周期，每个周期将一行tag置为无效
     always @(posedge clk) begin
-        if (!rst) begin 
+        if (!rst) begin
             reset_counter <= 7'b0;//初始化为0，重置信号拉高后开始计数
-        end 
+        end
         else begin
             reset_counter <= reset_counter + 7'b1;
-        end 
+        end
     end
 
     //REFILL相关
@@ -368,10 +368,10 @@ module icache_tp(
         end
     end
     //REFILL下命中
-    assign hit_fill      = fill_index == sda_index && fill_tag == sda_tag 
-                            && (   (&fill_buf_valid[3:0] && !sda_offset) 
+    assign hit_fill      = fill_index == sda_index && fill_tag == sda_tag
+                            && (   (&fill_buf_valid[3:0] && !sda_offset)
                                 || (&fill_buf_valid[7:4] &&  sda_offset)
-                            );  
+                            );
     assign hit_fill_data = {128{ sda_offset}} & {fill_buf_data[7],fill_buf_data[6],fill_buf_data[5],fill_buf_data[4]}
                          | {128{!sda_offset}} & {fill_buf_data[3],fill_buf_data[2],fill_buf_data[1],fill_buf_data[0]};
     
@@ -401,10 +401,10 @@ module icache_tp(
                         (cache_stat == `CA_OP  ) ? ca_index_reg      :
                         (cache_stat ==`RUN     ) ? sin_index : sda_index;
     assign tagv_wdata = (cache_stat == `RESET  ) ? 20'b0      :
-                        (cache_stat == `FINISH ) ? fill_tag : 
+                        (cache_stat == `FINISH ) ? fill_tag :
                         (cache_stat == `CA_OP  ) ? ca_wtag_reg : 20'b0;
     assign tagv_valid = (cache_stat == `RESET  ) ? 1'b0    :
-                        (cache_stat == `FINISH ) ? 1'b1    : 
+                        (cache_stat == `FINISH ) ? 1'b1    :
                         (cache_stat == `CA_OP  ) ? ca_val_reg : 1'b0;
 `else 
     assign tag_wen =    (cache_stat == `RESET  ) ? 4'b1111 :
@@ -412,11 +412,11 @@ module icache_tp(
     assign val_wen =    (cache_stat == `RESET  ) ? 4'b1111 :
                         (cache_stat == `FINISH ) ? way     : 4'b0000;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
-                        (cache_stat == `FINISH ) ? fill_index    : 
+                        (cache_stat == `FINISH ) ? fill_index    :
                         (cache_stat == `RUN    ) ? sin_index     :
                         (cache_stat == `IDLE) ? sta_index     : sda_index;
     assign tagv_wdata = fill_tag;
-    assign tagv_valid = !(cache_stat == `RESET);
+    assign tagv_valid = !(&cache_stat);
 `endif
     generate
         genvar k;
@@ -432,7 +432,7 @@ module icache_tp(
                 .back   (tagv_back[k])
             );
         end
-    endgenerate  
+    endgenerate
     // end
     
     // data
