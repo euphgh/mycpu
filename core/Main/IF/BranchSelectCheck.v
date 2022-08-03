@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/08/02 11:54
+// Last Modified : 2022/08/03 10:14
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -19,6 +19,8 @@
 `timescale 1ns/1ps
 `include "MyDefines.v"
 module BranchSelectCheck (
+    input	wire	clk,
+    input	wire	rst,
     // 总线接口{{{
     input   wire    [`FOUR_WORDS]           inst_rdata,
     /*}}}*/
@@ -160,9 +162,7 @@ module BranchSelectCheck (
         `ifdef BTB_ONLY
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && BTB_predTake_up[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = takeDestSel[i][`BTB_DEST] ? BTB_predDest_up[i]  : 
-                                    takeDestSel[i][`RAS_DEST] ? BTB_predDest_up[i]  :
-                                    takeDestSel[i][`IJTC_DEST]? BTB_predDest_up[i]  :   SCT_BTBfifthVAddr_i;
+        assign BPU_predDest_up[i] = SCT_BTBfifthVAddr_i;
         `else
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && PHT_predTake[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
@@ -194,7 +194,7 @@ module BranchSelectCheck (
     assign isPredictSame =  (!(validTake_o || SCT_BTBValidTake_i))||
                             ((validTake_o && SCT_BTBValidTake_i)&& (validDest_o==SCT_BTBValidDest_i));
     assign BPU_checkPoint               = BPU_checkPoint_up[0] | BPU_checkPoint_up[1] | BPU_checkPoint_up[2] | BPU_checkPoint_up[3];
-    assign BSC_needDelaySlot_w_o        = needDelaySlot                     &&                          SCT_valid_i;
+    assign BSC_needDelaySlot_w_o        = needDelaySlot                     && !SCT_needDelaySlot_i &&  SCT_valid_i;
     assign BSC_DelaySlotIsGetted_w_o    = SCT_needDelaySlot_i               &&                          SCT_valid_i;
     assign BSC_isDiffRes_w_o            = !(isEnableSame&&isPredictSame)    && !SCT_needDelaySlot_i &&  SCT_valid_i;
     assign BSC_needCancel_w_o           = BSC_isDiffRes_w_o &&                                          SCT_valid_i;
@@ -299,4 +299,17 @@ module BranchSelectCheck (
         .now_RepairAction       (now_RepairAction[`REPAIR_ACTION ]    )  //output // INST_NEW
     );
 /*}}}*/
+    // debug
+    reg [31:0]  getTotal;
+    reg [31:0]  miss;
+    always @(posedge clk) begin
+        if (!rst) begin
+            getTotal    <=  'd0;
+            miss        <=  'd0;
+        end
+        else if (SCT_valid_i) begin
+            getTotal    <=  getTotal+'d1;
+            miss        <=  miss + BSC_isDiffRes_w_o;
+        end
+    end
 endmodule

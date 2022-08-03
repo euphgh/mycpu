@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:09
-// Last Modified : 2022/08/02 11:38
+// Last Modified : 2022/08/03 10:16
 // File Name     : SecondBranchAmend.v
 // Description   : 位于PREMEM的阶段，用于处理EXE_UP计算出来的正确分支
 //         
@@ -64,6 +64,7 @@ module SecondBranchAmend (
     input	wire	[`REPAIR_ACTION]        EXE_up_repairAction_i,      // 修复动作，包含是否需要修复的信号
     input	wire	[`ALL_CHECKPOINT]       EXE_up_checkPoint_i,
     input	wire	                        EXE_up_branchRisk_i,
+    input	wire	                        EXE_up_isBranch_i,
     input	wire	                        EXE_down_nonBlockDS_i,
 /*}}}*/
     ///////////////////////////////////////////////////
@@ -91,6 +92,7 @@ module SecondBranchAmend (
 	reg	[`REPAIR_ACTION]			EXE_up_repairAction_r_i;
 	reg	[`ALL_CHECKPOINT]			EXE_up_checkPoint_r_i;
 	reg	[0:0]			EXE_up_branchRisk_r_i;
+	reg	[0:0]			EXE_up_isBranch_r_i;
 	reg	[0:0]			EXE_down_nonBlockDS_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
@@ -102,6 +104,7 @@ module SecondBranchAmend (
 			EXE_up_repairAction_r_i	<=	'b0;
 			EXE_up_checkPoint_r_i	<=	'b0;
 			EXE_up_branchRisk_r_i	<=	'b0;
+			EXE_up_isBranch_r_i	<=	'b0;
 			EXE_down_nonBlockDS_r_i	<=	'b0;
         end
         else if (needUpdata) begin
@@ -113,6 +116,7 @@ module SecondBranchAmend (
 			EXE_up_repairAction_r_i	<=	EXE_up_repairAction_i;
 			EXE_up_checkPoint_r_i	<=	EXE_up_checkPoint_i;
 			EXE_up_branchRisk_r_i	<=	EXE_up_branchRisk_i;
+			EXE_up_isBranch_r_i	<=	EXE_up_isBranch_i;
 			EXE_down_nonBlockDS_r_i	<=	EXE_down_nonBlockDS_i;
         end
     end

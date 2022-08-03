@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/29 10:48
-// Last Modified : 2022/08/02 17:25
+// Last Modified : 2022/08/03 14:21
 // File Name     : BranchTargetBuffer.v
 // Description   :  1.  根据VPC预测该PC接下来的4条指令的地址，并在同一周期内一
 //                      次返回4条指令的预测结果
@@ -88,36 +88,49 @@ module BranchTargetBuffer (
     `PACK_ARRAY(1,4,BTB_predTake_up,BTB_predTake_p_o)
     wire    [`SINGLE_WORD]  predDest_up     [3:0];
     wire    [1:0]           number          [3:0];
+
     assign  number[0] = 2'b00;
     assign  number[1] = 2'b01;
     assign  number[2] = 2'b10;
     assign  number[3] = 2'b11;
-    `define BTB_ENRTY_NUM   16 
-    `define PC_INDEX        $clog2(`BTB_ENRTY_NUM)-1+4:4
+    `define BTB_ENRTY_NUM   256 
+    `define BTB_TAG         
+    `define PC_INDEX_L      $clog2(`BTB_ENRTY_NUM)-1+4:4
+    `define PC_INDEX_H      (2*$clog2(`BTB_ENRTY_NUM))-1+4:$clog2(`BTB_ENRTY_NUM)+4
     `define BTB_INDEX       `BTB_ENRTY_NUM-1:0
+    `define BTB_ADDR        $clog2(`BTB_ENRTY_NUM)-1:0
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
             reg [31:2]  btbReg  [`BTB_INDEX];
+            reg [`PC_INDEX_H]   btbTag  [`BTB_INDEX];
             reg [`BTB_INDEX]    btbValid;
-            assign predDest_up[i] = {btbReg[{PCG_VAddr_up[i][`PC_INDEX]}],2'b0};
-            assign BTB_predTake_up[i] = btbValid[{PCG_VAddr_up[i][`PC_INDEX]}];
+
+            wire    [`BTB_ADDR]    searchAddr = {PCG_VAddr_up[i][`PC_INDEX_L]};
+            wire    tagHit   = (btbTag[searchAddr]==PCG_VAddr_up[i][`PC_INDEX_H]);
+            wire    validHit = btbValid[searchAddr];
+            assign  predDest_up[i] = {btbReg[searchAddr],2'b0};
+            assign BTB_predTake_up[i] = tagHit && validHit;
+
             wire    wen =   FU_erroVAddr_w_i[3:2]==number[i]   && 
                             FU_repairAction_w_i[`NEED_REPAIR]  &&
                             FU_repairAction_w_i[`BTB_ACTION];
-            wire    [`BTB_INDEX]  addr = {FU_erroVAddr_w_i[`PC_INDEX]};
+
+            wire    [`BTB_ADDR]     repairAddr = FU_erroVAddr_w_i[`PC_INDEX_L];
+            wire    [`PC_INDEX_H]   repairTag  = FU_erroVAddr_w_i[`PC_INDEX_H];
             always @(posedge clk) begin
                 if (!rst) begin
                     btbValid    <=  'd0;
                 end
                 else if (wen) begin
-                    btbReg[addr]   <=  {
+                    btbReg[repairAddr]   <=  {
                         FU_correctDest_w_i[31:2]
                         };
-                    btbValid[addr] <=  FU_correctTake_w_i;
-                `ifdef DEBUG
+                    btbValid[repairAddr]    <=  FU_correctTake_w_i;
+                    btbTag[repairAddr]      <=  repairTag;
+                    `ifdef DEBUG
                     $display("btb modify: next pc %h  will %b goto %h, in slot %h %d",
-                        FU_erroVAddr_w_i,FU_correctTake_w_i,FU_correctDest_w_i,number[i],addr);
-                `endif
+                    FU_erroVAddr_w_i,FU_correctTake_w_i,FU_correctDest_w_i,number[i],repairAddr);
+                    `endif
                 end
             end
             assign BTB_predDest_up[i]   = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];

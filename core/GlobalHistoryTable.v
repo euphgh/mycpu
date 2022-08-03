@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/08/02 15:38
-// Last Modified : 2022/08/02 16:31
+// Last Modified : 2022/08/02 20:02
 // File Name     : GlobalHistoryTable.v
 // Description   : 全局历史预测跳转, 包括GHT和IJTC
 //         
@@ -44,26 +44,11 @@ module GlobalHistoryTable (
     input	wire	[`SINGLE_WORD]      FU_correctDest_w_i       // 跳转目的
 /*}}}*/
 );
-    localparam ITEM_NUM = 1024;
+    localparam ITEM_NUM = 256;
+    localparam HIS_REG  = 4;
+    `define MEM_ADDR      $clog2(ITEM_NUM)-1:0
+    `define GHT_PC_INDEX  ($clog2(ITEM_NUM)/2)+4-1:4
     localparam DATA_WID = 32;
-    // 自动定义{{{
-    /*autodef*/
-    //Start of automatic define
-    //Start of automatic reg
-    //Define flip-flop registers here
-    //Define combination registers here
-    //End of automatic reg
-    //Start of automatic wire
-    //Define assign wires here
-    //Define instance wires here
-    wire                        wen;
-    wire [ITEM_NUM-1:0]         rAddr;
-    wire [DATA_WID-1:0]         wAddr;
-    wire [`SINGLE_WORD]         wdata;
-    wire [`SINGLE_WORD]         rdata;
-    //End of automatic wire
-    //End of automatic define
-    // }}}
     // 信号定义和打包{{{
     reg [`IJTC_CHECKPOINT] checkPoint [3:0];
     `PACK_ARRAY(`IJTC_CHECKPOINT_LEN,4,checkPoint,IJTC_checkPoint_p_o)
@@ -97,19 +82,48 @@ module GlobalHistoryTable (
         end
     end
 /*}}}*/
-    MyRAM  #(/*{{{*/
-        .MY_NUMBER(ITEM_NUM),
-        .MY_DATA_WIDTH(DATA_WID)
-    )
-    mem (
-        /*autoinst*/
-        .clk                    (clk                             ), //input
-        .wen                    (wen                             ), //input
-        .rAddr                  (rAddr                           ), //input
-        .wAddr                  (wAddr                           ), //input
-        .wdata                  (wdata                           ), //input
-        .rdata                  (rdata                           )  //output
-    );/*}}}*/
-    reg [`SINGLE_WORD]  ghr;
+    wire [`SINGLE_WORD]     vAddr   [3:0];
+    wire [1:0]              number  [3:0];
+    reg [HIS_REG-1:0]  ghr;
+    assign vAddr[0] = {PCR_VAddr_i[31:4],2'b00,PCR_VAddr_i[1:0]};
+    assign vAddr[1] = {PCR_VAddr_i[31:4],2'b01,PCR_VAddr_i[1:0]};
+    assign vAddr[2] = {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
+    assign vAddr[3] = {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
+    assign number[0] = 2'b00;
+    assign number[1] = 2'b01;
+    assign number[2] = 2'b10;
+    assign number[3] = 2'b11;
+    generate
+        for (genvar i = 0; i < 4; i = i+1)	begin
+            wire    [`MEM_ADDR]     rAddr;
+            wire    [`MEM_ADDR]     wAddr;
+            wire                    wen;
+            wire    [`SINGLE_WORD]  wdata;
+            wire    [`SINGLE_WORD]  rdata;
+            MyRAM  #(/*{{{*/
+                .MY_NUMBER(ITEM_NUM),
+                .MY_DATA_WIDTH(DATA_WID)
+            )
+            mem (
+                /*autoinst*/
+                .clk                    (clk                             ), //input
+                .wen                    (wen                             ), //input
+                .rAddr                  (rAddr                           ), //input
+                .wAddr                  (wAddr                           ), //input
+                .wdata                  (wdata                           ), //input
+                .rdata                  (rdata                           )  //output
+            );/*}}}*/
+            // 读操作逻辑 {{{
+            assign  rAddr   =   {ghr,vAddr[i][`GHT_PC_INDEX]};
+            // }}}
+            // 写操作逻辑{{{
+            assign  wen     =   (vAddr[i][3:2]==number[i])          &&
+                                FU_repairAction_w_i[`NEED_REPAIR]   && 
+                                (FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE || FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_REPAIRE);
+            assign wdata    =   FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE ? FU_allCheckPoint_w_i[]
+            // }}}
+        end
+    endgenerate
+    
 endmodule
 

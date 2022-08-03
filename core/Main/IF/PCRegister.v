@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/28 11:37
-// Last Modified : 2022/08/02 14:56
+// Last Modified : 2022/08/03 08:54
 // File Name     : PCRegister.v
 // Description   :  1.  根据BTB预测、前后异常处理，生成下一条目标PC和目标PC使能
 //                  2.  检查目标PC的指令对齐性，若不对齐，生成例外标识，停止生
@@ -101,11 +101,15 @@ module PCRegister (
                             BSC_isDiffRes_w_i   ||          // 分支确认
                             SBA_flush_w_i       ;           // 两种分支预测结果不同
     // 总线交互
+    reg     [31:0]  totalGet;
+    reg     [31:0]  notHitGet;
     always @(posedge clk) begin
         if (!rst) begin
             nextNotAlignedPC    <=  `STARTPOINT;
             PCR_needDelaySlot_o <=  `FALSE;
             temp_enable         <=  4'b1111;// 在没有异常和失败的条件下且是延迟槽
+            totalGet            <=  'd0;
+            notHitGet           <=  'd0;
         end
         // 只有在index_ok 和请求都有效的情况下才会刷新另一个请求
         else if (ok_to_change) begin
@@ -113,7 +117,9 @@ module PCRegister (
             nextNotAlignedPC    <=  CP0_excOccur_w_i    ?   CP0_excDestPC_w_i   :
                                     SBA_flush_w_i       ?   SBA_corrDest_w_i    :   DSP_predictPC_i;
             PCR_needDelaySlot_o <=  DSP_needDelaySlot_i &&  useDSP;
-            temp_enable         <= {{3{!(useDSP&&DSP_needDelaySlot_i)}},1'b1};// 在没有异常和失败的条件下且是延迟槽
+            temp_enable         <=  {{3{!(useDSP&&DSP_needDelaySlot_i)}},1'b1};// 在没有异常和失败的条件下且是延迟槽
+            totalGet            <=  totalGet  + 'd1;
+            notHitGet           <=  notHitGet + !(inst_index_ok && inst_req);
         end
     end
 

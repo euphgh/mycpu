@@ -1,5 +1,5 @@
 //`define CONTINUE
-//`define OPEN_CACHE
+`define OPEN_CACHE
 `define BTB_ONLY
 //`define DEBUG 
 //`define BREAK
@@ -75,6 +75,16 @@
 `define RAS_CHECK_PC        `RAS_PC_LEN+`RAS_ENRTY_NUM_LEN-1:`RAS_ENRTY_NUM_LEN
 `define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1:0
 //}}}
+//GHT {{{
+`define GHT_COUNTER_LEN 2
+`define GHT_DESTPC_LEN  30
+`define GHT_COUNTER     `GHT_COUNTER_LEN-1:0
+`define GHT_DESTPC      `GHT_DESTPC_LEN-1:0
+`define GHT_CHECK_COUNT `GHT_COUNTER
+`define GHT_CHECK_DEST  `GHT_DESTPC_LEN+GHT_COUNTER_LEN-1:GHT_COUNTER_LEN 
+`define GHT_CHECKPOINT_LEN  GHT_COUNTER_LEN+GHT_DESTPC_LEN
+`define GHT_CHECKPOINT  `GHT_CHECKPOINT_LEN-1:0
+// }}}
 `define ALL_CHECKPOINT  `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT   `ALL_CHECKPOINT_LEN'b0
 `define IJTC_CHECKPOINT `IJTC_CHECKPOINT_LEN-1:0         // 记录全局分支历史
@@ -90,9 +100,9 @@
 `define NEED_REPAIR         7
 
 `define PHT_ACTION          6:5
-`define PHT_REPAIRE         2'b10
-`define PHT_DIRECT          2'b01
-`define PHT_NOACTION        2'b00
+`define PHT_REPAIRE         2'b10   // 预测方向错误处理
+`define PHT_DIRECT          2'b01   // 更新ghr
+`define PHT_NOACTION        2'b00   // 分支不作为
 
 `define RAS_ACTION          4:3
 `define RAS_PUSH            2'b01
@@ -101,9 +111,9 @@
 `define RAS_NOACTION        2'b00
 
 `define IJTC_ACTION         2:1
-`define IJTC_REPAIRE        2'b10
-`define IJTC_DIRECT         2'b01
-`define IJTC_NOACTION       2'b00
+`define IJTC_REPAIRE        2'b10   // 预测地址错误处理
+`define IJTC_DIRECT         2'b01   // 更新ghr
+`define IJTC_NOACTION       2'b00   // 分支不作为
 
 `define BTB_ACTION          0
 `define BTB_REPAIRE         1'b1

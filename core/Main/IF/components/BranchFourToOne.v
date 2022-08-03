@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/09 09:38
-// Last Modified : 2022/08/02 15:01
+// Last Modified : 2022/08/03 10:11
 // File Name     : BranchFourToOne.v
 // Description   : 根据分支预测器预测的take，选择出正确的Dest和相应的数据
 //         
