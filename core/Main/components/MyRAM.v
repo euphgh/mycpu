@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/31 10:49
-// Last Modified : 2022/08/02 16:19
+// Last Modified : 2022/07/31 21:02
 // File Name     : MyRAM.v
 // Description   : 通用的64位双端口block memory,完全写优先
 //         
@@ -18,7 +18,7 @@
 
 module MyRAM #(
     parameter MY_NUMBER     = 512,
-    parameter MY_DATA_WIDTH = 32
+    parameter MY_DATA_WIDTH = 64
 )
 (
     input                           clk,

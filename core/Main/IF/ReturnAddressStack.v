@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/06 08:52
-// Last Modified : 2022/08/01 19:08
+// Last Modified : 2022/08/03 21:29
 // File Name     : ReturnAddressStack.v
 // Description   : 预测j.*r指令和jr $31指令的跳转返回关系
 //                  1. 在preComfirm阶段修改preSatck,如果是call，就用PC(call+8)
@@ -53,36 +53,65 @@ module ReturnAddressStack (
 /*}}}*/
 );
     // 信号定义和打包{{{
-    reg [`RAS_CHECKPOINT] checkPoint [3:0];
+    wire  [`RAS_CHECKPOINT] checkPoint [3:0];
     `PACK_ARRAY(`RAS_CHECKPOINT_LEN,4,checkPoint,RAS_checkPoint_p_o)
-    reg [`SINGLE_WORD] destination [3:0];
+    wire [`SINGLE_WORD] destination [3:0];
     `PACK_ARRAY(`SINGLE_WORD_LEN,4,destination,RAS_predDest_p_o)
     /*}}}*/
     // 具体查询逻辑{{{
     // 如果查询到的地方是valid = false,返回PC+8
     // 如果找到的数据是无效的，使用PC+8
+/*}}}*/
+    localparam ITEM_NUM = 512;
+    localparam DATA_WID = 32;
+    localparam HIS_REG  = 4;
+    wire    [$clog2(ITEM_NUM)-1:0]      rAddr;
+    wire    [$clog2(ITEM_NUM)-1:0]      wAddr;
+    wire                                wen;
+    wire    [DATA_WID-1:0]              wdata;
+    wire    [DATA_WID-1:0]              rdata;
+    MyRAM  #(/*{{{*/
+        .MY_NUMBER(ITEM_NUM),
+        .MY_DATA_WIDTH(DATA_WID)
+    )
+    stack (
+        /*autoinst*/
+        .clk                    (clk                             ), //input
+        .wen                    (wen                             ), //input
+        .rAddr                  (rAddr                           ), //input
+        .wAddr                  (wAddr                           ), //input
+        .wdata                  (wdata                           ), //input
+        .rdata                  (rdata                           )  //output
+    );/*}}}*/
+    wire    push    = FU_repairAction_w_i[`NEED_REPAIR] && FU_repairAction_w_i[`RAS_ACTION]==`RAS_PUSH;
+    wire    pop     = FU_repairAction_w_i[`NEED_REPAIR] && FU_repairAction_w_i[`RAS_ACTION]==`RAS_POP;
+    wire    repair  = FU_repairAction_w_i[`NEED_REPAIR] && FU_repairAction_w_i[`RAS_ACTION]==`RAS_REPAIRE;
+    reg    [$clog2(ITEM_NUM)-1:0]      top;
     always @(posedge clk) begin
         if (!rst) begin
-            destination[0] <= `ZEROWORD;
-            destination[1] <= `ZEROWORD;
-            destination[2] <= `ZEROWORD;
-            destination[3] <= `ZEROWORD;
-            checkPoint[0]  <= 'd0;
-            checkPoint[1]  <= 'd0;
-            checkPoint[2]  <= 'd0;
-            checkPoint[3]  <= 'd0;
+            top     <=  'd0;
         end
-        else if (inst_index_ok && inst_req) begin
-            destination[0] <= {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
-            destination[1] <= {PCR_VAddr_i[31:4],2'b11,PCR_VAddr_i[1:0]};
-            destination[2] <= {BTB_fifthVAddr_i[31:4],2'b00,BTB_fifthVAddr_i[1:0]};
-            destination[3] <= {BTB_fifthVAddr_i[31:4],2'b01,BTB_fifthVAddr_i[1:0]};
-            checkPoint[0]  <= 'd0;
-            checkPoint[1]  <= 'd0;
-            checkPoint[2]  <= 'd0;
-            checkPoint[3]  <= 'd0;
+        else if (push) begin
+            top     <=  top + 'd1;
+        end
+        else if (pop) begin
+            top     <=  top - 'd1;
+        end
+        else if (repair) begin
+            top     <=  FU_allCheckPoint_w_i[`RAS_CHECK_TOP];
         end
     end
-/*}}}*/
+    assign wen = push || pop || repair;
+    assign wAddr = push ? (top+'d1) : FU_allCheckPoint_w_i[`RAS_CHECK_TOP];
+    assign wdata = push ? (FU_erroVAddr_w_i+'d8) : {FU_allCheckPoint_w_i[`RAS_CHECK_PC],2'b0};
+    assign rAddr = top;
+    assign destination[0] = rdata;
+    assign destination[1] = rdata;
+    assign destination[2] = rdata;
+    assign destination[3] = rdata;
+    assign checkPoint[0] = {rdata[31:2],top};
+    assign checkPoint[1] = {rdata[31:2],top};
+    assign checkPoint[2] = {rdata[31:2],top};
+    assign checkPoint[3] = {rdata[31:2],top};
 endmodule
 

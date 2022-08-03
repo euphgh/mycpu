@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/08/03 10:14
+// Last Modified : 2022/08/03 20:29
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -41,17 +41,17 @@ module BranchSelectCheck (
     input	wire    [`EXCCODE]              SCT_ExcCode_i,
     input	wire	                        SCT_isRefill_i,
 /*}}}*/
+/*}}}*/
     input	wire	                        SCT_valid_i,        // SecondCacheTrace送入信号
     // BPU预测结果{{{
-    // PHT的预测结果
-    input	wire	[3:0]                   SCT_PHT_predTake_p_i,
-    input	wire    [4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_i,
-    // RAS的预测结果
-    input	wire	[4*`SINGLE_WORD]        SCT_RAS_predDest_p_i,
-    input	wire    [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_i,
-    // IJTC的预测结果
-    input	wire	[4*`IJTC_CHECKPOINT]    SCT_IJTC_checkPoint_p_i,
-    input	wire	[4*`SINGLE_WORD]        SCT_IJTC_predDest_p_i,
+    // GHT的预测结果{{{
+    input	wire     [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_i,
+    input	wire     [4*`SINGLE_WORD]        SCT_GHT_predDest_p_i,
+    input	wire     [3:0]                   SCT_GHT_predTake_p_i,
+/*}}}*/
+    // RAS的预测结果{{{
+    input	wire     [4*`SINGLE_WORD]        SCT_RAS_predDest_p_i,
+    input	wire     [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_i,
 /*}}}*/
 /*}}}*/
     // 线信号输出{{{
@@ -128,31 +128,29 @@ module BranchSelectCheck (
     );
     wire [`B_SELECT] takeDestSel [3:0];
     `UNPACK_ARRAY(`B_SEL_LEN,4,takeDestSel,takeDestSel_p)
-    wire [0:0] PHT_predTake [3:0];
-    `UNPACK_ARRAY(1,4,PHT_predTake,SCT_PHT_predTake_p_i)
+    wire [0:0] GHT_predTake [3:0];
+    `UNPACK_ARRAY(1,4,GHT_predTake,SCT_GHT_predTake_p_i)
     wire [`SINGLE_WORD] BTB_predDest_up [3:0];
     wire [3:0]          BTB_predTake_up  = SCT_predTake_p_i;
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,SCT_predDest_p_i)
     wire [`SINGLE_WORD] RAS_predDest [3:0];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,RAS_predDest,SCT_RAS_predDest_p_i)
-    wire [`SINGLE_WORD] IJTC_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,IJTC_predDest,SCT_IJTC_predDest_p_i)
+    wire [`SINGLE_WORD] GHT_predDest [3:0];
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,GHT_predDest,SCT_GHT_predDest_p_i)
     // 检查点重新排列
     wire    [`ALL_CHECKPOINT]   allCheckPoint_up    [3:0]; // 重新排列后所有的检查点
-    wire    [`PHT_CHECKPOINT]   PHT_checkPoint_up   [3:0];
     wire    [`RAS_CHECKPOINT]   RAS_checkPoint_up   [3:0];
-    wire    [`IJTC_CHECKPOINT]  IJTC_checkPoint_up  [3:0];
+    wire    [`GHT_CHECKPOINT]   GHT_checkPoint_up   [3:0];
     `UNPACK_ARRAY(`RAS_CHECKPOINT_LEN,4,RAS_checkPoint_up,SCT_RAS_checkPoint_p_i)
-    `UNPACK_ARRAY(`PHT_CHECKPOINT_LEN,4,PHT_checkPoint_up,SCT_PHT_checkPoint_p_i)
-    `UNPACK_ARRAY(`IJTC_CHECKPOINT_LEN,4,IJTC_checkPoint_up,SCT_IJTC_checkPoint_p_i)
+    `UNPACK_ARRAY(`GHT_CHECKPOINT_LEN,4,GHT_checkPoint_up,SCT_GHT_checkPoint_p_i)
     // }}}
     generate
     genvar k;
     for (k = 0; k < 4; k=k+1)	begin
         assign allCheckPoint_up[k] = {
-            PHT_checkPoint_up[k],
-            RAS_checkPoint_up[k],
-            IJTC_checkPoint_up[k]};
+            GHT_checkPoint_up[k],
+            RAS_checkPoint_up[k]
+            };
     end
     endgenerate
     assign isEnableSame = actualEnable==SCT_BTBInstEnable_i;
@@ -162,13 +160,12 @@ module BranchSelectCheck (
         `ifdef BTB_ONLY
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && BTB_predTake_up[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = SCT_BTBfifthVAddr_i;
+        assign BPU_predDest_up[i] = BTB_predDest_up[i];
         `else
-        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && PHT_predTake[i]) ||
+        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && GHT_predTake[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = takeDestSel[i][`BTB_DEST] ? BTB_predDest_up[i]  : 
-                                    takeDestSel[i][`RAS_DEST] ? RAS_predDest[i]     :
-                                    takeDestSel[i][`IJTC_DEST]? IJTC_predDest[i]    :   SCT_BTBfifthVAddr_i;
+        assign BPU_predDest_up[i] = takeDestSel[i][`RAS_DEST] ? RAS_predDest[i]     :
+                                    takeDestSel[i][`IJTC_DEST]? GHT_predDest[i]    : BTB_predDest_up[i]
         `endif
         assign BPU_checkPoint_up[i] = ({`ALL_CHECKPOINT_LEN{firstValidBit[i]}} & allCheckPoint_up[i]);
         end

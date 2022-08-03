@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/06/30 09:24
-// Last Modified : 2022/08/02 18:55
+// Last Modified : 2022/08/04 00:06
 // File Name     : InstQueue.v
 // Description   : 用于收集指令，根据指令使能进行装入，根据指令需求进行输出
 //         
@@ -72,20 +72,6 @@ module InstQueue (
     reg [`IQ_POINT]  tail;
     wire    needClear = SBA_flush_w_i || CP0_excOccur_w_i;
     reg [`IQ_LENTH] queue [`IQ_CAPABILITY-1:0];
-    // 自动定义{{{
-    /*autodef*/
-    //Start of automatic define
-    //Start of automatic reg
-    //Define flip-flop registers here
-    //Define combination registers here
-    //End of automatic reg
-    //Start of automatic wire
-    //Define assign wires here
-    wire                        enough                          ;// unresolved
-    //Define instance wires here
-    //End of automatic wire
-    //End of automatic define
-/*}}}*/
     assign IQ_number_w   = tail-head;
     //如果不考虑用于保存以及请求的指令的空隙，tail+1 == head表示队列,
     assign IQ_empty         =   tail == head;
@@ -158,7 +144,7 @@ module InstQueue (
                                                 IF_instEnable_i[1] ? 3'd2 :
                                                 IF_instEnable_i[0] ? 3'd1 : 3'd0);
     wire    [`IQ_POINT] nextNumber = IQ_number_w + IF_supplyNum - ID_upDateMode_i[0] - ID_upDateMode_i[1];
-    assign enough = nextNumber >= 'd2;
+    wire    enough = nextNumber >= 'd2;
     always @(posedge clk) begin
         if (!rst || needClear) begin
             head    <=  'd0;
