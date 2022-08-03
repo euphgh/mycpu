@@ -161,11 +161,13 @@ module icache_2w8b128l(
     assign inst_index_ok = !deal_cache_op && sin_req && (!sda_req || inst_data_ok)
                            && (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL);                          
 `else
-    assign inst_index_ok = (cache_stat != `RESET) && sin_req && (!sda_req || inst_data_ok);
+    assign inst_index_ok = (cache_stat != `RESET && cache_stat != `IDLE ) && sin_req && (!sda_req || inst_data_ok);
 `endif 
-    assign inst_data_ok  = sda_req && (hit_run || hit_fill || inst_uncache_data_ok || sda_hasException);
-    assign inst_rdata    = sda_unCache ? inst_uncache_rdata :
-                           hit_fill    ? hit_fill_data      : hit_run_data;
+    assign inst_data_ok  = sda_req && (hit_run || inst_uncache_data_ok || sda_hasException);
+    assign inst_rdata    = sda_unCache ? inst_uncache_rdata : hit_run_data;
+    //assign inst_data_ok  = sda_req && (hit_run || hit_fill || inst_uncache_data_ok || sda_hasException);
+    // assign inst_rdata    = sda_unCache ? inst_uncache_rdata :
+    //                        hit_fill    ? hit_fill_data      : hit_run_data;
     //驱动inst_uncache
     assign inst_uncache_req  = !sda_hasException && sda_unCache && sda_req && !sda_uca_addr_ok;
     assign inst_uncache_addr = {sda_tag, sda_index, sda_offset, 4'b0000};
@@ -219,7 +221,7 @@ module icache_2w8b128l(
             sta_size   <= sin_size  ;
             sta_index  <= sin_index ;
             sta_offset <= sin_offset;
-        end else if (!sda_req) begin
+        end else if (inst_data_ok | !sda_req) begin
             sta_req    <= 1'b0;
             sta_size   <= 2'b0;
             sta_index  <= 7'b0;
@@ -243,7 +245,7 @@ module icache_2w8b128l(
                 sda_rdata[i]     <= 255'b0;
             end
         end
-        else if (inst_index_ok | !sda_req) begin
+        else if (inst_data_ok | !sda_req) begin
             sda_req          <= sta_req         ;
             sda_size         <= sta_size        ;
             sda_index        <= sta_index       ;
@@ -264,9 +266,9 @@ module icache_2w8b128l(
                 sda_rdata[i]     <= data_rdata[i];
             end
         end
-        else if (inst_data_ok) begin
-            sda_req          <= 1'b0;
-        end
+        // else if (inst_data_ok) begin
+        //     sda_req          <= 1'b0;
+        // end
         else if (inst_uncache_addr_ok) begin
             sda_uca_addr_ok  <= 1'b1;
         end else begin
@@ -385,10 +387,10 @@ module icache_2w8b128l(
                         2'b00;
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter     :
                         (cache_stat == `FINISH ) ? fill_index        :
-                        (cache_stat == `RECOVER) ? sda_index         :
+                        (cache_stat == `IDLE) ? sta_index         :
                         (deal_cache_op         ) ? icache_addr[11:5] :
                         (cache_stat == `CA_OP  ) ? ca_index_reg      :
-                        (cache_stat ==`RUN     ) ? sin_index : sta_index;
+                        (cache_stat ==`RUN     ) ? sin_index : sda_index;
     assign tagv_wdata = (cache_stat == `RESET  ) ? 20'b0      :
                         (cache_stat == `FINISH ) ? fill_tag : 
                         (cache_stat == `CA_OP  ) ? ca_wtag_reg : 20'b0;
@@ -403,7 +405,7 @@ module icache_2w8b128l(
     assign tagv_index = (cache_stat == `RESET  ) ? reset_counter :
                         (cache_stat == `FINISH ) ? fill_index    : 
                         (cache_stat == `RUN    ) ? sin_index     :
-                        (cache_stat == `IDLE   ) ? sta_index     : sda_index;
+                        (cache_stat == `IDLE) ? sta_index     : sda_index;
     assign tagv_wdata = fill_tag;
     assign tagv_valid = !(cache_stat == `RESET);
 `endif
