@@ -5,14 +5,14 @@
 //`define BREAK
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
 `define HILO_FILE               "../../../../../../mycpu/trace/hilofile.txt"
-`ifdef CONTINUE
+`ifdef CONTINUE/*{{{*/
 `define STARTPOINT		32'hbfc00bb4
 `define STARTLINE	      85706
 `endif
 `ifndef CONTINUE
     `define STARTPOINT  32'hbfc00000
     `define STARTLINE   1
-`endif
+`endif/*}}}*/
 //globaol{{{
 `define ZEROWORD 32'h00000000
 `define SINGLE_WORD_LEN 32
@@ -60,38 +60,30 @@
 //分支预测检查点长度定义{{{
 //RAS的检查点{{{
 `define RAS_SIZE            512
-`define RAS_PC_LEN          30
-`define RAS_TIMES_LEN       4
-`define RAS_WIDTH_LEN       `RAS_PC_LEN+`RAS_TIMES_LEN
+`define RAS_PC_LEN          32
+`define RAS_WIDTH_LEN       `RAS_PC_LEN
 `define RAS_ENRTY_WIDTH     `RAS_WIDTH_LEN-1:0
-`define RAS_TIMES           `RAS_PC_LEN+`RAS_TIMES_LEN-1:`RAS_PC_LEN
-`define RAS_PC              `RAS_PC_LEN-1:0
 `define RAS_ENRTY_NUM_LEN   $clog2(`RAS_SIZE)  
 `define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
 `define RAS_CHECKPOINT_LEN  (`RAS_WIDTH_LEN+`RAS_ENRTY_NUM_LEN)
 `define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
-// {4'times,30'PC,10'top}
-`define RAS_CHECK_TIMES     `RAS_CHECKPOINT_LEN-1:`RAS_PC_LEN+`RAS_ENRTY_NUM_LEN
-`define RAS_CHECK_PC        `RAS_PC_LEN+`RAS_ENRTY_NUM_LEN-1:`RAS_ENRTY_NUM_LEN
-`define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1:0
+`define RAS_CHECK_PC        `RAS_PC_LEN+`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE:`RAS_ENRTY_NUM_LEN+`GHT_CHECK_BASE
+`define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE:`GHT_CHECK_BASE
 //}}}
 //GHT {{{
-`define GHT_COUNTER_LEN 2
-`define GHT_DESTPC_LEN  30
-`define GHT_COUNTER     `GHT_COUNTER_LEN-1:0
-`define GHT_DESTPC      `GHT_DESTPC_LEN-1:0
-`define GHT_CHECK_COUNT `GHT_COUNTER
-`define GHT_CHECK_DEST  `GHT_DESTPC_LEN+GHT_COUNTER_LEN-1:GHT_COUNTER_LEN 
-`define GHT_CHECKPOINT_LEN  GHT_COUNTER_LEN+GHT_DESTPC_LEN
-`define GHT_CHECKPOINT  `GHT_CHECKPOINT_LEN-1:0
+`define GHT_COUNTER_LEN         2
+`define GHT_DESTPC_LEN          30
+`define GHT_CHECK_BASE          `GHT_DESTPC_LEN+`GHT_COUNTER_LEN
+`define GHT_COUNTER             `GHT_COUNTER_LEN-1:0
+`define GHT_DESTPC              `GHT_DESTPC_LEN-1:0
+`define GHT_CHECK_COUNT         `GHT_COUNTER
+`define GHT_CHECK_DEST          `GHT_DESTPC_LEN+GHT_COUNTER_LEN-1:GHT_COUNTER_LEN 
+`define GHT_CHECKPOINT_LEN      GHT_COUNTER_LEN+GHT_DESTPC_LEN
+`define GHT_CHECKPOINT          `GHT_CHECKPOINT_LEN-1:0
 // }}}
-`define ALL_CHECKPOINT  `ALL_CHECKPOINT_LEN-1:0
-`define NO_CHECKPOINT   `ALL_CHECKPOINT_LEN'b0
-`define IJTC_CHECKPOINT `IJTC_CHECKPOINT_LEN-1:0         // 记录全局分支历史
-`define PHT_CHECKPOINT  `PHT_CHECKPOINT_LEN-1:0         // 记录局部分支历史,两位饱和计数器
-`define ALL_CHECKPOINT_LEN (`RAS_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN+`IJTC_CHECKPOINT_LEN)
-`define PHT_CHECKPOINT_LEN 10
-`define IJTC_CHECKPOINT_LEN 8                           // 记录全局分支历史
+`define ALL_CHECKPOINT_LEN      (`RAS_CHECKPOINT_LEN+`GHT_CHECKPOINT_LEN)
+`define ALL_CHECKPOINT          `ALL_CHECKPOINT_LEN-1:0
+`define NO_CHECKPOINT           `ALL_CHECKPOINT_LEN'b0
 /*}}}*/
 // 分支恢复的所有动作和使能{{{
 `define REPAIR_ACTION `REPAIR_ACTION_LEN-1:0
@@ -141,11 +133,9 @@
 `define NO_DEMAND       2'b00
 `define ONE_DEMAND      2'b01
 `define TWO_DEMAND      2'b11
-// FirstDecorder
-`define INST_TYPE       5:0 
-`define INST_DETAIL     5:0
+// 寄存器堆{{{
 `define GPR_NUM         `GPR_NUM_LEN-1:0
-`define GPR_NUM_LEN     5
+`define GPR_NUM_LEN     5/*}}}*/
 // EXE段ALU的异常选择{{{
 `define EXCEPRION_SEL_LEN 2
 `define EXCEPRION_SEL `EXCEPRION_SEL_LEN-1:0
@@ -204,7 +194,7 @@
 `define FORWARD_MODE_MEM        `FORWARD_MODE_LEN'b0000100
 `define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b0000010
 `define FORWARD_MODE_ID         `FORWARD_MODE_LEN'b0000001
-
+// }}}
 //alu运算种类{{{
 `define ALUOP_LEN   14
 `define ALUOP `ALUOP_LEN-1:0  
@@ -270,12 +260,12 @@
 `define BRANCH_LE       1
 `define BRANCH_GT       0
 /*}}}*/
-// readHiLo和writeHILO
+// readHiLo和writeHILO{{{
 `define HILO        1:0
 `define HI_WRITE    0
 `define LO_WRITE    1
 `define HI_READ     0
-`define LO_READ     1
+`define LO_READ     1/*}}}*/
 // cp0段
 `define CP0_POSITION    7:0
     // CP0寄存器的定义{{{

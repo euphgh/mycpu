@@ -24,10 +24,11 @@ module GlobalHistoryTable (
     input	wire	    inst_req,
 /*}}}*/
     // 查询接口{{{
-    input	wire	[`SINGLE_WORD]      PCR_VAddr_i,     // 该地址是四值字对齐,需要预测该PC开始的四条指令
-    input	wire	[`SINGLE_WORD]      BTB_fifthVAddr_i, // 该地址是四值字对齐,当第四条预测失败，返回该地址
-    output	wire	[4*`IJTC_CHECKPOINT]  IJTC_checkPoint_p_o,
-    output	wire	[4*`SINGLE_WORD]      IJTC_predDest_p_o,
+    input	wire	[`SINGLE_WORD]          PCR_VAddr_i,     // 该地址是四值字对齐,需要预测该PC开始的四条指令
+    input	wire	[`SINGLE_WORD]          BTB_fifthVAddr_i, // 该地址是四值字对齐,当第四条预测失败，返回该地址
+    output	wire	[4*`GHT_CHECKPOINT]     GHT_checkPoint_p_o,
+    output	wire	[4*`SINGLE_WORD]        GHT_predDest_p_o,
+    output	wire	[3:0]                   GHT_predTake_p_o,
 /*}}}*/
     // 修改接口{{{
     // IJTC repair 在后段任何分支预测错误时，需要以下输入
@@ -50,11 +51,11 @@ module GlobalHistoryTable (
     `define GHT_PC_INDEX  ($clog2(ITEM_NUM)/2)+4-1:4
     localparam DATA_WID = 32;
     // 信号定义和打包{{{
-    reg [`IJTC_CHECKPOINT] checkPoint [3:0];
-    `PACK_ARRAY(`IJTC_CHECKPOINT_LEN,4,checkPoint,IJTC_checkPoint_p_o)
+    reg [`GHT_CHECKPOINT] checkPoint [3:0];
+    `PACK_ARRAY(`GHT_CHECKPOINT_LEN,4,checkPoint,GHT_checkPoint_p_o)
     reg [`SINGLE_WORD] seq_dest[3:0];
     reg [`SINGLE_WORD] destination[3:0];
-    `PACK_ARRAY(`SINGLE_WORD_LEN,4,destination,IJTC_predDest_p_o)
+    `PACK_ARRAY(`SINGLE_WORD_LEN,4,destination,GHT_predDest_p_o)
 /*}}}*/
     // 具体查询逻辑{{{
     // 如果查询到的地方是valid = false,返回PC+8
@@ -82,6 +83,7 @@ module GlobalHistoryTable (
         end
     end
 /*}}}*/
+    // 变量定义{{{
     wire [`SINGLE_WORD]     vAddr   [3:0];
     wire [1:0]              number  [3:0];
     reg [HIS_REG-1:0]  ghr;
@@ -93,6 +95,7 @@ module GlobalHistoryTable (
     assign number[1] = 2'b01;
     assign number[2] = 2'b10;
     assign number[3] = 2'b11;
+    // }}}
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
             wire    [`MEM_ADDR]     rAddr;
@@ -120,8 +123,13 @@ module GlobalHistoryTable (
             assign  wen     =   (vAddr[i][3:2]==number[i])          &&
                                 FU_repairAction_w_i[`NEED_REPAIR]   && 
                                 (FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE || FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_REPAIRE);
-            assign wdata    =   FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE ? FU_allCheckPoint_w_i[]
+            wire   nextStatu=   FU_allCheckPoint_w_i[`GHT_CHECK_COUNT] ? 
+            assign wdata    =   FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE ? 
+                                    {FU_allCheckPoint_w_i[`GHT_CHECK_DEST],FU_allCheckPoint_w_i[`GHT_CHECK_COUNT]+2'b01} : 
+                                    {FU_correctDest_w_i[31:2],FU_allCheckPoint_w_i[`GHT_CHECK_COUNT]};
+            assign wAddr    =   {ghr,FU_erroVAddr_w_i[`GHT_PC_INDEX]};
             // }}}
+            assign 
         end
     endgenerate
     
