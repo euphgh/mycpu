@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 09:01
-// Last Modified : 2022/08/01 10:54
+// Last Modified : 2022/08/04 14:03
 // File Name     : EXEDOWN.v
 // Description   : 下段执行段，需要进行算数，位移，异常，乘除，TLB，cache指令
 //                  的操作等
@@ -354,6 +354,7 @@ module EXEDOWN(
     wire    isAluInst = !ID_down_memReq_r_i &&
                         !ID_down_mduOperator_r_i[`MDU_CLO] &&
                         !ID_down_mduOperator_r_i[`MDU_CLZ] &&
+                        !ID_down_mduOperator_r_i[`MDU_MULR]&&
                         !(|ID_down_readCp0_r_i) && 
                         !(|ID_down_readHiLo_r_i);
     assign EXE_down_hasDangerous_w_o = ID_down_isDangerous_r_i;
@@ -571,8 +572,8 @@ module EXEDOWN(
     end
     // 需要MDU运算但是MDU没有接受
     wire mduConflict = isMduWrite && !(isAccepted||MDU_Oprand_ok);
-    // 不能在MDU中同时存在两个工作
-    wire HiLoConflict = ((|ID_down_readHiLo_r_i)||(|isMduWrite))&&HiLo_busy;   
+    // 在MDU存在工作的时候不能读hilo
+    wire HiLoConflict = (|ID_down_readHiLo_r_i)&&HiLo_busy;   
     // 需要写HiLo寄存器但是前面有风险,包括乘除
     wire writeHiLoConflict = isMduWrite && PREMEM_hasRisk_w_i;
 /*}}}*/
@@ -620,11 +621,11 @@ module EXEDOWN(
         end 
     end
     assign EXE_down_clRes_o = clRes;
-    wire mulr_conflict = mulrReq && !mulr_data_ok;
+    wire   mulr_conflict = mulrReq && (!isAccepted || !MDU_data_ok);
     assign EXE_down_mulRes_o = MDU_writeData_p[31:0];
-    assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
-    assign EXE_down_mathResSel_o =  clReq   ? 4'b0001 :
-                                    mulrReq ? 4'b0010 :
+    assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict || mduConflict);
+    assign EXE_down_mathResSel_o =  clReq   ? 4'b0010 :
+                                    mulrReq ? 4'b0001 :
                                     (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{

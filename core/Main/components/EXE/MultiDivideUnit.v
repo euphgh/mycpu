@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/16 11:55
-// Last Modified : 2022/07/31 15:49
+// Last Modified : 2022/08/04 14:49
 // File Name     : MultiDivideUnit.v
 // Description   : 乘除模块
 //         
@@ -79,7 +79,7 @@ module MultiDivideUnit(
         .mulData_ok             (mulData_ok                     ), //output
         .mulRes                 (mulRes[2*`SINGLE_WORD]         )  //output
     );
-    assign mulReq       = (mulrReq || MDU_operator[`MUL_REQ]) && MduReq;
+    assign mulReq       = (mulrReq || MDU_operator[`MUL_REQ] || MDU_operator[`ACCUM_REQ]) && MduReq && !HiLo_busy;
     assign mulr_data_ok = mulData_ok;
     assign isSignedMul  = MDU_operator[`MUL_SIGN];
     assign add_sub_op   = MDU_operator[`ACCUM_OP];
@@ -99,7 +99,7 @@ module MultiDivideUnit(
         .reminder_o             (reminder_o[`SINGLE_WORD]       ), //output
         .div_data_ok            (div_data_ok                    )  //output
     );
-    assign divReq       = MDU_operator[`DIV_REQ] && MduReq;
+    assign divReq       = MDU_operator[`DIV_REQ] && MduReq && !HiLo_busy;
     assign isSignedDiv  = MDU_operator[`DIV_SIGN];
     assign divident_i   = oprand_up[0];
     assign divisor_i    = oprand_up[1];
@@ -115,7 +115,7 @@ module MultiDivideUnit(
     end
 /*}}}*/
     assign MDU_Oprand_ok =  (MDU_operator[`DIV_REQ] ?   div_oprand_ok :
-                            (MDU_operator[`MUL_REQ] ||  MDU_operator[`ACCUM_REQ]) ? mulOprand_ok :  
+                            (mulReq) ? mulOprand_ok :  
                              MDU_operator[`MT_REQ]  ?   1'b1 : 1'b0) && (MduReq && !HiLo_busy);
 
     assign MDU_data_ok =  !cancel && (div_data_ok||mulData_ok||(MDU_Oprand_ok && MDU_operator[`MT_REQ]));
