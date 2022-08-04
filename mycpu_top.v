@@ -394,7 +394,7 @@ module mycpu_top(
     wire  [1 :0] data_uncache_bresp  ;
     wire         data_uncache_bvalid ;
     wire         data_uncache_bready ;
-    dcache_tp u_dcache_tp (
+    dcache_try u_dcache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .data_req             (data_req            ),
