@@ -491,13 +491,13 @@ module dcache_try(
                              refill_buf_data[3],refill_buf_data[2],refill_buf_data[1],refill_buf_data[0] };
     //hit_run_sta
     wire [3:0] sta_hit_way;
-    assign sta_hit_way[0] = sta_tag == tagv_back[0][20:1] & tagv_back[0][0] & (cache_stat == `IDLE || cache_stat == `RUN);
-    assign sta_hit_way[1] = sta_tag == tagv_back[1][20:1] & tagv_back[1][0] & (cache_stat == `IDLE || cache_stat == `RUN);
-    assign sta_hit_way[2] = sta_tag == tagv_back[2][20:1] & tagv_back[2][0] & (cache_stat == `IDLE || cache_stat == `RUN);
-    assign sta_hit_way[3] = sta_tag == tagv_back[3][20:1] & tagv_back[3][0] & (cache_stat == `IDLE || cache_stat == `RUN);
+    assign sta_hit_way[0] = (cache_stat == `IDLE && sda_tag == tagv_back[0][20:1] && tagv_back[0][0]) || (cache_stat == `RUN && sta_tag == tagv_back[0][20:1] && tagv_back[0][0]);
+    assign sta_hit_way[1] = (cache_stat == `IDLE && sda_tag == tagv_back[1][20:1] && tagv_back[1][0]) || (cache_stat == `RUN && sta_tag == tagv_back[1][20:1] && tagv_back[1][0]);
+    assign sta_hit_way[2] = (cache_stat == `IDLE && sda_tag == tagv_back[2][20:1] && tagv_back[2][0]) || (cache_stat == `RUN && sta_tag == tagv_back[2][20:1] && tagv_back[2][0]);
+    assign sta_hit_way[3] = (cache_stat == `IDLE && sda_tag == tagv_back[3][20:1] && tagv_back[3][0]) || (cache_stat == `RUN && sta_tag == tagv_back[3][20:1] && tagv_back[3][0]);
     //assign sta_hit_run_data = |sta_hit_way && (cache_stat==`RUN || cache_stat == `IDLE) &&  !sda_unCache;
     wire [1:0] sta_hit_loc = `encoder4_2(sta_hit_way);
-    wire [31:0] sta_hit_run_data =  {32{sta_offset[4:2] ==3'b000}} & {cache_rdata[sta_hit_loc][31 : 0 ]}
+    wire [31:0] sta_hit_data =      {32{sta_offset[4:2] ==3'b000}} & {cache_rdata[sta_hit_loc][31 : 0 ]}
                                  |  {32{sta_offset[4:2] ==3'b001}} & {cache_rdata[sta_hit_loc][63 :32 ]}
                                  |  {32{sta_offset[4:2] ==3'b010}} & {cache_rdata[sta_hit_loc][95 :64 ]}
                                  |  {32{sta_offset[4:2] ==3'b011}} & {cache_rdata[sta_hit_loc][127:96 ]}
@@ -505,6 +505,15 @@ module dcache_try(
                                  |  {32{sta_offset[4:2] ==3'b101}} & {cache_rdata[sta_hit_loc][191:160]}
                                  |  {32{sta_offset[4:2] ==3'b110}} & {cache_rdata[sta_hit_loc][223:192]}
                                  |  {32{sta_offset[4:2] ==3'b111}} & {cache_rdata[sta_hit_loc][255:224]};
+    wire [31:0] sta_hit_idle_data = {32{sda_offset[4:2] ==3'b000}} & {cache_rdata[sta_hit_loc][31 : 0 ]}
+                                 |  {32{sda_offset[4:2] ==3'b001}} & {cache_rdata[sta_hit_loc][63 :32 ]}
+                                 |  {32{sda_offset[4:2] ==3'b010}} & {cache_rdata[sta_hit_loc][95 :64 ]}
+                                 |  {32{sda_offset[4:2] ==3'b011}} & {cache_rdata[sta_hit_loc][127:96 ]}
+                                 |  {32{sda_offset[4:2] ==3'b100}} & {cache_rdata[sta_hit_loc][159:128]}
+                                 |  {32{sda_offset[4:2] ==3'b101}} & {cache_rdata[sta_hit_loc][191:160]}
+                                 |  {32{sda_offset[4:2] ==3'b110}} & {cache_rdata[sta_hit_loc][223:192]}
+                                 |  {32{sda_offset[4:2] ==3'b111}} & {cache_rdata[sta_hit_loc][255:224]};
+    wire [31:0] sta_hit_run_data = cache_stat==`IDLE ? sta_hit_idle_data : sta_hit_data;
     //HIT
     //assign hit_way[0] = sda_tagv_back[0][0] & sda_tagv_back[0][20:1] == sda_tag;
     //assign hit_way[1] = sda_tagv_back[1][0] & sda_tagv_back[1][20:1] == sda_tag;
