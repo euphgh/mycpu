@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/31 10:49
-// Last Modified : 2022/07/31 21:02
+// Last Modified : 2022/08/04 09:41
 // File Name     : MyRAM.v
 // Description   : 通用的64位双端口block memory,完全写优先
 //         
@@ -39,7 +39,7 @@ module MyRAM #(
         wline        <= wdata;
     end
     assign rdata = collison_reg ? wline : doutb;
-
+    
     // xpm_memory_sdpram: Simple Dual Port RAM
     // Xilinx Parameterized Macro, version 2019.2
     wire    [(MY_DATA_WIDTH/8)-1:0] wstrb = {MY_DATA_WIDTH/8{wen}};
@@ -79,7 +79,7 @@ module MyRAM #(
         .dina          (wdata   ),
         .enb           (1'b1    ),
         .addrb         (rAddr   ),
-        .doutb         (rdata   ),
+        .doutb         (doutb   ),
         .injectdbiterra(1'b0    ),
         .injectsbiterra(1'b0    ),
         .regceb        (1'b0    ),

@@ -119,8 +119,8 @@
 `define BTB_NOACTION        1'b0 /*}}}*/
 //InstQueue{{{
 `define TEST1
-`define IQ_LENTH        `IQ_ENTRY_LEN-1:0
 `define IQ_ENTRY_LEN    179
+`define IQ_LENTH        `IQ_ENTRY_LEN-1:0
 `define IQ_VALID        1:0
 `define IQ_VALID_SINGLE 2'b01
 `define IQ_VALID_DUAL   2'b11
