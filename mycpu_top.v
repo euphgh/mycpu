@@ -219,7 +219,7 @@ module mycpu_top(
     wire         inst_uncache_bvalid = 0;
     wire         inst_uncache_bready = 0;
     // ICACHE and INST_UNCACHE
-    icache_tp  u_icache_tp (
+    icache_try  u_icache_tp (
         .clk                  (aclk                ),
         .rst                  (aresetn             ),
         .inst_req             (inst_req            ),
