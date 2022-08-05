@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "./Cacheconst.vh"
 //`define EN_DCACHE_OP
-module dcache_try(
+module dcache(
     input           clk,
     input           rst,
 

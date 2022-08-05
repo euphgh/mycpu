@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 `include "./Cacheconst.vh"
 //`define EN_ICACHE_OP
-module icache_try(
+module icache(
     input           clk,
     input           rst,
 
