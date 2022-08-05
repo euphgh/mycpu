@@ -15,7 +15,7 @@
 // 2022/06/30   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module Arbitrator(
     input	wire    [`IQ_VALID]                 IQ_supplyValid,   // 可选宏定义三种
     input	wire    [2*`SINGLE_WORD]            IQ_inst_p,

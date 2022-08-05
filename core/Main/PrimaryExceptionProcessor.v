@@ -16,7 +16,7 @@
 // 2022/07/18   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../MyDefines.v"
 module PrimaryExceptionProcessor (
     input	wire	                        clk,
     input	wire	                        rst,

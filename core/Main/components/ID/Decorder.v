@@ -15,7 +15,7 @@
 // 2022/07/13   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module Decorder(
     input	wire	[2*`SINGLE_WORD]  AB_Inst_p,
     /////////////////////////////////////////////////

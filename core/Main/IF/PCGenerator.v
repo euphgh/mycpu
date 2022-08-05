@@ -15,7 +15,7 @@
 // 2022/06/30   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../MyDefines.v"
 module PCGenerator(
     input   wire                    PCR_needDelaySlot_i, // 表示第一条指令是延迟槽指令
     input   wire    [`SINGLE_WORD]  PCR_VAddr_i,     // 必然四字对齐

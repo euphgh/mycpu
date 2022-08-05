@@ -15,7 +15,7 @@
 // 2022/07/13   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module ImmExtender(
     input	wire	[25:0]              inst_index, // inst低26位
     input	wire	[`EXTEND_ACTION]    extendAction,

@@ -15,7 +15,7 @@
 // 2022/07/07   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../MyDefines.v"
 module IF (
     // cache总线交互{{{
     output  wire                            inst_req,

@@ -15,7 +15,7 @@
 // 2022/07/09   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../MyDefines.v"
 module DelaySlotProcessor (
     input	wire	[`SINGLE_WORD]      BTB_fifthVAddr_i,        // VAddr开始的第5条指令
     input	wire	[`SINGLE_WORD]      BTB_validDest_i,

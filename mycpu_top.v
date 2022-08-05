@@ -1,5 +1,5 @@
 `timescale 1ns / 100ps
-`include "MyDefines.v"
+`include "./core/MyDefines.v"
 module mycpu_top(
     input  [5 :0]  ext_int,
 

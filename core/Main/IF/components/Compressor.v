@@ -16,7 +16,7 @@
 // 2022/07/08   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module Compressor (
     input	wire	[`INST_NUM]     actualEnable,
     output	wire	[`INST_NUM]     outputEnable,

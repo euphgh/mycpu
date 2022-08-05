@@ -22,7 +22,7 @@
 // 2022/06/28   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../MyDefines.v"
 
 module PCRegister (
     input   wire        clk,

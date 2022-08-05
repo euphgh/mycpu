@@ -15,7 +15,7 @@
 // 2022/07/08   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module TakeDestDecorder(
     input	wire	[`FOUR_WORDS]       inst_rdata,
     input	wire	                    SCT_valid_i,

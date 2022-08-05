@@ -15,7 +15,7 @@
 // 2022/07/31   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../MyDefines.v"
 module FixUnit(
     // 前段修复信息
     input   wire                        SBA_flush_w_i,          //表示分支错误，需要刷新流水线

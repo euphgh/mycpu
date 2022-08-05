@@ -18,7 +18,7 @@
 // 除掉目标指令。只有当指令信息流入下一个段间寄存器，才能将该指令从IQ中彻底清
 // 楚
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module InstQueue (
     input   wire            clk,
     input   wire            rst,

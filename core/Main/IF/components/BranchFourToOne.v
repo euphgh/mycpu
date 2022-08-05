@@ -15,7 +15,7 @@
 // 2022/07/09   Guanghui Hu     1.0                     Original
 // -FHDR----------------------------------------------------------------------------
 `timescale 1ns/1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module BranchFourToOne(
     input	wire	[`SINGLE_WORD]      fifthPC_i,
     input	wire	[`INST_NUM]         originEnable_i,

@@ -1,5 +1,5 @@
 `timescale 1ns / 1ps
-`include "MyDefines.v"
+`include "../../../MyDefines.v"
 module ALU(
         input   wire    [`SINGLE_WORD]  scr0,
         input	wire	[`SINGLE_WORD]  scr1,
