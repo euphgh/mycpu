@@ -320,7 +320,7 @@ module icache(
                 `FINISH:    cache_stat <= `RECOVER;
                 //TODO 可能需要一个恢复状态，来获取到之前MISS的行对应的数据
                 //`FINISH        -> `RECOVER            -> `IDLE            -> `RUN
-                //返回装入的数据    读取下一个请求的数据   保存到sda段寄存器   对比TAG
+                //                  读取请求的数据          对比TAG             返回数据
                 `RECOVER:   cache_stat <= `IDLE;
                 //初始装载
                 `RESET:     cache_stat <= (reset_counter == 127) ? `IDLE : `RESET; 
