@@ -56,6 +56,7 @@ module Decorder(
     output	wire	[`TLB_INST]             ID_down_TLBInstOperator_o,  // 执行的种类
     output	wire	                        ID_down_isCacheInst_o       // 表示是Cache指令
     /*}}}*/
+    // }}}
 );
     // 变量重命名和打包{{{
     wire [`SINGLE_WORD] inst [1:0];
@@ -351,7 +352,7 @@ wire temp_2_4 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]& inst[1][30
  (!(temp_2_1) & ((!inst[1][26]&!inst[1][27]& inst[1][28]& inst[1][29]& inst[1][30]&!inst[1][31]) | (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]& inst[1][30]& inst[1][31]) |
 (!inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]& inst[1][30]& inst[1][31]) | ( inst[1][26]& inst[1][27]& inst[1][28]& inst[1][29]&!inst[1][30]& inst[1][31])))));
 	assign	ID_down_mduOperator_o[0]	=	((temp_2_2) & ((!inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
- (!(temp_2_2) & (((temp_2_3) & ((!inst[1][0]&!inst[1][1]&!inst[1][5]))) |
+ (!(temp_2_2) & (((temp_2_3) & ((!inst[1][0]&!inst[1][5]))) |
  (!(temp_2_3) & (1'b0))));
 	assign	ID_down_mduOperator_o[1]	=	((temp_2_2) & (( inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
  (!(temp_2_2) & (((temp_2_3) & (( inst[1][0]&!inst[1][5]))) |
@@ -377,11 +378,9 @@ wire temp_2_4 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]& inst[1][30
  (!(temp_2_2) & (((temp_2_3) & ((!inst[1][1]&!inst[1][5]))) |
  (!(temp_2_3) & (1'b0))));
 	assign	ID_down_writeHiLo_o[0]	=	((temp_2_2) & (( inst[1][0]&!inst[1][1]&!inst[1][3]&!inst[1][5]))) |
- (!(temp_2_2) & (((temp_2_3) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_3) & (1'b0))));
+ (!(temp_2_2) & (1'b0));
 	assign	ID_down_writeHiLo_o[1]	=	((temp_2_2) & (( inst[1][0]& inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
- (!(temp_2_2) & (((temp_2_3) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_3) & (1'b0))));
+ (!(temp_2_2) & (1'b0));
 	assign	ID_down_readCp0_o	=	((temp_2_4) & ((!inst[1][23]&!inst[1][25]))) |
  (!(temp_2_4) & (1'b0));
 	assign	ID_down_writeCp0_o	=	((temp_2_4) & (( inst[1][23]))) |

@@ -64,6 +64,7 @@ module PatternHistoryTable (
             wire    wen =   (FU_repairAction_w_i[`PHT_ACTION]==`PHT_REPAIRE || FU_repairAction_w_i[`PHT_ACTION]==`PHT_DIRECT) && 
                             FU_repairAction_w_i[`NEED_REPAIR] &&
                             number[i]==FU_erroVAddr_w_i[3:2];
+            wire    conflict = wen && (wAddr==rAddr);
             integer k;
             always @(posedge clk) begin
                 if (!rst) begin
@@ -79,7 +80,15 @@ module PatternHistoryTable (
                 end
             end
             always @(posedge clk) begin
-                rdata   <=  counters[rAddr];
+                if (!rst) begin
+                    rdata   <=  'd0;
+                end
+                else if (conflict) begin
+                    rdata   <=  nextStatu;
+                end
+                else begin
+                    rdata   <=  counters[rAddr];
+                end
             end
             assign PHT_predTake_p_o[i]  = pht_valid[rAddr] && rdata[1];
             assign checkPoint[i]= rdata;

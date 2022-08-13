@@ -23,10 +23,12 @@ module SecondCacheTrace (
     // GHT的预测结果{{{
     input	wire	[4*`GHT_CHECKPOINT]     GHT_checkPoint_p_i,
     input	wire	[4*`SINGLE_WORD]        GHT_predDest_p_i,
+    input	wire	[3:0]                   GHT_predTake_p_i,
 /*}}}*/
     // RAS的预测结果{{{
     input	wire	[4*`SINGLE_WORD]        RAS_predDest_p_i,
     input	wire    [4*`RAS_CHECKPOINT]     RAS_checkPoint_p_i,
+    input	wire	[3:0]                   RAS_predTake_p_i,
 /*}}}*/
     // PHT预测接口{{{
     input	wire	[4*`PHT_CHECKPOINT]     PHT_checkPoint_p_i,
@@ -89,9 +91,11 @@ module SecondCacheTrace (
     // GHT的预测结果{{{
     output	reg     [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_o,
     output	reg     [4*`SINGLE_WORD]        SCT_GHT_predDest_p_o,
+    output	reg	    [3:0]                   SCT_GHT_predTake_p_o,
 /*}}}*/
     // RAS的预测结果{{{
     output	reg     [4*`SINGLE_WORD]        SCT_RAS_predDest_p_o,
+    output	reg     [3:0]                   SCT_RAS_predTake_p_o,
     output	reg     [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_o,
 /*}}}*/
     // PHT预测接口{{{
@@ -126,6 +130,8 @@ module SecondCacheTrace (
             SCT_GHT_checkPoint_p_o  <=  'd0;
             SCT_PHT_checkPoint_p_o  <=  'd0; 
             SCT_PHT_predTake_p_o    <=  'd0;
+            SCT_GHT_predTake_p_o    <=  'd0;
+            SCT_RAS_predTake_p_o    <=  'd0;
         end
         else if (SCT_allowin_w_o && FCT_valid_i) begin
             hasData             <=  `TRUE;
@@ -148,6 +154,8 @@ module SecondCacheTrace (
             SCT_RAS_checkPoint_p_o  <=  RAS_checkPoint_p_i  ;
             SCT_PHT_checkPoint_p_o  <=  PHT_checkPoint_p_i  ; 
             SCT_PHT_predTake_p_o    <=  PHT_predTake_p_i    ;
+            SCT_GHT_predTake_p_o    <=  GHT_predTake_p_i;
+            SCT_RAS_predTake_p_o    <=  RAS_predTake_p_i;
         end
         else if (hasData && needCancel) begin
             SCT_isCanceled_o    <=  `TRUE;

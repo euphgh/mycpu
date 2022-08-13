@@ -29,14 +29,10 @@
 module ReturnAddressStack (
     input	wire	clk,
     input	wire	rst,
-    // 总线接口{{{
-    input	wire	    inst_index_ok,
-    input	wire	    inst_req,
-/*}}}*/
     // 查询接口{{{
     input	wire	[`SINGLE_WORD]      PCR_VAddr_i,
-    input	wire	[`SINGLE_WORD]      BTB_fifthVAddr_i, // 该地址是四值字对齐,当第四条预测失败，返回该地址
     output	wire	[4*`SINGLE_WORD]    RAS_predDest_p_o,
+    output	wire	[3:0]               RAS_predTake_p_o,
     output	wire    [4*`RAS_CHECKPOINT] RAS_checkPoint_p_o,
 /*}}}*/
     // 修改接口{{{
@@ -101,17 +97,17 @@ module ReturnAddressStack (
             top     <=  FU_allCheckPoint_w_i[`RAS_CHECK_TOP];
         end
     end
-    assign wen = push || pop || repair;
+    assign wen = push || repair;
     assign wAddr = push ? (top+'d1) : FU_allCheckPoint_w_i[`RAS_CHECK_TOP];
     assign wdata = push ? (FU_erroVAddr_w_i+'d8) : {FU_allCheckPoint_w_i[`RAS_CHECK_PC],2'b0};
-    assign rAddr = top;
-    assign destination[0] = rdata;
-    assign destination[1] = rdata;
-    assign destination[2] = rdata;
-    assign destination[3] = rdata;
-    assign checkPoint[0] = {rdata[31:2],top};
-    assign checkPoint[1] = {rdata[31:2],top};
-    assign checkPoint[2] = {rdata[31:2],top};
-    assign checkPoint[3] = {rdata[31:2],top};
+    assign rAddr =  wen ? wAddr : 
+                    pop ? (top - 'd1) : top;
+    generate
+        for (genvar i = 0; i < 4; i = i+1)	begin
+            assign destination[i]       = rdata;
+            assign checkPoint[i]        = {rdata[31:2],top};
+            assign RAS_predTake_p_o[i]  = top!='d0;
+        end
+    endgenerate
 endmodule
 

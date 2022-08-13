@@ -1,6 +1,6 @@
 //`define CONTINUE
 `define OPEN_CACHE
-`define BTB_ONLY
+//`define BTB_ONLY
 //`define DEBUG 
 //`define BREAK
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
@@ -78,10 +78,9 @@
 // 检查点{{{
 `define GHT_REG_LEN             4
 `define GHT_REG                 `GHT_REG_LEN-1:0
-`define GHT_CHECK_BASE          (`GHT_REG_LEN+`GHT_DEST_PC_LEN)
-`define GHT_CHECK_DEST          `GHT_REG_LEN+`PHT_CHECK_BASE+`GHT_DEST_PC_LEN-1:`GHT_REG_LEN+`PHT_CHECK_BASE
-`define GHT_CHECK_REG           `GHT_REG_LEN+`PHT_CHECK_BASE-1:`PHT_CHECK_BASE
-`define GHT_CHECKPOINT_LEN      (`GHT_REG_LEN+`GHT_DEST_PC_LEN)
+`define GHT_CHECK_BASE          `GHT_REG_LEN
+`define GHT_CHECK_REG           (`GHT_REG_LEN+`PHT_CHECK_BASE-1):`PHT_CHECK_BASE
+`define GHT_CHECKPOINT_LEN      `GHT_REG_LEN
 `define GHT_CHECKPOINT          `GHT_CHECKPOINT_LEN-1:0
 // }}}
 // }}}

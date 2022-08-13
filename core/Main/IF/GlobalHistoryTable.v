@@ -19,15 +19,11 @@
 module GlobalHistoryTable (
     input	wire	    clk,
     input	wire	    rst,
-    // 总线接口{{{
-    input	wire	    inst_index_ok,
-    input	wire	    inst_req,
-/*}}}*/
     // 查询接口{{{
     input	wire	[`SINGLE_WORD]          PCR_VAddr_i,     // 该地址是四值字对齐,需要预测该PC开始的四条指令
-    input	wire	[`SINGLE_WORD]          BTB_fifthVAddr_i, // 该地址是四值字对齐,当第四条预测失败，返回该地址
     output	wire	[4*`GHT_CHECKPOINT]     GHT_checkPoint_p_o,
     output	wire	[4*`SINGLE_WORD]        GHT_predDest_p_o,
+    output	wire	[3:0]                   GHT_predTake_p_o,
 /*}}}*/
     // 修改接口{{{
     // IJTC repair 在后段任何分支预测错误时，需要以下输入
@@ -76,15 +72,14 @@ module GlobalHistoryTable (
     reg [HIS_REG-1:0]   ghr;
     wire    add_ghr     =   FU_repairAction_w_i[`NEED_REPAIR] && (FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_DIRECT);
     wire    reset_ghr   =   FU_repairAction_w_i[`NEED_REPAIR] && (FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_REPAIRE);
+    wire    [HIS_REG-1:0]   new_ghr =   add_ghr     ? {ghr[HIS_REG-2:0],FU_correctTake_w_i} : 
+                                        reset_ghr   ? FU_allCheckPoint_w_i[`GHT_CHECK_REG]  : ghr;
     always @(posedge clk) begin
         if (!rst) begin
             ghr <=  'd0;
         end
-        else if (add_ghr) begin
-            ghr <=  {ghr[HIS_REG-2:0],FU_correctTake_w_i};
-        end
-        else if (reset_ghr) begin
-            ghr <=  FU_allCheckPoint_w_i[`GHT_CHECK_REG];
+        else if (add_ghr || reset_ghr) begin
+            ghr <=  new_ghr;
         end
     end
     generate
@@ -108,14 +103,15 @@ module GlobalHistoryTable (
                 .rdata                  (rdata                           )  //output
             );/*}}}*/
             // 读操作逻辑 {{{
-            assign  rAddr   =   {ghr,vAddr[i][`GHT_PC_INDEX]};
-            assign destination[i]       = rdata;
-            assign checkPoint[i]        = {rdata[`GHT_DEST_PC],ghr};
+            assign  rAddr   =   {new_ghr,vAddr[i][`GHT_PC_INDEX]};
+            assign destination[i]       = {rdata[31:2],2'b0};
+            assign GHT_predTake_p_o[i]  = rdata[0];
+            assign checkPoint[i]        = ghr;
             // }}}
             // 写操作逻辑{{{
-            assign  wen     =   (vAddr[i][3:2]==number[i])  && reset_ghr;
-            assign wdata    =   FU_correctDest_w_i;
-            assign wAddr    =   {ghr,FU_erroVAddr_w_i[`GHT_PC_INDEX]};
+            assign  wen     =   (FU_erroVAddr_w_i[3:2]==number[i])  && reset_ghr;
+            assign wdata    =   {FU_correctDest_w_i[31:2],1'b0,FU_correctTake_w_i};
+            assign wAddr    =   {new_ghr,FU_erroVAddr_w_i[`GHT_PC_INDEX]};
             // }}}
         end
     endgenerate

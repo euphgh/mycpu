@@ -31,7 +31,6 @@ module MyRAM #(
 
     reg  [MY_DATA_WIDTH-1:0]    wline;
     reg                         collison_reg;
-    wire [MY_DATA_WIDTH-1:0]    collison_output;
     wire [MY_DATA_WIDTH-1:0]    doutb;
     wire collison = (rAddr == wAddr) && wen;
     always @(posedge clk) begin

@@ -21,7 +21,9 @@ module adder
     assign data_b = (sub_op|slt_op|sltu_op) ? ~add_b : add_b;
     assign top_a = (sltu_op) ? 1'b0 : data_a[BUS-1];
     assign top_b = (sltu_op) ? 1'b0 : data_b[BUS-1];
-    assign {cout,add_sub_res} = {top_a,data_a} + {top_b,data_b} + {{BUS{1'b0}},cin};
+    wire    carry;
+    assign {carry,add_sub_res} = {1'b0,data_a} + {1'b0,data_b} + cin;
+    assign cout = top_b + top_a + carry;
     assign overflow = (cout ^ add_sub_res[BUS-1]);
 
     assign slt_res[BUS-1:1] = 'b0;
@@ -32,5 +34,5 @@ module adder
     assign add_res = ({BUS{add_op||sub_op}} & add_sub_res)
                     |({BUS{slt_op}} & slt_res)
                     |({BUS{sltu_op}} & sltu_res);
-    assign crFlag = cout;
+    assign crFlag = carry;
 endmodule
