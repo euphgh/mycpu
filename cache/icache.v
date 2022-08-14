@@ -159,9 +159,9 @@ module icache(
     assign icache_ok     = cache_stat == `CA_OP;
     assign deal_cache_op = (cache_stat ==`RUN) && !sda_req && !sta_req && icache_req;
     assign inst_index_ok = !deal_cache_op && sin_req && (!sda_req || inst_data_ok)
-                           && (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL);                          
+                           && (cache_stat == `RUN);                          
 `else
-    assign inst_index_ok = (cache_stat != `RESET && cache_stat != `IDLE ) && sin_req && (!sda_req || inst_data_ok);
+    assign inst_index_ok = (cache_stat == `RUN) && sin_req && (!sda_req || inst_data_ok);
 `endif 
     assign inst_data_ok  = sda_req & (hit_run | inst_uncache_data_ok | sda_hasException);
     wire [3:0] sta_hit_way;

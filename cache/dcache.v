@@ -204,10 +204,10 @@ module dcache(
     assign dcache_ok     = (cache_stat == `CA_OP && !ca_need_wb) || (ca_wb_end);
     assign deal_cache_op = (cache_stat ==`RUN) && !sda_req && !sta_req && dcache_req;
     assign data_index_ok =  !deal_cache_op &&
-                            (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL && cache_stat != `CA_WB) 
+                            (cache_stat == `RUN)
                             && sin_req & (!sda_req | data_data_ok);
 `else
-    assign data_index_ok = (cache_stat != `RESET) && sin_req & (!sda_req | sda_data_ok);    
+    assign data_index_ok = (cache_stat == `RUN) && sin_req & (!sda_req | sda_data_ok);    
 `endif
     assign sda_data_ok  = sda_req & (hit_run | uca_ok | sda_hasException);
     reg uca_ok;
