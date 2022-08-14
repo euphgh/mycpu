@@ -622,7 +622,7 @@ module EXEDOWN(
     assign EXE_down_clRes_o = clRes;
     wire mulr_conflict = mulrReq && ((!isAccepted) || HiLo_busy);
     assign EXE_down_mulRes_o = MDU_writeData_p[31:0];
-    assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
+    assign ready = !(mduConflict || HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
     assign EXE_down_mathResSel_o =  clReq   ? 4'b0010 :
                                     (|ID_down_readHiLo_r_i || mulrReq)  ? 4'b0100 : 4'b1000;
     /*}}}*/
