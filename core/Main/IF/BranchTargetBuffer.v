@@ -122,9 +122,7 @@ module BranchTargetBuffer (
                     btbValid    <=  'd0;
                 end
                 else if (wen) begin
-                    btbReg[repairAddr]   <=  {
-                        FU_correctDest_w_i[31:2]
-                        };
+                    btbReg[repairAddr]   <=     FU_correctDest_w_i[31:2];
                     btbValid[repairAddr]    <=  FU_correctTake_w_i;
                     btbTag[repairAddr]      <=  repairTag;
                     `ifdef DEBUG
