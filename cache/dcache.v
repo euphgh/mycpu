@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 `include "./Cacheconst.vh"
-//`define EN_DCACHE_OP
+`define EN_DCACHE_OP
 module dcache(
     input           clk,
     input           rst,
@@ -418,12 +418,14 @@ module dcache(
                 //如果发生了不命中，进入MISS状态
 `ifdef EN_DCACHE_OP
                 `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
+                                            (sda_req && sda_unCache && !sda_hasException && uca_ok) ? `RECOVER :
                                           (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
                 `CA_SEL:    cache_stat <= `CA_OP;
                 `CA_OP :    cache_stat <= ca_need_wb && victim_stat == `VIC_IDLE ? `CA_WB  : `RUN;
                 `CA_WB :    cache_stat <= ca_wb_end  ? `RUN    : `CA_WB;
 `else
-                `RUN:       cache_stat <=  (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
+                `RUN:       cache_stat <=  (sda_req && sda_unCache && !sda_hasException && uca_ok) ? `RECOVER :
+                                         (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
 `endif
                 //如果axi从设备表示已经准备好向cache发送数据，进入REFILL状态
                 `MISS:      cache_stat <= arready && arvalid ? (`REFILL) : (`MISS);

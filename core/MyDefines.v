@@ -58,18 +58,6 @@
 `define RAS_DEST    4
 /*}}}*/
 //分支预测检查点长度定义{{{
-//RAS的检查点{{{
-`define RAS_SIZE            512
-`define RAS_PC_LEN          32
-`define RAS_WIDTH_LEN       `RAS_PC_LEN
-`define RAS_ENRTY_WIDTH     `RAS_WIDTH_LEN-1:0
-`define RAS_ENRTY_NUM_LEN   $clog2(`RAS_SIZE)  
-`define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
-`define RAS_CHECKPOINT_LEN  (30+`RAS_ENRTY_NUM_LEN)
-`define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
-`define RAS_CHECK_PC        30+`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE:`RAS_ENRTY_NUM_LEN+`GHT_CHECK_BASE+`PHT_CHECK_BASE
-`define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE:`GHT_CHECK_BASE+`PHT_CHECK_BASE
-//}}}
 //GHT {{{
 // 条目{{{
 `define GHT_DEST_PC_LEN         32
@@ -91,6 +79,18 @@
 `define PHT_CHECKPOINT_LEN      `PHT_COUNTER_LEN
 `define PHT_CHECKPOINT          `PHT_CHECKPOINT_LEN-1:0
 // }}}
+//RAS的检查点{{{
+`define RAS_SIZE            512
+`define RAS_PC_LEN          32
+`define RAS_WIDTH_LEN       `RAS_PC_LEN
+`define RAS_ENRTY_WIDTH     `RAS_WIDTH_LEN-1:0
+`define RAS_ENRTY_NUM_LEN   $clog2(`RAS_SIZE)  
+`define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
+`define RAS_CHECKPOINT_LEN  (30+`RAS_ENRTY_NUM_LEN)
+`define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
+`define RAS_CHECK_PC        30+`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE:`RAS_ENRTY_NUM_LEN+`GHT_CHECK_BASE+`PHT_CHECK_BASE
+`define RAS_CHECK_TOP       (`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE):(`GHT_CHECK_BASE+`PHT_CHECK_BASE)
+//}}}
 `define ALL_CHECKPOINT_LEN      (`RAS_CHECKPOINT_LEN+`GHT_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN)
 `define ALL_CHECKPOINT          `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT           `ALL_CHECKPOINT_LEN'b0
@@ -113,8 +113,9 @@
 `define RAS_NOACTION        2'b00
 
 `define IJTC_ACTION         2:1
-`define IJTC_REPAIRE        2'b10   // 预测地址错误处理
-`define IJTC_DIRECT         2'b01   // 更新ghr
+`define IJTC_UPDATA_REG     2'b11   // 只根据检查点恢复ghr，不写存储器
+`define IJTC_REPAIRE        2'b10   // 根据检查点恢复ghr，写寄存器
+`define IJTC_DIRECT         2'b01   // ghr左移一位
 `define IJTC_NOACTION       2'b00   // 分支不作为
 
 `define BTB_ACTION          0

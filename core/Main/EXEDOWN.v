@@ -624,8 +624,7 @@ module EXEDOWN(
     assign EXE_down_mulRes_o = MDU_writeData_p[31:0];
     assign ready = !(HiLoConflict|| writeHiLoConflict || mulr_conflict || cl_conflict);
     assign EXE_down_mathResSel_o =  clReq   ? 4'b0010 :
-                                    mulrReq ? 4'b0001 :
-                                    (|ID_down_readHiLo_r_i)  ? 4'b0100 : 4'b1000;
+                                    (|ID_down_readHiLo_r_i || mulrReq)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
     assign EXE_down_hasExceprion_w_o    = ID_down_hasException_r_i && !ID_down_isDelaySlot_r_i;  // 为了使得分支跳转在异常处理之前

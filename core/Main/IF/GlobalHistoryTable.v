@@ -70,15 +70,17 @@ module GlobalHistoryTable (
     // }}}
     // GHT{{{
     reg [HIS_REG-1:0]   ghr;
+
     wire    add_ghr     =   FU_repairAction_w_i[`NEED_REPAIR] && (FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_DIRECT);
     wire    reset_ghr   =   FU_repairAction_w_i[`NEED_REPAIR] && (FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_REPAIRE);
-    wire    [HIS_REG-1:0]   new_ghr =   add_ghr     ? {ghr[HIS_REG-2:0],FU_correctTake_w_i} : 
-                                        reset_ghr   ? FU_allCheckPoint_w_i[`GHT_CHECK_REG]  : ghr;
+    wire    updata_ghr  =   FU_repairAction_w_i[`NEED_REPAIR] && (FU_repairAction_w_i[`IJTC_ACTION]==`IJTC_UPDATA_REG);
+    wire    [HIS_REG-1:0]   base_ghr=   add_ghr     ? ghr : FU_allCheckPoint_w_i[`GHT_CHECK_REG];
+    wire    [HIS_REG-1:0]   new_ghr =   (FU_allCheckPoint_w_i[`GHT_CHECK_REG]<<1) | {{HIS_REG-1{1'b0}},FU_correctTake_w_i};
     always @(posedge clk) begin
         if (!rst) begin
             ghr <=  'd0;
         end
-        else if (add_ghr || reset_ghr) begin
+        else if (add_ghr || reset_ghr||updata_ghr) begin
             ghr <=  new_ghr;
         end
     end
@@ -111,7 +113,7 @@ module GlobalHistoryTable (
             // 写操作逻辑{{{
             assign  wen     =   (FU_erroVAddr_w_i[3:2]==number[i])  && reset_ghr;
             assign wdata    =   {FU_correctDest_w_i[31:2],1'b0,FU_correctTake_w_i};
-            assign wAddr    =   {new_ghr,FU_erroVAddr_w_i[`GHT_PC_INDEX]};
+            assign wAddr    =   {FU_allCheckPoint_w_i[`GHT_CHECK_REG],FU_erroVAddr_w_i[`GHT_PC_INDEX]};
             // }}}
         end
     endgenerate

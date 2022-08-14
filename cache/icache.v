@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 `include "./Cacheconst.vh"
-//`define EN_ICACHE_OP
+`define EN_ICACHE_OP
 module icache(
     input           clk,
     input           rst,
@@ -14,36 +14,36 @@ module icache(
     output        icache_ok   ,
 `endif
 
-    input            inst_req         ,
-    input            inst_wr          ,
-    input  [1 :0]    inst_size        ,
-    input  [7 :0]    inst_index       ,
-    input  [19:0]    inst_tag         ,
-    input            inst_hasException,
-    input            inst_unCache     ,
-    input  [31 :0]   inst_wdata       ,
-    output [127:0]   inst_rdata       ,
-    output           inst_index_ok    ,
-    output           inst_data_ok     ,
+    (*mark_debug = "true"*)input            inst_req         ,
+    (*mark_debug = "true"*)input            inst_wr          ,
+    (*mark_debug = "true"*)input  [1 :0]    inst_size        ,
+    (*mark_debug = "true"*)input  [7 :0]    inst_index       ,
+    (*mark_debug = "true"*)input  [19:0]    inst_tag         ,
+    (*mark_debug = "true"*)input            inst_hasException,
+    (*mark_debug = "true"*)input            inst_unCache     ,
+    (*mark_debug = "true"*)input  [31 :0]   inst_wdata       ,
+    (*mark_debug = "true"*)output [127:0]   inst_rdata       ,
+    (*mark_debug = "true"*)output           inst_index_ok    ,
+    (*mark_debug = "true"*)output           inst_data_ok     ,
 
     //  AXI接口信号定义:
     output [3 :0] arid   ,
-    output [31:0] araddr ,
+    (*mark_debug = "true"*)output [31:0] araddr ,
     output [3 :0] arlen  ,
     output [2 :0] arsize ,
     output [1 :0] arburst,
     output [1 :0] arlock ,
     output [3 :0] arcache,
     output [2 :0] arprot , 
-    output        arvalid,
-    input         arready,
+    (*mark_debug = "true"*)output        arvalid,
+    (*mark_debug = "true"*)input         arready,
 
     input  [3 :0] rid    ,
-    input  [31:0] rdata  ,
+    (*mark_debug = "true"*)input  [31:0] rdata  ,
     input  [1 :0] rresp  ,
-    input         rlast  ,
-    input         rvalid ,
-    output        rready ,
+    (*mark_debug = "true"*)input         rlast  ,
+    (*mark_debug = "true"*)input         rvalid ,
+    (*mark_debug = "true"*)output        rready ,
 
     output [3 :0] awid   ,
     output [31:0] awaddr ,
@@ -69,11 +69,11 @@ module icache(
     output        bready ,
 
     // inst_uncache
-    output         inst_uncache_req    ,
-    output [31 :0] inst_uncache_addr   ,
-    input  [127:0] inst_uncache_rdata  ,
-    input          inst_uncache_addr_ok,
-    input          inst_uncache_data_ok
+    (*mark_debug = "true"*)output         inst_uncache_req    ,
+    (*mark_debug = "true"*)output [31 :0] inst_uncache_addr   ,
+    (*mark_debug = "true"*)input  [127:0] inst_uncache_rdata  ,
+    (*mark_debug = "true"*)input          inst_uncache_addr_ok,
+    (*mark_debug = "true"*)input          inst_uncache_data_ok
 );
     ////////////////////////////////////////////////////////
     // Signal Define
@@ -96,16 +96,16 @@ module icache(
     //sda段
     reg         sda_req            ;
     reg [1  :0] sda_size           ;
-    reg [6  :0] sda_index          ;
+    (*mark_debug = "true"*)reg [6  :0] sda_index          ;
     reg         sda_offset         ;
     reg [19 :0] sda_tag            ;
     reg         sda_hasException   ;
-    reg         sda_unCache        ;
+    (*mark_debug = "true"*)reg         sda_unCache        ;
     reg [20 :0] sda_tagv_back [3:0];
     reg [255:0] sda_rdata     [3:0];
     reg         sda_uca_addr_ok    ;
     //主自动机状态
-    reg [3:0] cache_stat;
+    (*mark_debug = "true"*)reg [3:0] cache_stat;
     //RESET
     reg [6:0] reset_counter;
     //REFILL
@@ -133,12 +133,12 @@ module icache(
     wire [6 :0] tagv_index     ;
     wire [19:0] tagv_wdata     ;
     wire        tagv_valid     ;
-    wire [20:0] tagv_back [3:0];
+    (*mark_debug = "true"*)wire [20:0] tagv_back [3:0];
     // data块
     wire [31 :0] data_wen   [3:0];
     wire [6  :0] data_index      ;
     wire [255:0] data_wdata      ;
-    wire [255:0] data_rdata [3:0];
+    (*mark_debug = "true"*)wire [255:0] data_rdata [3:0];
     // icacheop
 `ifdef EN_ICACHE_OP
     reg  [4 :0] ca_op_reg    ;//操作类型
@@ -233,7 +233,7 @@ module icache(
         end else begin
         end
     end
-    reg [127:0] sda_back_data;
+    (*mark_debug = "true"*)reg [127:0] sda_back_data;
 
     //sda段暂存从sta段流入的信号
     always @(posedge clk ) begin
@@ -306,11 +306,13 @@ module icache(
 `ifdef EN_ICACHE_OP
                 //TODO
                 `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
+                                          (sda_req && sda_unCache && !sda_hasException && inst_uncache_data_ok) ? `RECOVER :
                                           (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
                 `CA_SEL:    cache_stat <= `CA_OP;
                 `CA_OP:     cache_stat <= `RUN; //IC操作统一，控制信号简单
 `else
-                `RUN:       cache_stat <=  (sda_req && !sda_unCache && !hit_run && !sda_hasException) ? `MISS : `RUN;
+                `RUN:       cache_stat <=  (sda_req && sda_unCache && !sda_hasException && inst_uncache_data_ok) ? `RECOVER :
+                                           (sda_req && !sda_unCache && !hit_run && !sda_hasException) ? `MISS : `RUN;
 `endif
                 //如果axi从设备表示已经准备好向cache发送数据，进入REFILL状态
                 `MISS:      cache_stat <= arready ? (`REFILL) : (`MISS);

@@ -287,10 +287,25 @@ module EXEUP(
                                 ID_up_branchKind_r_i[`BRANCH_GT]    ? bgt_take :
                                 ID_up_branchKind_r_i[`BRANCH_GE]    ? bge_take : ID_up_branchRisk_r_i;
     wire isLink = ID_up_repairAction_r_i[`NEED_REPAIR] && |(ID_up_writeNum_r_i);
+    wire [`RAS_CHECKPOINT]  newRasCheckpint ;
+    wire [`RAS_ENRTY_NUM]   newRasTop = ID_up_checkPoint_r_i[`RAS_CHECK_TOP]+'d1;
+    assign newRasCheckpint = {
+        (ID_up_VAddr_r_i[31:2]+2'd2),
+        newRasTop};
+    wire isJr   = ID_up_repairAction_r_i[`RAS_ACTION]==2'b00;
+    wire [`ALL_CHECKPOINT]  checkPoint      = { (isJr ? newRasCheckpint : {ID_up_checkPoint_r_i[`RAS_CHECK_PC],ID_up_checkPoint_r_i[`RAS_CHECK_TOP]} ),
+                                                ID_up_checkPoint_r_i[`GHT_CHECK_REG],
+                                                ID_up_checkPoint_r_i[`PHT_CHECKPOINT]
+                                                };
     assign EXE_up_aluRes_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;
     assign EXE_up_corrDest_o = EXE_up_corrTake_o ? aluso : {ID_up_VAddr_r_i[31:3]+1'b1,ID_up_VAddr_r_i[2:0]};
-    assign EXE_up_repairAction_o = {EXE_up_branchRisk_o,ID_up_repairAction_r_i[`REPAIR_ACTION_LEN-2:0]};
-    assign EXE_up_checkPoint_o   = ID_up_checkPoint_r_i;
+    assign EXE_up_repairAction_o = {EXE_up_branchRisk_o,
+                                    ID_up_repairAction_r_i[`PHT_ACTION],
+                                    2'b11,
+                                    ID_up_repairAction_r_i[`IJTC_ACTION],
+                                    ID_up_repairAction_r_i[`BTB_ACTION]
+                                    };
+    assign EXE_up_checkPoint_o   = checkPoint;
     wire    predictHit  =   ((!EXE_up_corrTake_o) && (!ID_up_predTake_r_i)) ||
                             ((EXE_up_corrDest_o==ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i);
     assign EXE_up_branchRisk_o   =  (!predictHit) && ID_up_branchRisk_r_i ;

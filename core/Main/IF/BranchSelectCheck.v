@@ -304,13 +304,5 @@ module BranchSelectCheck (
         .isDiffRes              (BSC_isDiffRes_w_o                    ), //input
         .now_RepairAction       (now_RepairAction[`REPAIR_ACTION]     )  //output // INST_NEW
     );
-
-    always @(*) begin
-        if (BSC_isDiffRes_w_o || now_RepairAction[`NEED_REPAIR]) begin
-            #(4);
-            #(1);
-//           $finish(0);
-        end
-    end
 /*}}}*/
 endmodule

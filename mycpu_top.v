@@ -93,45 +93,72 @@ module mycpu_top(
     wire [`GPR_NUM]             debug_wb_rf_wnum1               ;
     wire [`SINGLE_WORD]         debug_wb_rf_wdata0              ;
     wire [`SINGLE_WORD]         debug_wb_rf_wdata1              ;
+    wire                        dcache_req  ;
+    wire           [4 :0]       dcache_op   ;
+    wire           [31:0]       dcache_addr ;
+    wire           [19:0]       dcache_tag  ;
+    wire                        dcache_valid;
+    wire                        dcache_dirty;
+    wire                        dcache_ok   ;
+    wire                        icache_req  ;
+    wire          [4 :0]        icache_op   ;
+    wire          [31:0]        icache_addr ;
+    wire          [19:0]        icache_tag  ;
+    wire                        icache_valid;
+    wire                        icache_ok   ;
     //End of automatic wire
     //End of automatic define
-    Main  u_Main (/*{{{*/
-        .clk                     ( aclk                 ),
-        .rst                     ( aresetn              ),
-        .ext_int                 ( ext_int              ),
-        .inst_rdata              ( inst_rdata           ),
-        .inst_index_ok           ( inst_index_ok        ),
-        .inst_data_ok            ( inst_data_ok         ),
-        .data_rdata              ( data_rdata           ),
-        .data_index_ok           ( data_index_ok        ),
-        .data_data_ok            ( data_data_ok         ),
-    
-        .inst_req                ( inst_req             ),
-        .inst_wr                 ( inst_wr              ),
-        .inst_size               ( inst_size            ),
-        .inst_index              ( inst_index           ),
-        .inst_tag                ( inst_tag             ),
-        .inst_hasException       ( inst_hasException    ),
-        .inst_unCache            ( inst_unCache         ),
-        .inst_wdata              ( inst_wdata           ),
-        .data_req                ( data_req             ),
-        .data_wr                 ( data_wr              ),
-        .data_size               ( data_size            ),
-        .data_index              ( data_index           ),
-        .data_tag                ( data_tag             ),
-        .data_unCache            ( data_unCache         ),
-        .data_hasException       ( data_hasException    ),
-        .data_wstrb              ( data_wstrb           ),
-        .data_wdata              ( data_wdata           ),
-        .debug_wb_pc0            ( debug_wb_pc0         ),
-        .debug_wb_pc1            ( debug_wb_pc1         ),
-        .debug_wb_rf_wen0        ( debug_wb_rf_wen0     ),
-        .debug_wb_rf_wen1        ( debug_wb_rf_wen1     ),
-        .debug_wb_rf_wnum0       ( debug_wb_rf_wnum0    ),
-        .debug_wb_rf_wnum1       ( debug_wb_rf_wnum1    ),
-        .debug_wb_rf_wdata0      ( debug_wb_rf_wdata0   ),
-        .debug_wb_rf_wdata1      ( debug_wb_rf_wdata1   )
-    );/*}}}*/
+    Main  u_Main (//{{{
+    .clk                     ( aclk                 ),
+    .rst                     ( aresetn              ),
+    .ext_int                 ( ext_int              ),
+    .inst_rdata              ( inst_rdata           ),
+    .inst_index_ok           ( inst_index_ok        ),
+    .inst_data_ok            ( inst_data_ok         ),
+    .data_rdata              ( data_rdata           ),
+    .data_index_ok           ( data_index_ok        ),
+    .icache_ok               ( icache_ok            ),
+
+    .inst_req                ( inst_req             ),
+    .inst_wr                 ( inst_wr              ),
+    .inst_size               ( inst_size            ),
+    .inst_index              ( inst_index           ),
+    .inst_tag                ( inst_tag             ),
+    .inst_hasException       ( inst_hasException    ),
+    .inst_unCache            ( inst_unCache         ),
+    .inst_wdata              ( inst_wdata           ),
+    .data_req                ( data_req             ),
+    .data_wr                 ( data_wr              ),
+    .data_size               ( data_size            ),
+    .data_index              ( data_index           ),
+    .data_data_ok            ( data_data_ok         ),
+    .data_tag                ( data_tag             ),
+    .data_unCache            ( data_unCache         ),
+    .data_hasException       ( data_hasException    ),
+    .data_wstrb              ( data_wstrb           ),
+    .data_wdata              ( data_wdata           ),
+    .dcache_req              ( dcache_req           ),
+    .dcache_op               ( dcache_op            ),
+    .dcache_addr             ( dcache_addr          ),
+    .dcache_tag              ( dcache_tag           ),
+    .dcache_valid            ( dcache_valid         ),
+    .dcache_dirty            ( dcache_dirty         ),
+    .dcache_ok               ( dcache_ok            ),
+    .icache_req              ( icache_req           ),
+    .icache_op               ( icache_op            ),
+    .icache_addr             ( icache_addr          ),
+    .icache_tag              ( icache_tag           ),
+    .icache_valid            ( icache_valid         ),
+    .debug_wb_pc0            ( debug_wb_pc0         ),
+    .debug_wb_pc1            ( debug_wb_pc1         ),
+    .debug_wb_rf_wen0        ( debug_wb_rf_wen0     ),
+    .debug_wb_rf_wen1        ( debug_wb_rf_wen1     ),
+    .debug_wb_rf_wnum0       ( debug_wb_rf_wnum0    ),
+    .debug_wb_rf_wnum1       ( debug_wb_rf_wnum1    ),
+    .debug_wb_rf_wdata0      ( debug_wb_rf_wdata0   ),
+    .debug_wb_rf_wdata1      ( debug_wb_rf_wdata1   )
+);
+    // }}}
     //------------Inst Cache-----------{{{
     wire  [3 :0] inst_cache_arid   ;
     wire  [31:0] inst_cache_araddr ;
@@ -273,6 +300,12 @@ module mycpu_top(
         .inst_uncache_addr    (inst_uca_addr       ),
         .inst_uncache_rdata   (inst_uca_rdata      ),
         .inst_uncache_addr_ok (inst_uca_addr_ok    ),
+        .icache_req           (icache_req          ),
+        .icache_op            (icache_op           ),
+        .icache_addr          (icache_addr         ),
+        .icache_tag           (icache_tag          ),
+        .icache_valid         (icache_valid        ),
+        .icache_ok            (icache_ok           ),
         .inst_uncache_data_ok (inst_uca_data_ok    )
     );
     inst_uncache u_inst_uncache (
@@ -443,6 +476,13 @@ module mycpu_top(
         .wready               (data_cache_wready   ),
         .bid                  (data_cache_bid      ),
         .bvalid               (data_cache_bvalid   ),
+        .dcache_req           (dcache_req          ),
+        .dcache_op            (dcache_op           ),
+        .dcache_addr          (dcache_addr         ),
+        .dcache_tag           (dcache_tag          ),
+        .dcache_valid         (dcache_valid        ),
+        .dcache_dirty         (dcache_dirty        ),
+        .dcache_ok            (dcache_ok           ),
         .bresp                (data_cache_bresp    ),
         .bready               (data_cache_bready   ),
         .data_uncache_req     (data_uca_req    ),

@@ -87,7 +87,7 @@ module Main(
     output           [19:0]                 dcache_tag  ,
     output                                  dcache_valid,
     output                                  dcache_dirty,
-    output                                  dcache_ok   ,
+    input                                   dcache_ok   ,
     output                                  icache_req  ,
     output          [4 :0]                  icache_op   ,
     output          [31:0]                  icache_addr ,

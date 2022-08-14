@@ -319,9 +319,11 @@ wire temp_1_1 = (!inst[0][27]&!inst[0][28]&!inst[0][29]&!inst[0][30]&!inst[0][31
 	assign	ID_up_repairAction_o[0]	=	((temp_1_0) & ((!inst[0][5]))) |
  (!(temp_1_0) & ((!inst[0][31])));
 	assign	ID_up_repairAction_o[1]	=	((temp_1_0) & (1'b0)) |
- (!(temp_1_0) & (1'b0));
+ (!(temp_1_0) & ((!inst[0][27]& inst[0][28]) | ( inst[0][27]& inst[0][28]) |
+( inst[0][27]&!inst[0][28])));
 	assign	ID_up_repairAction_o[2]	=	((temp_1_0) & ((!inst[0][5]))) |
- (!(temp_1_0) & (( inst[0][26]& inst[0][27]&!inst[0][28])));
+ (!(temp_1_0) & ((!inst[0][27]& inst[0][28]) | ( inst[0][27]& inst[0][28]) |
+( inst[0][27]&!inst[0][28])));
 	assign	ID_up_repairAction_o[3]	=	((temp_1_0) & ((!inst[0][0]))) |
  (!(temp_1_0) & (((temp_1_1) & ((!inst[0][20]))) |
  (!(temp_1_1) & ((!inst[0][26]& inst[0][28]) | ( inst[0][26]& inst[0][28]) |

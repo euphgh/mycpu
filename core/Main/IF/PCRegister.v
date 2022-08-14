@@ -122,6 +122,12 @@ module PCRegister (
             notHitGet           <=  notHitGet + !(inst_index_ok && inst_req);
         end
     end
+    always @(posedge clk) begin
+        if (SBA_flush_w_i || BSC_isDiffRes_w_i) begin
+            #2;
+            #1;
+        end
+    end
 
     assign inst_index       = nextAlignedPC[`CACHE_INDEX];
     assign lastBase         = {nextAlignedPC[31:4]-1'b1,nextAlignedPC[3:0]};
