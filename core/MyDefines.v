@@ -206,6 +206,15 @@
 `define FORWARD_MODE_MEM        `FORWARD_MODE_LEN'b0000100
 `define FORWARD_MODE_REEXE      `FORWARD_MODE_LEN'b0000010
 `define FORWARD_MODE_ID         `FORWARD_MODE_LEN'b0000001
+
+`define DELAY_MODE_LEN      3
+`define DELAY_MODE          `DELAY_MODE_LEN-1:0
+`define DELAY_MODE_MEM      `DELAY_MODE_LEN'b100
+`define DELAY_MODE_REEXE    `DELAY_MODE_LEN'b010
+`define DELAY_MODE_ID       `DELAY_MODE_LEN'b001
+`define DELAY_MEM_BIT       2
+`define DELAY_REEXE_BIT     1
+`define DELAY_ID_BIT        0
 // }}}
 //alu运算种类{{{
 `define ALUOP_LEN   14

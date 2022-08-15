@@ -22,6 +22,11 @@ module RegFile(
     // 读端口 
     input	wire	[4*`GPR_NUM]        AB_regReadNum_p_w,         
     output	wire	[4*`SINGLE_WORD]    readData_p_o,        
+    input	wire	[2*`GPR_NUM]        SBA_delayReadNum_w_p_i,
+    input	wire	[2*`GPR_NUM]        PREMEM_delayReadNum_w_p_i,
+    output	wire	[2*`SINGLE_WORD]    ID_up_delayReadData_w_p_o,
+    output	wire	[2*`SINGLE_WORD]    ID_down_delayReadData_w_p_o,
+
     // 写端口
     input	wire	                    PBA_writeEnable_w_i,     
     input	wire	[`GPR_NUM]          PBA_writeNum_w_i,        
@@ -46,8 +51,11 @@ module RegFile(
 
     reg     [`SINGLE_WORD]  regfile         [31:1];
     wire	[`GPR_NUM]  	readNum         [3:0];
+    wire	[`GPR_NUM]  	delayReadNum    [3:0];
     wire	[`SINGLE_WORD]  readData        [3:0];
+    wire	[`SINGLE_WORD]  delayReadData   [3:0];
     wire    [1:0]           hasForward      [3:0];
+    wire    [1:0]           delayHasForward [3:0];
     wire    [`SINGLE_WORD]  writeData       [1:0];
     wire	[1:0]           writeEnable     ;
     wire	[`GPR_NUM]      writeNum        [1:0]; 
@@ -63,11 +71,16 @@ module RegFile(
     assign writeNum[1]      = WB_writeNum_w_i;
     assign WAW_coflict  = (writeEnable[0] && writeEnable[1]) && (writeNum[0]==writeNum[1]);
     `PACK_ARRAY(`SINGLE_WORD_LEN,4,readData,readData_p_o)
+    assign {delayReadNum[1],delayReadNum[0]} = SBA_delayReadNum_w_p_i;
+    assign {delayReadNum[3],delayReadNum[2]} = PREMEM_delayReadNum_w_p_i;
+    assign ID_up_delayReadData_w_p_o = {delayReadData[1],delayReadData[0]};
+    assign ID_down_delayReadData_w_p_o = {delayReadData[3],delayReadData[2]};
     // 前递信号生成逻辑{{{
     generate
         for (genvar j = 0; j < 4; j=j+1)	begin
             for (genvar k = 0; k < 2; k=k+1)	begin
                 assign hasForward[j][k] = writeEnable[k] && (writeNum[k]==readNum[j]);
+                assign delayHasForward[j][k] = writeEnable[k] && (writeNum[k]==delayReadNum[j]);
             end
         end
     endgenerate
@@ -79,6 +92,9 @@ module RegFile(
         assign readData[i]  =   !(|readNum[i]) ? `ZEROWORD :
                             (hasForward[i][0]) ? writeData[0] : 
                             (hasForward[i][1]) ? writeData[1] : regfile[readNum[i]];
+        assign delayReadData[i]  =   !(|delayReadNum[i]) ? `ZEROWORD :
+                            (delayHasForward[i][0]) ? writeData[0] : 
+                            (delayHasForward[i][1]) ? writeData[1] : regfile[delayReadNum[i]];
     end
     endgenerate
     /*}}}*/

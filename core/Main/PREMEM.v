@@ -34,6 +34,16 @@ module PREMEM (
     input	wire	                        SBA_flush_w_i,
     // 总线
     input	wire	                        data_index_ok,
+    // 延迟执行{{{
+    input	wire	[2*`SINGLE_WORD]        ID_down_delayReadData_w_p_i,
+    // }}}
+    // 数据前递{{{
+    input	wire	[`GPR_NUM]              REEXE_writeNum_w_i,   
+    input	wire	[`GPR_NUM]              MEM_writeNum_w_i,
+
+    input	wire	                        MEM_forwardMode_w_i,
+    input	wire	                        REEXE_forwardMode_w_i,
+    // }}}
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////     线输出信号      ///////////////{{{
@@ -72,6 +82,7 @@ module PREMEM (
     output	wire	                        PREMEM_eret_w_o,
     output	wire	                        PREMEM_isRefill_w_o,       // 不同异常地址
     output	wire	                        PREMEM_isInterrupt_w_o,    // 不同异常地址
+    output	wire	[2*`GPR_NUM]            PREMEM_delayReadNum_w_p_o, 
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      寄存器输入   ////////////////{{{
@@ -87,7 +98,7 @@ module PREMEM (
     input	wire	[`SINGLE_WORD]          EXE_down_mulRes_i,          // 专门用于Mul的接口
     input	wire	[`MATH_SEL]             EXE_down_mathResSel_i,      // 数学运算结果的选择
     input	wire	                        EXE_down_nonBlockMark_i,    // 该条指令执行在MDU运算期间}}}
-    // 异常处理类信息
+    // 异常处理类信息{{{
     input	wire	                        EXE_up_branchRisk_i,
     input	wire    [`EXCCODE]              EXE_down_ExcCode_i,         // 异常信号	
     input	wire	                        EXE_down_hasException_i,    // 存在异常
@@ -97,14 +108,23 @@ module PREMEM (
     input	wire	                        EXE_down_isRefill_i,
     input	wire	[`CP0_POSITION]         EXE_down_positionCp0_i,     // {rd,sel}
     input	wire	                        EXE_down_readCp0_i,         // mfc0,才会拉高
-    input	wire	                        EXE_down_writeCp0_i,        // mtc0,才会拉高
-    //访存信号{{{
+    input	wire	                        EXE_down_writeCp0_i,        // mtc0,才会拉高}}}
+    //访存信号
     input	wire	                        EXE_down_memReq_i,          // 表示访存需要              
     input	wire	                        EXE_down_memWR_i,            // 表示访存类型
     input	wire	[3:0]                   EXE_down_memEnable_i,       // 表示字节读写使能,0000表示全不写
     input	wire	                        EXE_down_memAtom_i,         // 表示该访存操作是原子访存操作,需要读写LLbit
     input	wire	[`SINGLE_WORD]          EXE_down_storeData_i,
-    input	wire    [`LOAD_SEL]             EXE_down_loadSel_i,         // load指令模式		}}}
+    input	wire    [`LOAD_SEL]             EXE_down_loadSel_i,         // load指令模式
+    // delay exe{{{
+    input	wire	                        EXE_down_notExc_i,            // 延迟执行指令
+    input	wire	[2*`SINGLE_WORD]        EXE_down_preSrc_p_i,          // 指令自带的操作数
+    input	wire	                        EXE_down_oprand0IsReg_i,       
+    input	wire	                        EXE_down_oprand1IsReg_i,       
+    input	wire	[`ALUOP]                EXE_down_aluOprator_i,
+    input	wire	[2*`GPR_NUM]            EXE_down_readNum_p_i,         // 读寄存器index 
+    input	wire	[1:0]                   EXE_down_needRead_p_i,        // 延迟执行需要读寄存器}}}
+
     // TLB指令,最危险指令，需要等待后面的流水线排空才能发射{{{
     input	wire	                        EXE_down_isTLBInst_i,       // 表示是TLB指令
     input	wire	[`TLB_INST]             EXE_down_TLBInstOperator_i, // 执行的种类
@@ -121,6 +141,16 @@ module PREMEM (
     output	wire	                        PREMEM_isDelaySlot_o,       // 表示该指令是否是延迟槽指令,用于异常处理
     output	wire	                        PREMEM_isDangerous_o,       // 表示该条指令是不是危险指令,传递给下一级
     output	wire	[1:0]                   PREMEM_alignCheck_o,        // 访存地址后两位
+    // 延迟执行{{{
+    output	wire	                        PREMEM_notExc_o,            // 该指令是延迟执行指令
+    output	wire	[`DELAY_MODE]           PREMEM_forwardSel0_o, 
+    output	wire	[`DELAY_MODE]           PREMEM_forwardSel1_o, 
+    output	wire	                        PREMEM_oprand0IsReg_o,       
+    output	wire	                        PREMEM_oprand1IsReg_o,       
+    output	wire	[2*`SINGLE_WORD]        PREMEM_preSrc_p_o,          // 指令自带的操作数
+    output	wire	[2*`SINGLE_WORD]        PREMEM_readData_p_o,        
+    output	wire	[`ALUOP]                PREMEM_aluOperator_o,
+    // }}}
     // 访存类信息
     output	wire    [`LOAD_SEL]             PREMEM_loadSel_o,           // load指令模式		
     output	wire	                        PREMEM_memReq_o,           
@@ -140,11 +170,11 @@ module PREMEM (
     output	wire	                        PREMEM_writeCp0_o,          // mtc0,才会拉高
     // Cache指令,在该段中,cache地址由aluRes给出
     output	wire	                        PREMEM_isCacheInst_o,       // 表示是Cache指令
-    output	wire	[`CACHE_OP]             PREMEM_CacheOperator_o,     // Cache指令op
-    output	wire	[`SINGLE_WORD]          PREMEM_CacheAddress_o       // Cache指令地址
+    output	wire	[`CACHE_OP]             PREMEM_CacheOperator_o      // Cache指令op
 /*}}}*/
 );
     // 自动定义{{{
+    wire    load_conflict;
     /*autodef*/
     // }}}
     //Intersegment_register{{{
@@ -178,6 +208,13 @@ module PREMEM (
 	reg	[0:0]			EXE_down_memAtom_r_i;
 	reg	[`SINGLE_WORD]			EXE_down_storeData_r_i;
 	reg	[`LOAD_SEL]			EXE_down_loadSel_r_i;
+	reg	[0:0]			EXE_down_notExc_r_i;
+	reg	[2*`SINGLE_WORD]			EXE_down_preSrc_p_r_i;
+	reg	[0:0]			EXE_down_oprand0IsReg_r_i;
+	reg	[0:0]			EXE_down_oprand1IsReg_r_i;
+	reg	[`ALUOP]			EXE_down_aluOprator_r_i;
+	reg	[2*`GPR_NUM]			EXE_down_readNum_p_r_i;
+	reg	[1:0]			EXE_down_needRead_p_r_i;
 	reg	[0:0]			EXE_down_isTLBInst_r_i;
 	reg	[`TLB_INST]			EXE_down_TLBInstOperator_r_i;
 	reg	[0:0]			EXE_down_isCacheInst_r_i;
@@ -210,6 +247,13 @@ module PREMEM (
 			EXE_down_memAtom_r_i	<=	'b0;
 			EXE_down_storeData_r_i	<=	'b0;
 			EXE_down_loadSel_r_i	<=	'b0;
+			EXE_down_notExc_r_i	<=	'b0;
+			EXE_down_preSrc_p_r_i	<=	'b0;
+			EXE_down_oprand0IsReg_r_i	<=	'b0;
+			EXE_down_oprand1IsReg_r_i	<=	'b0;
+			EXE_down_aluOprator_r_i	<=	'b0;
+			EXE_down_readNum_p_r_i	<=	'b0;
+			EXE_down_needRead_p_r_i	<=	'b0;
 			EXE_down_isTLBInst_r_i	<=	'b0;
 			EXE_down_TLBInstOperator_r_i	<=	'b0;
 			EXE_down_isCacheInst_r_i	<=	'b0;
@@ -242,6 +286,13 @@ module PREMEM (
 			EXE_down_memAtom_r_i	<=	EXE_down_memAtom_i;
 			EXE_down_storeData_r_i	<=	EXE_down_storeData_i;
 			EXE_down_loadSel_r_i	<=	EXE_down_loadSel_i;
+			EXE_down_notExc_r_i	<=	EXE_down_notExc_i;
+			EXE_down_preSrc_p_r_i	<=	EXE_down_preSrc_p_i;
+			EXE_down_oprand0IsReg_r_i	<=	EXE_down_oprand0IsReg_i;
+			EXE_down_oprand1IsReg_r_i	<=	EXE_down_oprand1IsReg_i;
+			EXE_down_aluOprator_r_i	<=	EXE_down_aluOprator_i;
+			EXE_down_readNum_p_r_i	<=	EXE_down_readNum_p_i;
+			EXE_down_needRead_p_r_i	<=	EXE_down_needRead_p_i;
 			EXE_down_isTLBInst_r_i	<=	EXE_down_isTLBInst_i;
 			EXE_down_TLBInstOperator_r_i	<=	EXE_down_TLBInstOperator_i;
 			EXE_down_isCacheInst_r_i	<=	EXE_down_isCacheInst_i;
@@ -269,7 +320,7 @@ module PREMEM (
     wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
     wire   store_conflict  = EXE_down_memReq_r_i && MEM_hasRisk_w_i;
     wire   tlb_conflict    = EXE_down_isTLBInst_r_i && MEM_hasRisk_w_i;
-    wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
+    wire ready = !(store_conflict || tlb_conflict || cache_noAccept || load_conflict);
     // 上下控制
     assign PREMEM_allowin_w_o = SBA_okToChange_w_i && (ready||!hasData) && MEM_allowin_w_i;
     // 上下不同部分
@@ -299,7 +350,7 @@ module PREMEM (
     assign PREMEM_hasRisk_w_o  = EXE_down_exceptionRisk_r_i || MEM_hasRisk_w_i || EXE_up_branchRisk_r_i;
     assign PREMEM_writeNum_w_o = EXE_down_writeNum_r_i;
     assign PREMEM_hasDangerous_w_o = EXE_down_isDangerous_r_i;
-    assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i && !EXE_down_readCp0_r_i;
+    assign PREMEM_forwardMode_w_o = hasData && ready && !EXE_down_memReq_r_i && !EXE_down_readCp0_r_i && !EXE_down_notExc_r_i;
     /*}}}*/
     // 总线信号{{{
     assign data_req =  EXE_down_memReq_r_i && !MEM_hasRisk_w_i && !EXE_down_hasException_r_i && MEM_allowin_w_i;
@@ -351,9 +402,44 @@ module PREMEM (
     assign PREMEM_isInterrupt_w_o   = 1'b0;    
     // }}}
     // Cache指令{{{
-    assign PREMEM_CacheAddress_o    = EXE_down_aluRes_r_i;
     assign PREMEM_isCacheInst_o     = EXE_down_isCacheInst_r_i;
     assign PREMEM_CacheOperator_o   = EXE_down_CacheOperator_r_i;
     // }}}
+    // 延迟执行{{{
+    assign PREMEM_delayReadNum_w_p_o = EXE_down_readNum_p_r_i;
+    wire [`DELAY_MODE]      forwardReady    [1:0];     
+    wire [`DELAY_MODE]      forwardWhich    [1:0];     
+    wire [`DELAY_MODE]      forwardSel      [1:0];     
+    wire [`GPR_NUM]         readNum         [1:0];
+    wire                    load_conflict_up[1:0];
+    wire [1:0]              needRead        = EXE_down_needRead_p_r_i;
+    `UNPACK_ARRAY(`GPR_NUM_LEN,2,readNum,EXE_down_readNum_p_r_i)
+    assign PREMEM_forwardSel0_o = forwardSel[0];
+    assign PREMEM_forwardSel1_o = forwardSel[1];
+    assign PREMEM_preSrc_p_o       = EXE_down_preSrc_p_r_i;
+    assign PREMEM_readData_p_o     = ID_down_delayReadData_w_p_i;
+    assign PREMEM_aluOperator_o    = EXE_down_aluOprator_r_i;
+    assign PREMEM_oprand0IsReg_o   = EXE_down_oprand0IsReg_r_i;
+    assign PREMEM_oprand1IsReg_o   = EXE_down_oprand1IsReg_r_i;
+    assign PREMEM_notExc_o         = EXE_down_notExc_r_i;
+    // 数据是否可以在下一个周期使用,如果需要被前递,前递段的数据是否计算完成
+    generate
+        for (genvar i = 0; i < 2; i=i+1)	begin
+            wire   notZero = |readNum[i];
+            assign forwardWhich[i] = 
+                                        (MEM_writeNum_w_i==readNum[i]    && notZero) ? `DELAY_MODE_MEM : 
+                                        (REEXE_writeNum_w_i==readNum[i]  && notZero) ? `DELAY_MODE_REEXE : 
+                                        `DELAY_MODE_ID;
+            assign forwardReady[i] = { 
+                                        MEM_forwardMode_w_i,
+                                        REEXE_forwardMode_w_i,
+                                        1'b1
+                                          };
+            assign forwardSel[i]   = forwardWhich[i] & forwardReady[i];
+            assign load_conflict_up[i] = needRead[i] && (forwardWhich[i]==`DELAY_MODE_MEM) && !MEM_forwardMode_w_i;
+        end
+    endgenerate
+    assign load_conflict = load_conflict_up[0] || load_conflict_up[1];
+/*}}}*/
 endmodule
 

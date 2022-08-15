@@ -25,6 +25,8 @@ module REEXE(
     // 流水线控制
     input	wire	                        SBA_valid_w_i,
     input	wire	                        MEM_allowin_w_i,
+    // 数据前递
+    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i, // 不包含非wload指令
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////     线信号输出      ///////////////{{{
@@ -43,6 +45,19 @@ module REEXE(
     input	wire	[`SINGLE_WORD]          SBA_VAddr_i,             // 用于debug和异常处理
     // 算数,位移
     input	wire    [`SINGLE_WORD]          SBA_aluRes_i,	        
+    // 延迟执行{{{
+    input	wire	                        SBA_notExc_i,            // 表示该指令是延迟执行指令
+    input	wire	[`DELAY_MODE]           SBA_forwardSel0_i, 
+    input	wire	[`DELAY_MODE]           SBA_forwardSel1_i, 
+    input	wire	                        SBA_oprand0IsReg_i,       
+    input	wire	                        SBA_oprand1IsReg_i,       
+    input	wire	[2*`SINGLE_WORD]        SBA_preSrc_p_i,          // 指令自带的操作数
+    input	wire	[2*`SINGLE_WORD]        SBA_readData_p_i,        
+    input	wire	[`ALUOP]                SBA_aluOperator_i,
+    // 前递数据{{{
+    input	wire	[`SINGLE_WORD]          REEXE_regData_i,
+    // }}}
+    // }}}
 /*}}}*/
     ///////////////////////////////////////////////////
     //////////////     寄存器输出       ///////////////{{{
@@ -54,6 +69,10 @@ module REEXE(
 /*}}}*/
 );
     //自动定义
+    wire [`ALUOP]               aluop                           ;
+    wire                        overflow                        ;
+    wire [`SINGLE_WORD]         scr [1:0]                       ;
+    wire [`SINGLE_WORD]         aluso                           ;
     /*autodef*/
     //Intersegment_register{{{
 
@@ -63,16 +82,43 @@ module REEXE(
 	reg	[`GPR_NUM]			SBA_writeNum_r_i;
 	reg	[`SINGLE_WORD]			SBA_VAddr_r_i;
 	reg	[`SINGLE_WORD]			SBA_aluRes_r_i;
+	reg	[0:0]			SBA_notExc_r_i;
+	reg	[`DELAY_MODE]			SBA_forwardSel0_r_i;
+	reg	[`DELAY_MODE]			SBA_forwardSel1_r_i;
+	reg	[0:0]			SBA_oprand0IsReg_r_i;
+	reg	[0:0]			SBA_oprand1IsReg_r_i;
+	reg	[2*`SINGLE_WORD]			SBA_preSrc_p_r_i;
+	reg	[2*`SINGLE_WORD]			SBA_readData_p_r_i;
+	reg	[`ALUOP]			SBA_aluOperator_r_i;
+	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			SBA_writeNum_r_i	<=	'b0;
 			SBA_VAddr_r_i	<=	'b0;
 			SBA_aluRes_r_i	<=	'b0;
+			SBA_notExc_r_i	<=	'b0;
+			SBA_forwardSel0_r_i	<=	'b0;
+			SBA_forwardSel1_r_i	<=	'b0;
+			SBA_oprand0IsReg_r_i	<=	'b0;
+			SBA_oprand1IsReg_r_i	<=	'b0;
+			SBA_preSrc_p_r_i	<=	'b0;
+			SBA_readData_p_r_i	<=	'b0;
+			SBA_aluOperator_r_i	<=	'b0;
+			REEXE_regData_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			SBA_writeNum_r_i	<=	SBA_writeNum_i;
 			SBA_VAddr_r_i	<=	SBA_VAddr_i;
 			SBA_aluRes_r_i	<=	SBA_aluRes_i;
+			SBA_notExc_r_i	<=	SBA_notExc_i;
+			SBA_forwardSel0_r_i	<=	SBA_forwardSel0_i;
+			SBA_forwardSel1_r_i	<=	SBA_forwardSel1_i;
+			SBA_oprand0IsReg_r_i	<=	SBA_oprand0IsReg_i;
+			SBA_oprand1IsReg_r_i	<=	SBA_oprand1IsReg_i;
+			SBA_preSrc_p_r_i	<=	SBA_preSrc_p_i;
+			SBA_readData_p_r_i	<=	SBA_readData_p_i;
+			SBA_aluOperator_r_i	<=	SBA_aluOperator_i;
+			REEXE_regData_r_i	<=	REEXE_regData_i;
         end
     end
     ///*}}}*/
@@ -100,7 +146,60 @@ module REEXE(
     // 简单寄存器输出{{{
     assign REEXE_writeNum_o     = SBA_writeNum_r_i;
     assign REEXE_VAddr_o        = SBA_VAddr_r_i;
-    assign REEXE_regData_o      = SBA_aluRes_r_i;
     /*}}}*/
+    // 延迟执行{{{
+    ALU ALU_u(/*{{{*/
+      /*autoinst*/
+        .scr0                   (scr[0]                         ), //input
+        .scr1                   (scr[1]                         ), //input
+        .aluop                  (aluop[`ALUOP]                  ), //input
+        .overflow               (overflow                       ), //output
+        .aluso                  (aluso[`SINGLE_WORD]            )  //output
+    );
+    assign aluop = SBA_aluOperator_r_i;
+    /*}}}*/
+    // 前递选择 {{{
+    wire	    [`SINGLE_WORD]          readData          [1:0];            
+    wire	    [`SINGLE_WORD]          SBA_oprand_up     [1:0];            
+    wire	    [`DELAY_MODE]           SBA_forwardSel_up [1:0];        // 用于选择前递信号
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,readData,SBA_readData_p_r_i)
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,SBA_oprand_up,SBA_preSrc_p_r_i)
+    assign SBA_forwardSel_up[0] = SBA_forwardSel0_r_i;
+    assign SBA_forwardSel_up[1] = SBA_forwardSel1_r_i;
+    wire        [`SINGLE_WORD]      updataRegFile_up[1:0];
+    wire        [0:0]               srcIsReg        [1:0];
+    assign srcIsReg[0] = SBA_oprand0IsReg_r_i;
+    assign srcIsReg[1] = SBA_oprand1IsReg_r_i;
+    generate   
+        for (genvar i = 0; i < 2; i=i+1)	begin     
+            // WB段数据再保存{{{
+            reg [`SINGLE_WORD]  wb_savedData;
+            reg                 useSavedWb;
+            always @(posedge clk) begin
+                if (!rst || needClear || needUpdata) begin
+                    useSavedWb      <=  `FALSE;
+                end
+                else if (SBA_forwardSel_up[i][`DELAY_MEM_BIT]) begin
+                    useSavedWb      <=  `TRUE;
+                end
+                if (!rst || needClear || needUpdata) begin
+                    wb_savedData    <=  `ZEROWORD;
+                end
+                else if (SBA_forwardSel_up[i][`DELAY_MEM_BIT] && !useSavedWb) begin
+                    wb_savedData    <=  WB_forwardData_w_i;
+                end
+            end
+            wire [`SINGLE_WORD] wb_data = useSavedWb ? wb_savedData : WB_forwardData_w_i;
+            // }}}
+            assign updataRegFile_up[i] =    
+                                            ({32{SBA_forwardSel_up[i][`DELAY_ID_BIT]}}         & readData[i]           )|
+                                            ({32{SBA_forwardSel_up[i][`DELAY_REEXE_BIT]}}      & REEXE_regData_r_i     )|
+                                            ({32{SBA_forwardSel_up[i][`DELAY_MEM_BIT]}}        & wb_data               );
+            assign scr[i] = srcIsReg[i] ? updataRegFile_up[i] : SBA_oprand_up[i];
+        end
+    endgenerate
+/*}}}*/
+    assign REEXE_regData_o      = SBA_notExc_r_i ? aluso : SBA_aluRes_r_i;
+    // }}}
 endmodule
 

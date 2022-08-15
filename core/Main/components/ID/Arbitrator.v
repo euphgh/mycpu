@@ -35,6 +35,7 @@ module Arbitrator(
     output  wire    [2*`EXCCODE]                AB_ExcCode_p,
     output  wire    [1:0]                       AB_isRefill_p,
     output  wire    [2*`ALL_CHECKPOINT]         AB_checkPoint_p,
+    output	wire	                            AB_okReExe,
 
     output	wire	[`ISSUE_MODE]               AB_issueMode_w,   // 表示发射类型，同时也可以作为指令使能
     output	wire	[4*`GPR_NUM]                AB_regReadNum_p_w,
@@ -97,7 +98,7 @@ module Arbitrator(
     `UNPACK_ARRAY(1,2,IQ_predTake_up,IQ_predTake_p  )
     `UNPACK_ARRAY(`ALL_CHECKPOINT_LEN,2,IQ_checkPoint_up,IQ_checkPoint_p  )
     `UNPACK_ARRAY(`EXCCODE_LEN,2,IQ_ExcCode_up,IQ_ExcCode_p  )
-    `UNPACK_ARRAY(1,2,IQ_isRefill_up,IQ_isRefill_p  )
+    `UNPACK_ARRAY(1,2,IQ_isRefill_up,IQ_isRefill_p)
     generate
     for (genvar i = 0; i < 2; i=i+1)	begin
         assign allInfo_i[i] = {
@@ -135,8 +136,9 @@ module Arbitrator(
     wire    kindConflict1   = !(|(instMode[1] & `AT_SLOT_ONE));
     wire    dual_kindConflict   = kindConflict0 || kindConflict1;
     wire    single_kindConflict = !(|(instMode[0] & `AT_SLOT_ONE));
+    assign  AB_okReExe = (&instMode[0] && !IQ_hasException_up[0]) && (&instMode[1] && !IQ_hasException_up[1]);
     // 指令数据的冲突，是否存在写后读
-    wire    dataConflict = isNeedRd[0] && ((isNeedRs[1] && (ReadRs[1]==writeRd[0]))||(isNeedRt[1] && (ReadRt[1]==writeRd[0])));
+    wire    dataConflict = isNeedRd[0] && (isNeedRd[0] != 'd0) && ((isNeedRs[1] && (ReadRs[1]==writeRd[0]))||(isNeedRt[1] && (ReadRt[1]==writeRd[0])));
     assign AB_issueMode_w =     IQ_supplyValid  [1] ? ((dataConflict || dual_kindConflict) ? `SINGLE_ISSUE : `DUAL_ISSUE) :
                                 IQ_supplyValid  [0] ? (single_kindConflict ? `NO_ISSUE : `SINGLE_ISSUE) : `NO_ISSUE;
     assign  IQ_regReadNum_up[0] = {({5{isNeedRt[0]}} & ReadRt[0]),({5{isNeedRs[0]}} & ReadRs[0])};

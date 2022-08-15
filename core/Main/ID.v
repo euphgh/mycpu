@@ -35,6 +35,7 @@ module ID (
     input	wire [3:0]                         IS_needRead_p_i,
     input	wire [2*`GPR_NUM]                  IS_regWriteNum_p_i,
     input	wire [1:0]                         IS_isRefill_p_i,
+    input	wire	                           IS_okReExe_i,
     /*}}}*/
 
     //////////////////////////////////////////////////
@@ -72,6 +73,10 @@ module ID (
     input	wire	                        MEM_hasDangerous_w_i,       
     input	wire	                        PREMEM_hasDangerous_w_i,     
     input	wire	                        WB_hasDangerous_w_i,     
+    // 延迟执行{{{
+    input	wire	[2*`GPR_NUM]            SBA_delayReadNum_w_p_i, 
+    input	wire	[2*`GPR_NUM]            PREMEM_delayReadNum_w_p_i, 
+    // }}}
     /*}}}*/
 
     //////////////////////////////////////////////////
@@ -81,24 +86,29 @@ module ID (
     output	wire	                        ID_allowin_w_o,
     output	wire	                        ID_down_valid_w_o,
     output	wire	                        ID_up_valid_w_o,
+    output	wire	[2*`SINGLE_WORD]        ID_up_delayReadData_w_p_o,
+    output	wire	[2*`SINGLE_WORD]        ID_down_delayReadData_w_p_o,
 /*}}}*/
 
     /////////////////////////////////////////////////
     ///////////////     寄存器输出   ////////////////{{{
     /////////////////////////////////////////////////
+    // 延迟执行
+    output	wire	[2*`GPR_NUM]            ID_up_readNum_p_o, 
+    output	wire	[1:0]                   ID_up_needRead_p_o, 
+    output	wire	[2*`GPR_NUM]            ID_down_readNum_p_o, 
+    output	wire	[1:0]                   ID_down_needRead_p_o, 
     //上段
     output	wire	[`GPR_NUM]              ID_up_writeNum_o,             // 回写寄存器数值,0为不回写
     output	wire	[2*`SINGLE_WORD]        ID_up_readData_o,           // 寄存器值rsrt
     output	wire	[`SINGLE_WORD]          ID_up_VAddr_o,
     //算数,位移
     output	wire	[`SINGLE_WORD]          ID_up_oprand0_o,            // 经过多路选择,选择指令自带的数据
+    output	wire	[`SINGLE_WORD]          ID_up_oprand1_o,            // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
     output	wire	                        ID_up_oprand0IsReg_o,       
     output	wire	                        ID_up_oprand1IsReg_o,       
     output	wire	[`FORWARD_MODE]         ID_up_forwardSel0_o,        // 用于选择前递信号
-    output	wire	                        ID_up_data0Ready_o,         // 表示该operand是否可用
-    output	wire	[`SINGLE_WORD]          ID_up_oprand1_o,            // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
     output	wire	[`FORWARD_MODE]         ID_up_forwardSel1_o,        // 用于选择前递信号
-    output	wire	                        ID_up_data1Ready_o,         // 表示该operand是否可用
     output	wire	[`ALUOP]                ID_up_aluOprator_o,
     // 分支确认的信息
     output	wire                            ID_up_branchRisk_o,         // 存在分支确认失败的风险
@@ -115,13 +125,11 @@ module ID (
     output	wire	[`SINGLE_WORD]          ID_down_VAddr_o,            // 用于debug和异常处理
     //算数,位移
     output	wire	[`SINGLE_WORD]          ID_down_oprand0_o,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
+    output	wire	[`SINGLE_WORD]          ID_down_oprand1_o,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
     output	wire	                        ID_down_oprand0IsReg_o,     
     output	wire	                        ID_down_oprand1IsReg_o,     
     output	wire	[`FORWARD_MODE]         ID_down_forwardSel0_o,      // 用于选择前递信号
-    output	wire	                        ID_down_data0Ready_o,       // 表示该operand是否可用
-    output	wire	[`SINGLE_WORD]          ID_down_oprand1_o,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
     output	wire	[`FORWARD_MODE]         ID_down_forwardSel1_o,      // 用于选择前递信号
-    output	wire	                        ID_down_data1Ready_o,       // 表示该operand是否可用
     output	wire	[`ALUOP]                ID_down_aluOprator_o,
     // 乘除指令类信息
     output	wire	[`MDUOP]                ID_down_mduOperator_o,      // 包括乘除,clo,clz和累加累减
@@ -170,6 +178,7 @@ module ID (
 	reg	[3:0]			IS_needRead_p_r_i;
 	reg	[2*`GPR_NUM]			IS_regWriteNum_p_r_i;
 	reg	[1:0]			IS_isRefill_p_r_i;
+	reg	[0:0]			IS_okReExe_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			IS_issueMode_r_i	<=	'b0;
@@ -184,6 +193,7 @@ module ID (
 			IS_needRead_p_r_i	<=	'b0;
 			IS_regWriteNum_p_r_i	<=	'b0;
 			IS_isRefill_p_r_i	<=	'b0;
+			IS_okReExe_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			IS_issueMode_r_i	<=	IS_issueMode_i;
@@ -198,6 +208,7 @@ module ID (
 			IS_needRead_p_r_i	<=	IS_needRead_p_i;
 			IS_regWriteNum_p_r_i	<=	IS_regWriteNum_p_i;
 			IS_isRefill_p_r_i	<=	IS_isRefill_p_i;
+			IS_okReExe_r_i	<=	IS_okReExe_i;
         end
     end
     /*}}}*/
@@ -254,8 +265,13 @@ module ID (
         .clk                    (clk                                   ), //input
         .rst                    (rst                                   ), //input
         // 读端口 
-        .AB_regReadNum_p_w      (AB_regReadNum_p_w  [4*`GPR_NUM]       ), //input
-        .readData_p_o           (readData_p_o[4*`SINGLE_WORD]          ), //output
+        .AB_regReadNum_p_w          (AB_regReadNum_p_w  [4*`GPR_NUM]    ), //input
+        .readData_p_o               (readData_p_o[4*`SINGLE_WORD]       ), //output
+        .SBA_delayReadNum_w_p_i     (SBA_delayReadNum_w_p_i             ),
+        .PREMEM_delayReadNum_w_p_i  (PREMEM_delayReadNum_w_p_i          ),
+        .ID_up_delayReadData_w_p_o  (ID_up_delayReadData_w_p_o          ),
+        .ID_down_delayReadData_w_p_o(ID_down_delayReadData_w_p_o        ),
+
         // 写端口
         .PBA_writeEnable_w_i    (PBA_writeEnable_w_i                   ), //input
         .PBA_writeNum_w_i       (PBA_writeNum_w_i[`GPR_NUM]            ), //input
@@ -366,7 +382,7 @@ module ID (
     wire [`FORWARD_MODE]    forwardWhich    [1:0][1:0];     
     wire [`FORWARD_MODE]    forwardSel      [1:0][1:0];     
     // 数据是否可以在下一个周期使用,如果需要被前递,前递段的数据是否计算完成
-    wire [0:0]              WAR_conflict_up [1:0][1:0];     // 同上
+    wire [0:0]              reExe_conflict_up [1:0][1:0];     // 同上
     generate
         for (genvar i = 0; i < 2; i=i+1)	begin
             for (genvar j = 0; j < 2; j=j+1)	begin
@@ -385,7 +401,8 @@ module ID (
                                               REEXE_forwardMode_w_i,
                                               1'b1};
                 assign forwardSel[i][j]   = forwardWhich[i][j] & forwardReady[i][j];
-                assign WAR_conflict_up[i][j] = needRead[i][j] && !(|forwardSel[i][j]); 
+                wire    mem_conflict_up   = (forwardWhich[i][j]==`FORWARD_MODE_MEM) && !MEM_forwardMode_w_i;
+                assign reExe_conflict_up[i][j] = (IS_okReExe_r_i ? mem_conflict_up : !(|forwardSel[i][j])) && needRead[i][j];
             end
         end
     endgenerate
@@ -426,9 +443,10 @@ module ID (
     // CACHE_OP{{{
     assign ID_down_CacheOperator_o = AB_inst_up[1][20:16];/*}}}*/
     // 流水线互锁{{{
-    wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
+    wire reExe_conflict =    reExe_conflict_up[0][0]  || reExe_conflict_up[1][0] || 
+                             reExe_conflict_up[0][1]  || reExe_conflict_up[1][1] ;
     wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
-    wire stop = WAR_conflict || hasDangerous;
+    wire stop = reExe_conflict || hasDangerous;
     wire    ok_to_change    = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && !stop);
     assign  ID_allowin_w_o  = ok_to_change;
 
@@ -441,6 +459,12 @@ module ID (
     assign ID_down_valid_w_o    = (AB_issueMode_w[0])   &&  valid_out;
     assign needUpdata = ID_allowin_w_o && (|IS_issueMode_i);
     assign needClear  = (!(|IS_issueMode_i)&&ID_allowin_w_o) || needFlush;
+    // }}}
+    // 延迟执行{{{
+    assign ID_up_readNum_p_o = {readNum[0][1],readNum[0][0]};
+    assign ID_up_needRead_p_o = {needRead[0][1],needRead[0][0]};
+    assign ID_down_readNum_p_o = {readNum[1][1],readNum[1][0]};
+    assign ID_down_needRead_p_o = {needRead[1][1],needRead[1][0]};
     // }}}
 endmodule
 

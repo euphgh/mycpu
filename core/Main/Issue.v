@@ -67,6 +67,7 @@ module Issue (
     output	wire [4*`GPR_NUM]                  IS_regReadNum_p_o,
     output	wire [3:0]                         IS_needRead_p_o,
     output	wire [2*`GPR_NUM]                  IS_regWriteNum_p_o,
+    output	wire	                           IS_okReExe_o,
     output	wire [1:0]                         IS_isRefill_p_o
     /*}}}*/
 );
@@ -157,6 +158,7 @@ module Issue (
         .AB_regReadNum_p_w       (IS_regReadNum_p_o                        ), //output
         .AB_needRead_p_w         (IS_needRead_p_o                          ), //output
         .AB_regWriteNum_p_w      (IS_regWriteNum_p_o                       ), //output
+        .AB_okReExe              (IS_okReExe_o                             ),
         .AB_isRefill_p           (IS_isRefill_p_o                          )  //output
     );
     /*}}}*/

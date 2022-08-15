@@ -38,6 +38,7 @@ module PrimaryBranchAmend(
     output	wire	[`SINGLE_WORD]          PBA_forwardData_w_o,        // 将上一周期的运算结果前递
     // ID回写信号
     output	wire	                        PBA_writeEnable_w_o,       // 回写使能
+    // 延迟执行
 /*}}}*/
     ///////////////////////////////////////////////////
     //////////////     寄存器输出       ///////////////{{{

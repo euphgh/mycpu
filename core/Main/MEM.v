@@ -42,6 +42,8 @@ module MEM(
     input	wire	[`SINGLE_WORD]          CP0_Status_w_i,
     // 总线信号
     input	wire	                        data_data_ok,
+    // 数据前递
+    input	wire	[`SINGLE_WORD]          WB_forwardData_w_i, // 不包含非wload指令
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////     线信号输出      ///////////////{{{
@@ -64,7 +66,7 @@ module MEM(
     output           [19:0]                 dcache_tag  ,
     output                                  dcache_valid,
     output                                  dcache_dirty,
-    output                                  dcache_ok   ,
+    input                                   dcache_ok   ,
     output                                  icache_req  ,
     output          [4 :0]                  icache_op   ,
     output          [31:0]                  icache_addr ,
@@ -73,8 +75,9 @@ module MEM(
     input                                   icache_ok   ,
     // }}}
     // 用于CP0进行异常处理的信号{{{
-    output	wire    [`EXCCODE]              MEM_ExcCode_w_o,          // 异常信号
-    output	wire	                        MEM_hasException_w_o,     // 存在异常
+    output	wire	                        MEM_cacheFlush_w_o,     // 完成了cache指令
+    output	wire    [`EXCCODE]              MEM_ExcCode_w_o,        // 异常信号
+    output	wire	                        MEM_hasException_w_o,   // 存在异常
     output	wire	                        MEM_isDelaySlot_w_o,
     output	wire	[`SINGLE_WORD]          MEM_exceptPC_w_o,
     output	wire	[`SINGLE_WORD]          MEM_exceptBadVAddr_w_o,
@@ -115,7 +118,21 @@ module MEM(
     // Cache指令,在该段中,cache地址由aluRes给出
     input	wire	                        PREMEM_isCacheInst_i,       // 表示是Cache指令
     input	wire	[`CACHE_OP]             PREMEM_CacheOperator_i,     // Cache指令op
-    input	wire	[`SINGLE_WORD]          PREMEM_CacheAddress_i,      // Cache指令地址
+    // 延迟执行{{{
+    input	wire	                        PREMEM_notExc_i,            // 表示该指令是延迟执行指令
+    input	wire	[`DELAY_MODE]           PREMEM_forwardSel0_i, 
+    input	wire	[`DELAY_MODE]           PREMEM_forwardSel1_i, 
+    input	wire	                        PREMEM_oprand0IsReg_i,       
+    input	wire	                        PREMEM_oprand1IsReg_i,       
+    input	wire	[2*`SINGLE_WORD]        PREMEM_preSrc_p_i,          // 指令自带的操作数
+    input	wire	[2*`SINGLE_WORD]        PREMEM_readData_p_i,        
+    input	wire	[`ALUOP]                PREMEM_aluOperator_i,
+    // 前递数据{{{
+    input	wire	[`SINGLE_WORD]          PBA_forwardData_w_i,
+    input	wire	[`SINGLE_WORD]          REEXE_regData_i,
+    input	wire	[`SINGLE_WORD]          WB_finalRes_w_i,        // 回写结果
+    // }}}
+    // }}}
 /*}}}*/
     //////////////////////////////////////////////////
     //////////////      寄存器输出      //////////////{{{
@@ -132,6 +149,13 @@ module MEM(
 /*}}}*/
 );
     // 自动定义{{{
+    wire cache_busy_conflict;   // 正在执行cache指令
+    wire mem_busy_conflict;     // 正在访存
+    wire cache_risk_conflict;   // 执行cache指令有风险
+    wire [`ALUOP]               aluop                           ;
+    wire                        overflow                        ;
+    wire [`SINGLE_WORD]         scr [1:0]                       ;
+    wire [`SINGLE_WORD]         aluso                           ;
     /*autodef*/
     // }}}
     //Intersegment_register{{{
@@ -160,7 +184,15 @@ module MEM(
 	reg	[0:0]			PREMEM_writeCp0_r_i;
 	reg	[0:0]			PREMEM_isCacheInst_r_i;
 	reg	[`CACHE_OP]			PREMEM_CacheOperator_r_i;
-	reg	[`SINGLE_WORD]			PREMEM_CacheAddress_r_i;
+	reg	[0:0]			PREMEM_notExc_r_i;
+	reg	[`DELAY_MODE]			PREMEM_forwardSel0_r_i;
+	reg	[`DELAY_MODE]			PREMEM_forwardSel1_r_i;
+	reg	[0:0]			PREMEM_oprand0IsReg_r_i;
+	reg	[0:0]			PREMEM_oprand1IsReg_r_i;
+	reg	[2*`SINGLE_WORD]			PREMEM_preSrc_p_r_i;
+	reg	[2*`SINGLE_WORD]			PREMEM_readData_p_r_i;
+	reg	[`ALUOP]			PREMEM_aluOperator_r_i;
+	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			PREMEM_writeNum_r_i	<=	'b0;
@@ -184,7 +216,15 @@ module MEM(
 			PREMEM_writeCp0_r_i	<=	'b0;
 			PREMEM_isCacheInst_r_i	<=	'b0;
 			PREMEM_CacheOperator_r_i	<=	'b0;
-			PREMEM_CacheAddress_r_i	<=	'b0;
+			PREMEM_notExc_r_i	<=	'b0;
+			PREMEM_forwardSel0_r_i	<=	'b0;
+			PREMEM_forwardSel1_r_i	<=	'b0;
+			PREMEM_oprand0IsReg_r_i	<=	'b0;
+			PREMEM_oprand1IsReg_r_i	<=	'b0;
+			PREMEM_preSrc_p_r_i	<=	'b0;
+			PREMEM_readData_p_r_i	<=	'b0;
+			PREMEM_aluOperator_r_i	<=	'b0;
+			REEXE_regData_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			PREMEM_writeNum_r_i	<=	PREMEM_writeNum_i;
@@ -208,14 +248,23 @@ module MEM(
 			PREMEM_writeCp0_r_i	<=	PREMEM_writeCp0_i;
 			PREMEM_isCacheInst_r_i	<=	PREMEM_isCacheInst_i;
 			PREMEM_CacheOperator_r_i	<=	PREMEM_CacheOperator_i;
-			PREMEM_CacheAddress_r_i	<=	PREMEM_CacheAddress_i;
+			PREMEM_notExc_r_i	<=	PREMEM_notExc_i;
+			PREMEM_forwardSel0_r_i	<=	PREMEM_forwardSel0_i;
+			PREMEM_forwardSel1_r_i	<=	PREMEM_forwardSel1_i;
+			PREMEM_oprand0IsReg_r_i	<=	PREMEM_oprand0IsReg_i;
+			PREMEM_oprand1IsReg_r_i	<=	PREMEM_oprand1IsReg_i;
+			PREMEM_preSrc_p_r_i	<=	PREMEM_preSrc_p_i;
+			PREMEM_readData_p_r_i	<=	PREMEM_readData_p_i;
+			PREMEM_aluOperator_r_i	<=	PREMEM_aluOperator_i;
+			REEXE_regData_r_i	<=	REEXE_regData_i;
         end
     end
     /*}}}*/
     // 线信号处理{{{
     // 流水线互锁
     reg hasData;
-    wire ready = !PREMEM_memReq_r_i || data_data_ok;
+    assign mem_busy_conflict = PREMEM_memReq_r_i && !data_data_ok;
+    wire ready = !(mem_busy_conflict || cache_busy_conflict || cache_risk_conflict);
     // 上下控制
     assign MEM_allowin_w_o = REEXE_okToChange_w_i && (ready||!hasData) && WB_allowin_w_i;
     // 上下不同部分
@@ -244,7 +293,6 @@ module MEM(
     assign MEM_writeNum_o = PREMEM_writeNum_r_i;
     assign MEM_loadSel_o  = PREMEM_loadSel_r_i;
     assign MEM_isDangerous_o = PREMEM_isDangerous_r_i;
-    assign MEM_finalRes_o = PREMEM_readCp0_r_i ? CP0_readData_w_i : PREMEM_preliminaryRes_r_i;
     assign MEM_alignCheck_o = PREMEM_alignCheck_r_i;
     assign MEM_exceptionRisk_o = 1'b0;
     assign MEM_memReq_o = PREMEM_memReq_r_i;
@@ -269,10 +317,14 @@ module MEM(
     assign MEM_nonBlockMark_w_o = PREMEM_nonBlockMark_r_i;
     // }}}
     // Cache指令op{{{
+    assign cache_busy_conflict  =   PREMEM_isCacheInst_r_i && 
+                                    ((dcache_req && !dcache_ok)||(icache_req && !icache_ok));
+    assign cache_risk_conflict  =   PREMEM_isCacheInst_r_i && WB_hasRisk_w_i;
+    assign MEM_cacheFlush_w_o   =   ((dcache_req && dcache_ok)||(icache_req && icache_ok));
+    assign dcache_req   = PREMEM_isCacheInst_r_i && isDcache && !MEM_hasException_w_o && !WB_hasRisk_w_i;
+    assign icache_req   = PREMEM_isCacheInst_r_i && isIcache && !MEM_hasException_w_o && !WB_hasRisk_w_i;
     wire   isDcache     = PREMEM_CacheOperator_r_i[1:0]==2'b01;
     wire   isIcache     = PREMEM_CacheOperator_r_i[1:0]==2'b00;
-    assign dcache_req   = PREMEM_isCacheInst_i && isDcache && !MEM_hasException_w_o;
-    assign icache_req   = PREMEM_isCacheInst_i && isIcache && !MEM_hasException_w_o;
     assign dcache_op    = PREMEM_CacheOperator_r_i;
     assign icache_op    = PREMEM_CacheOperator_r_i;
     assign dcache_tag   = 'd0;
@@ -282,6 +334,61 @@ module MEM(
     assign icache_tag   = 'd0;
     assign icache_valid = 'd0;
     assign icache_addr  = PREMEM_preliminaryRes_r_i;
+    // }}}
+    // 延迟执行{{{
+    ALU ALU_u(/*{{{*/
+      /*autoinst*/
+        .scr0                   (scr[0]                         ), //input
+        .scr1                   (scr[1]                         ), //input
+        .aluop                  (aluop[`ALUOP]                  ), //input
+        .overflow               (overflow                       ), //output
+        .aluso                  (aluso[`SINGLE_WORD]            )  //output
+    );
+    assign aluop = PREMEM_aluOperator_r_i;
+    /*}}}*/
+    // 前递选择 {{{
+    wire	    [`SINGLE_WORD]          readData          [1:0];            
+    wire	    [`SINGLE_WORD]          PREMEM_oprand_up     [1:0];            
+    wire	    [`DELAY_MODE]           PREMEM_forwardSel_up [1:0];        // 用于选择前递信号
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,readData,PREMEM_readData_p_r_i)
+    `UNPACK_ARRAY(`SINGLE_WORD_LEN,2,PREMEM_oprand_up,PREMEM_preSrc_p_r_i)
+    assign PREMEM_forwardSel_up[0] = PREMEM_forwardSel0_r_i;
+    assign PREMEM_forwardSel_up[1] = PREMEM_forwardSel1_r_i;
+    wire        [`SINGLE_WORD]      updataRegFile_up[1:0];
+    wire        [0:0]               srcIsReg        [1:0];
+    assign srcIsReg[0] = PREMEM_oprand0IsReg_r_i;
+    assign srcIsReg[1] = PREMEM_oprand1IsReg_r_i;
+    generate   
+        for (genvar i = 0; i < 2; i=i+1)	begin     
+            // WB段数据再保存{{{
+            reg [`SINGLE_WORD]  wb_savedData;
+            reg                 useSavedWb;
+            always @(posedge clk) begin
+                if (!rst || needClear || needUpdata) begin
+                    useSavedWb      <=  `FALSE;
+                end
+                else if (PREMEM_forwardSel_up[i][`DELAY_MEM_BIT]) begin
+                    useSavedWb      <=  `TRUE;
+                end
+                if (!rst || needClear || needUpdata) begin
+                    wb_savedData    <=  `ZEROWORD;
+                end
+                else if (PREMEM_forwardSel_up[i][`DELAY_MEM_BIT] && !useSavedWb) begin
+                    wb_savedData    <=  WB_forwardData_w_i;
+                end
+            end
+            wire [`SINGLE_WORD] wb_data = useSavedWb ? wb_savedData : WB_forwardData_w_i;
+            // }}}
+            assign updataRegFile_up[i] =    
+                                            ({32{PREMEM_forwardSel_up[i][`DELAY_ID_BIT]}}         & readData[i]           )|
+                                            ({32{PREMEM_forwardSel_up[i][`DELAY_REEXE_BIT]}}      & REEXE_regData_r_i     )|
+                                            ({32{PREMEM_forwardSel_up[i][`DELAY_MEM_BIT]}}        & wb_data               );
+            assign scr[i] = srcIsReg[i] ? updataRegFile_up[i] : PREMEM_oprand_up[i];
+        end
+    endgenerate
+/*}}}*/
+    assign MEM_finalRes_o = PREMEM_readCp0_r_i ? CP0_readData_w_i : 
+                            PREMEM_notExc_r_i  ? aluso : PREMEM_preliminaryRes_r_i;
     // }}}
 endmodule
 

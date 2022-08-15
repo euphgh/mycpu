@@ -36,6 +36,7 @@ module PrimaryExceptionProcessor (
     // MEM段异常处理内容{{{
     // 判断该段是否可以处理异常不可以用该段的hasRisk,因为有异常必为1
     input	wire	                        WB_hasRisk_w_i,
+    input	wire	                        MEM_cacheFlush_w_i,     // 完成了cache指令
     input	wire	                        MEM_hasException_w_i,     // 存在异常
     input	wire    [`EXCCODE]              MEM_ExcCode_w_i,          // 异常信号
     input	wire	                        MEM_isDelaySlot_w_i,
@@ -61,7 +62,7 @@ module PrimaryExceptionProcessor (
 /*}}}*/
     // EXE down段异常处理内容{{{
     input	wire	                        PREMEM_hasRisk_w_i,         
-	input   wire    [0:0]			        EXE_down_hasExceprion_w_i,
+	input   wire    [0:0]			        EXE_down_hasException_w_i,
 	input   wire    [`EXCCODE]			    EXE_down_ExcCode_w_i,
     input	wire	                        EXE_down_isDelaySlot_w_i,
     input	wire	[`SINGLE_WORD]          EXE_down_exceptPC_w_i,
@@ -123,7 +124,7 @@ module PrimaryExceptionProcessor (
     `define ALL_INFO `ALL_INFO_LEN-1:0
     `define ALL_INFO_LEN 73
     wire [`ALL_INFO] EXE_packedInfo = {
-         EXE_down_hasExceprion_w_i,
+         EXE_down_hasException_w_i,
          EXE_down_ExcCode_w_i,
          EXE_down_isDelaySlot_w_i,
          EXE_down_exceptPC_w_i,
@@ -442,7 +443,7 @@ module PrimaryExceptionProcessor (
     assign CP0_excOccur_w_o  =  isExceptionInNormal || eret || writeK0;
     assign CP0_excDestPC_w_o =  isExceptionInNormal ? 32'hbfc00380 :
                                 eret ? EPC : 
-                                writeK0 ? (exceptPC + 32'd4) : 32'b0;
+                                (MEM_cacheFlush_w_i||writeK0) ? (exceptPC + 32'd4) : 32'b0;
     assign CP0_Status_w_o = Status;
     assign CP0_Cause_w_o = Cause;
     assign CP0_Config_w_o = Config;

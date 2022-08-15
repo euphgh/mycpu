@@ -125,6 +125,18 @@ module Main(
 	assign	ID_down_valid_w_i	=	ID_down_valid_w_o;
 	wire	[0:0]	ID_up_valid_w_o;	wire	[0:0]	ID_up_valid_w_i;
 	assign	ID_up_valid_w_i	=	ID_up_valid_w_o;
+	wire	[63:0]	ID_up_delayReadData_w_p_o;	wire	[63:0]	ID_up_delayReadData_w_p_i;
+	assign	ID_up_delayReadData_w_p_i	=	ID_up_delayReadData_w_p_o;
+	wire	[63:0]	ID_down_delayReadData_w_p_o;	wire	[63:0]	ID_down_delayReadData_w_p_i;
+	assign	ID_down_delayReadData_w_p_i	=	ID_down_delayReadData_w_p_o;
+	wire	[9:0]	ID_up_readNum_p_o;	wire	[9:0]	ID_up_readNum_p_i;
+	assign	ID_up_readNum_p_i	=	ID_up_readNum_p_o;
+	wire	[1:0]	ID_up_needRead_p_o;	wire	[1:0]	ID_up_needRead_p_i;
+	assign	ID_up_needRead_p_i	=	ID_up_needRead_p_o;
+	wire	[9:0]	ID_down_readNum_p_o;	wire	[9:0]	ID_down_readNum_p_i;
+	assign	ID_down_readNum_p_i	=	ID_down_readNum_p_o;
+	wire	[1:0]	ID_down_needRead_p_o;	wire	[1:0]	ID_down_needRead_p_i;
+	assign	ID_down_needRead_p_i	=	ID_down_needRead_p_o;
 	wire	[4:0]	ID_up_writeNum_o;	wire	[4:0]	ID_up_writeNum_i;
 	assign	ID_up_writeNum_i	=	ID_up_writeNum_o;
 	wire	[63:0]	ID_up_readData_o;	wire	[63:0]	ID_up_readData_i;
@@ -133,20 +145,16 @@ module Main(
 	assign	ID_up_VAddr_i	=	ID_up_VAddr_o;
 	wire	[31:0]	ID_up_oprand0_o;	wire	[31:0]	ID_up_oprand0_i;
 	assign	ID_up_oprand0_i	=	ID_up_oprand0_o;
+	wire	[31:0]	ID_up_oprand1_o;	wire	[31:0]	ID_up_oprand1_i;
+	assign	ID_up_oprand1_i	=	ID_up_oprand1_o;
 	wire	[0:0]	ID_up_oprand0IsReg_o;	wire	[0:0]	ID_up_oprand0IsReg_i;
 	assign	ID_up_oprand0IsReg_i	=	ID_up_oprand0IsReg_o;
 	wire	[0:0]	ID_up_oprand1IsReg_o;	wire	[0:0]	ID_up_oprand1IsReg_i;
 	assign	ID_up_oprand1IsReg_i	=	ID_up_oprand1IsReg_o;
 	wire	[6:0]	ID_up_forwardSel0_o;	wire	[6:0]	ID_up_forwardSel0_i;
 	assign	ID_up_forwardSel0_i	=	ID_up_forwardSel0_o;
-	wire	[0:0]	ID_up_data0Ready_o;	wire	[0:0]	ID_up_data0Ready_i;
-	assign	ID_up_data0Ready_i	=	ID_up_data0Ready_o;
-	wire	[31:0]	ID_up_oprand1_o;	wire	[31:0]	ID_up_oprand1_i;
-	assign	ID_up_oprand1_i	=	ID_up_oprand1_o;
 	wire	[6:0]	ID_up_forwardSel1_o;	wire	[6:0]	ID_up_forwardSel1_i;
 	assign	ID_up_forwardSel1_i	=	ID_up_forwardSel1_o;
-	wire	[0:0]	ID_up_data1Ready_o;	wire	[0:0]	ID_up_data1Ready_i;
-	assign	ID_up_data1Ready_i	=	ID_up_data1Ready_o;
 	wire	[13:0]	ID_up_aluOprator_o;	wire	[13:0]	ID_up_aluOprator_i;
 	assign	ID_up_aluOprator_i	=	ID_up_aluOprator_o;
 	wire	[0:0]	ID_up_branchRisk_o;	wire	[0:0]	ID_up_branchRisk_i;
@@ -173,20 +181,16 @@ module Main(
 	assign	ID_down_VAddr_i	=	ID_down_VAddr_o;
 	wire	[31:0]	ID_down_oprand0_o;	wire	[31:0]	ID_down_oprand0_i;
 	assign	ID_down_oprand0_i	=	ID_down_oprand0_o;
+	wire	[31:0]	ID_down_oprand1_o;	wire	[31:0]	ID_down_oprand1_i;
+	assign	ID_down_oprand1_i	=	ID_down_oprand1_o;
 	wire	[0:0]	ID_down_oprand0IsReg_o;	wire	[0:0]	ID_down_oprand0IsReg_i;
 	assign	ID_down_oprand0IsReg_i	=	ID_down_oprand0IsReg_o;
 	wire	[0:0]	ID_down_oprand1IsReg_o;	wire	[0:0]	ID_down_oprand1IsReg_i;
 	assign	ID_down_oprand1IsReg_i	=	ID_down_oprand1IsReg_o;
 	wire	[6:0]	ID_down_forwardSel0_o;	wire	[6:0]	ID_down_forwardSel0_i;
 	assign	ID_down_forwardSel0_i	=	ID_down_forwardSel0_o;
-	wire	[0:0]	ID_down_data0Ready_o;	wire	[0:0]	ID_down_data0Ready_i;
-	assign	ID_down_data0Ready_i	=	ID_down_data0Ready_o;
-	wire	[31:0]	ID_down_oprand1_o;	wire	[31:0]	ID_down_oprand1_i;
-	assign	ID_down_oprand1_i	=	ID_down_oprand1_o;
 	wire	[6:0]	ID_down_forwardSel1_o;	wire	[6:0]	ID_down_forwardSel1_i;
 	assign	ID_down_forwardSel1_i	=	ID_down_forwardSel1_o;
-	wire	[0:0]	ID_down_data1Ready_o;	wire	[0:0]	ID_down_data1Ready_i;
-	assign	ID_down_data1Ready_i	=	ID_down_data1Ready_o;
 	wire	[13:0]	ID_down_aluOprator_o;	wire	[13:0]	ID_down_aluOprator_i;
 	assign	ID_down_aluOprator_i	=	ID_down_aluOprator_o;
 	wire	[8:0]	ID_down_mduOperator_o;	wire	[8:0]	ID_down_mduOperator_i;
@@ -307,6 +311,8 @@ module Main(
 	assign	IS_needRead_p_i	=	IS_needRead_p_o;
 	wire	[9:0]	IS_regWriteNum_p_o;	wire	[9:0]	IS_regWriteNum_p_i;
 	assign	IS_regWriteNum_p_i	=	IS_regWriteNum_p_o;
+	wire	[0:0]	IS_okReExe_o;	wire	[0:0]	IS_okReExe_i;
+	assign	IS_okReExe_i	=	IS_okReExe_o;
 	wire	[1:0]	IS_isRefill_p_o;	wire	[1:0]	IS_isRefill_p_i;
 	assign	IS_isRefill_p_i	=	IS_isRefill_p_o;
 	wire	[4:0]	WB_writeNum_w_o;	wire	[4:0]	WB_writeNum_w_i;
@@ -417,6 +423,8 @@ module Main(
 	assign	MEM_allowin_w_i	=	MEM_allowin_w_o;
 	wire	[0:0]	MEM_valid_w_o;	wire	[0:0]	MEM_valid_w_i;
 	assign	MEM_valid_w_i	=	MEM_valid_w_o;
+	wire	[0:0]	MEM_cacheFlush_w_o;	wire	[0:0]	MEM_cacheFlush_w_i;
+	assign	MEM_cacheFlush_w_i	=	MEM_cacheFlush_w_o;
 	wire	[4:0]	MEM_ExcCode_w_o;	wire	[4:0]	MEM_ExcCode_w_i;
 	assign	MEM_ExcCode_w_i	=	MEM_ExcCode_w_o;
 	wire	[0:0]	MEM_hasException_w_o;	wire	[0:0]	MEM_hasException_w_i;
@@ -491,10 +499,28 @@ module Main(
 	assign	SBA_checkPoint_w_i	=	SBA_checkPoint_w_o;
 	wire	[7:0]	SBA_repairAction_w_o;	wire	[7:0]	SBA_repairAction_w_i;
 	assign	SBA_repairAction_w_i	=	SBA_repairAction_w_o;
+	wire	[9:0]	SBA_delayReadNum_w_p_o;	wire	[9:0]	SBA_delayReadNum_w_p_i;
+	assign	SBA_delayReadNum_w_p_i	=	SBA_delayReadNum_w_p_o;
 	wire	[4:0]	SBA_writeNum_o;	wire	[4:0]	SBA_writeNum_i;
 	assign	SBA_writeNum_i	=	SBA_writeNum_o;
 	wire	[31:0]	SBA_VAddr_o;	wire	[31:0]	SBA_VAddr_i;
 	assign	SBA_VAddr_i	=	SBA_VAddr_o;
+	wire	[0:0]	SBA_notExc_o;	wire	[0:0]	SBA_notExc_i;
+	assign	SBA_notExc_i	=	SBA_notExc_o;
+	wire	[2:0]	SBA_forwardSel0_o;	wire	[2:0]	SBA_forwardSel0_i;
+	assign	SBA_forwardSel0_i	=	SBA_forwardSel0_o;
+	wire	[2:0]	SBA_forwardSel1_o;	wire	[2:0]	SBA_forwardSel1_i;
+	assign	SBA_forwardSel1_i	=	SBA_forwardSel1_o;
+	wire	[0:0]	SBA_oprand0IsReg_o;	wire	[0:0]	SBA_oprand0IsReg_i;
+	assign	SBA_oprand0IsReg_i	=	SBA_oprand0IsReg_o;
+	wire	[0:0]	SBA_oprand1IsReg_o;	wire	[0:0]	SBA_oprand1IsReg_i;
+	assign	SBA_oprand1IsReg_i	=	SBA_oprand1IsReg_o;
+	wire	[63:0]	SBA_preSrc_p_o;	wire	[63:0]	SBA_preSrc_p_i;
+	assign	SBA_preSrc_p_i	=	SBA_preSrc_p_o;
+	wire	[63:0]	SBA_readData_p_o;	wire	[63:0]	SBA_readData_p_i;
+	assign	SBA_readData_p_i	=	SBA_readData_p_o;
+	wire	[13:0]	SBA_aluOperator_o;	wire	[13:0]	SBA_aluOperator_i;
+	assign	SBA_aluOperator_i	=	SBA_aluOperator_o;
 	wire	[31:0]	SBA_aluRes_o;	wire	[31:0]	SBA_aluRes_i;
 	assign	SBA_aluRes_i	=	SBA_aluRes_o;
 	wire	[127:0]	IF_predDest_p_o;	wire	[127:0]	IF_predDest_p_i;
@@ -539,6 +565,20 @@ module Main(
 	assign	EXE_up_writeNum_i	=	EXE_up_writeNum_o;
 	wire	[31:0]	EXE_up_VAddr_o;	wire	[31:0]	EXE_up_VAddr_i;
 	assign	EXE_up_VAddr_i	=	EXE_up_VAddr_o;
+	wire	[0:0]	EXE_up_notExc_o;	wire	[0:0]	EXE_up_notExc_i;
+	assign	EXE_up_notExc_i	=	EXE_up_notExc_o;
+	wire	[63:0]	EXE_up_preSrc_p_o;	wire	[63:0]	EXE_up_preSrc_p_i;
+	assign	EXE_up_preSrc_p_i	=	EXE_up_preSrc_p_o;
+	wire	[0:0]	EXE_up_oprand0IsReg_o;	wire	[0:0]	EXE_up_oprand0IsReg_i;
+	assign	EXE_up_oprand0IsReg_i	=	EXE_up_oprand0IsReg_o;
+	wire	[0:0]	EXE_up_oprand1IsReg_o;	wire	[0:0]	EXE_up_oprand1IsReg_i;
+	assign	EXE_up_oprand1IsReg_i	=	EXE_up_oprand1IsReg_o;
+	wire	[13:0]	EXE_up_aluOprator_o;	wire	[13:0]	EXE_up_aluOprator_i;
+	assign	EXE_up_aluOprator_i	=	EXE_up_aluOprator_o;
+	wire	[9:0]	EXE_up_readNum_p_o;	wire	[9:0]	EXE_up_readNum_p_i;
+	assign	EXE_up_readNum_p_i	=	EXE_up_readNum_p_o;
+	wire	[1:0]	EXE_up_needRead_p_o;	wire	[1:0]	EXE_up_needRead_p_i;
+	assign	EXE_up_needRead_p_i	=	EXE_up_needRead_p_o;
 	wire	[31:0]	EXE_up_aluRes_o;	wire	[31:0]	EXE_up_aluRes_i;
 	assign	EXE_up_aluRes_i	=	EXE_up_aluRes_o;
 	wire	[31:0]	EXE_up_corrDest_o;	wire	[31:0]	EXE_up_corrDest_i;
@@ -549,8 +589,6 @@ module Main(
 	assign	EXE_up_repairAction_i	=	EXE_up_repairAction_o;
 	wire	[44:0]	EXE_up_checkPoint_o;	wire	[44:0]	EXE_up_checkPoint_i;
 	assign	EXE_up_checkPoint_i	=	EXE_up_checkPoint_o;
-	wire	[0:0]	EXE_up_isBranch_o;	wire	[0:0]	EXE_up_isBranch_i;
-	assign	EXE_up_isBranch_i	=	EXE_up_isBranch_o;
 	wire	[0:0]	EXE_up_branchRisk_o;	wire	[0:0]	EXE_up_branchRisk_i;
 	assign	EXE_up_branchRisk_i	=	EXE_up_branchRisk_o;
 	wire	[0:0]	EXE_down_forwardMode_w_o;	wire	[0:0]	EXE_down_forwardMode_w_i;
@@ -563,8 +601,8 @@ module Main(
 	assign	EXE_down_allowin_w_i	=	EXE_down_allowin_w_o;
 	wire	[0:0]	EXE_down_hasDangerous_w_o;	wire	[0:0]	EXE_down_hasDangerous_w_i;
 	assign	EXE_down_hasDangerous_w_i	=	EXE_down_hasDangerous_w_o;
-	wire	[0:0]	EXE_down_hasExceprion_w_o;	wire	[0:0]	EXE_down_hasExceprion_w_i;
-	assign	EXE_down_hasExceprion_w_i	=	EXE_down_hasExceprion_w_o;
+	wire	[0:0]	EXE_down_hasException_w_o;	wire	[0:0]	EXE_down_hasException_w_i;
+	assign	EXE_down_hasException_w_i	=	EXE_down_hasException_w_o;
 	wire	[4:0]	EXE_down_ExcCode_w_o;	wire	[4:0]	EXE_down_ExcCode_w_i;
 	assign	EXE_down_ExcCode_w_i	=	EXE_down_ExcCode_w_o;
 	wire	[0:0]	EXE_down_isDelaySlot_w_o;	wire	[0:0]	EXE_down_isDelaySlot_w_i;
@@ -633,6 +671,20 @@ module Main(
 	assign	EXE_down_storeData_i	=	EXE_down_storeData_o;
 	wire	[10:0]	EXE_down_loadSel_o;	wire	[10:0]	EXE_down_loadSel_i;
 	assign	EXE_down_loadSel_i	=	EXE_down_loadSel_o;
+	wire	[0:0]	EXE_down_notExc_o;	wire	[0:0]	EXE_down_notExc_i;
+	assign	EXE_down_notExc_i	=	EXE_down_notExc_o;
+	wire	[63:0]	EXE_down_preSrc_p_o;	wire	[63:0]	EXE_down_preSrc_p_i;
+	assign	EXE_down_preSrc_p_i	=	EXE_down_preSrc_p_o;
+	wire	[0:0]	EXE_down_oprand0IsReg_o;	wire	[0:0]	EXE_down_oprand0IsReg_i;
+	assign	EXE_down_oprand0IsReg_i	=	EXE_down_oprand0IsReg_o;
+	wire	[0:0]	EXE_down_oprand1IsReg_o;	wire	[0:0]	EXE_down_oprand1IsReg_i;
+	assign	EXE_down_oprand1IsReg_i	=	EXE_down_oprand1IsReg_o;
+	wire	[13:0]	EXE_down_aluOprator_o;	wire	[13:0]	EXE_down_aluOprator_i;
+	assign	EXE_down_aluOprator_i	=	EXE_down_aluOprator_o;
+	wire	[9:0]	EXE_down_readNum_p_o;	wire	[9:0]	EXE_down_readNum_p_i;
+	assign	EXE_down_readNum_p_i	=	EXE_down_readNum_p_o;
+	wire	[1:0]	EXE_down_needRead_p_o;	wire	[1:0]	EXE_down_needRead_p_i;
+	assign	EXE_down_needRead_p_i	=	EXE_down_needRead_p_o;
 	wire	[0:0]	EXE_down_isTLBInst_o;	wire	[0:0]	EXE_down_isTLBInst_i;
 	assign	EXE_down_isTLBInst_i	=	EXE_down_isTLBInst_o;
 	wire	[3:0]	EXE_down_TLBInstOperator_o;	wire	[3:0]	EXE_down_TLBInstOperator_i;
@@ -683,6 +735,8 @@ module Main(
 	assign	PREMEM_isRefill_w_i	=	PREMEM_isRefill_w_o;
 	wire	[0:0]	PREMEM_isInterrupt_w_o;	wire	[0:0]	PREMEM_isInterrupt_w_i;
 	assign	PREMEM_isInterrupt_w_i	=	PREMEM_isInterrupt_w_o;
+	wire	[9:0]	PREMEM_delayReadNum_w_p_o;	wire	[9:0]	PREMEM_delayReadNum_w_p_i;
+	assign	PREMEM_delayReadNum_w_p_i	=	PREMEM_delayReadNum_w_p_o;
 	wire	[4:0]	PREMEM_writeNum_o;	wire	[4:0]	PREMEM_writeNum_i;
 	assign	PREMEM_writeNum_i	=	PREMEM_writeNum_o;
 	wire	[31:0]	PREMEM_VAddr_o;	wire	[31:0]	PREMEM_VAddr_i;
@@ -693,6 +747,22 @@ module Main(
 	assign	PREMEM_isDangerous_i	=	PREMEM_isDangerous_o;
 	wire	[1:0]	PREMEM_alignCheck_o;	wire	[1:0]	PREMEM_alignCheck_i;
 	assign	PREMEM_alignCheck_i	=	PREMEM_alignCheck_o;
+	wire	[0:0]	PREMEM_notExc_o;	wire	[0:0]	PREMEM_notExc_i;
+	assign	PREMEM_notExc_i	=	PREMEM_notExc_o;
+	wire	[2:0]	PREMEM_forwardSel0_o;	wire	[2:0]	PREMEM_forwardSel0_i;
+	assign	PREMEM_forwardSel0_i	=	PREMEM_forwardSel0_o;
+	wire	[2:0]	PREMEM_forwardSel1_o;	wire	[2:0]	PREMEM_forwardSel1_i;
+	assign	PREMEM_forwardSel1_i	=	PREMEM_forwardSel1_o;
+	wire	[0:0]	PREMEM_oprand0IsReg_o;	wire	[0:0]	PREMEM_oprand0IsReg_i;
+	assign	PREMEM_oprand0IsReg_i	=	PREMEM_oprand0IsReg_o;
+	wire	[0:0]	PREMEM_oprand1IsReg_o;	wire	[0:0]	PREMEM_oprand1IsReg_i;
+	assign	PREMEM_oprand1IsReg_i	=	PREMEM_oprand1IsReg_o;
+	wire	[63:0]	PREMEM_preSrc_p_o;	wire	[63:0]	PREMEM_preSrc_p_i;
+	assign	PREMEM_preSrc_p_i	=	PREMEM_preSrc_p_o;
+	wire	[63:0]	PREMEM_readData_p_o;	wire	[63:0]	PREMEM_readData_p_i;
+	assign	PREMEM_readData_p_i	=	PREMEM_readData_p_o;
+	wire	[13:0]	PREMEM_aluOperator_o;	wire	[13:0]	PREMEM_aluOperator_i;
+	assign	PREMEM_aluOperator_i	=	PREMEM_aluOperator_o;
 	wire	[10:0]	PREMEM_loadSel_o;	wire	[10:0]	PREMEM_loadSel_i;
 	assign	PREMEM_loadSel_i	=	PREMEM_loadSel_o;
 	wire	[0:0]	PREMEM_memReq_o;	wire	[0:0]	PREMEM_memReq_i;
@@ -725,107 +795,110 @@ module Main(
 	assign	PREMEM_isCacheInst_i	=	PREMEM_isCacheInst_o;
 	wire	[4:0]	PREMEM_CacheOperator_o;	wire	[4:0]	PREMEM_CacheOperator_i;
 	assign	PREMEM_CacheOperator_i	=	PREMEM_CacheOperator_o;
-	wire	[31:0]	PREMEM_CacheAddress_o;	wire	[31:0]	PREMEM_CacheAddress_i;
-	assign	PREMEM_CacheAddress_i	=	PREMEM_CacheAddress_o;
 
 ID  u_ID (
-    .clk                        ( clk                         ),
-    .rst                        ( rst                         ),
-    .IS_issueMode_i             ( IS_issueMode_i              ),
-    .IS_Inst_p_i                ( IS_Inst_p_i                 ),
-    .IS_VAddr_p_i               ( IS_VAddr_p_i                ),
-    .IS_predDest_p_i            ( IS_predDest_p_i             ),
-    .IS_hasException_p_i        ( IS_hasException_p_i         ),
-    .IS_predTake_p_i            ( IS_predTake_p_i             ),
-    .IS_ExcCode_p_i             ( IS_ExcCode_p_i              ),
-    .IS_checkPoint_p_i          ( IS_checkPoint_p_i           ),
-    .IS_regReadNum_p_i          ( IS_regReadNum_p_i           ),
-    .IS_needRead_p_i            ( IS_needRead_p_i             ),
-    .IS_regWriteNum_p_i         ( IS_regWriteNum_p_i          ),
-    .IS_isRefill_p_i            ( IS_isRefill_p_i             ),
-    .SBA_flush_w_i              ( SBA_flush_w_i               ),
-    .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
-    .EXE_down_allowin_w_i       ( EXE_down_allowin_w_i        ),
-    .PBA_writeEnable_w_i        ( PBA_writeEnable_w_i         ),
-    .PBA_writeNum_w_i           ( PBA_writeNum_w_i            ),
-    .PBA_forwardData_w_i        ( PBA_forwardData_w_i         ),
-    .WB_writeEnable_w_i         ( WB_writeEnable_w_i          ),
-    .WB_writeNum_w_i            ( WB_writeNum_w_i             ),
-    .WB_finalRes_w_i            ( WB_finalRes_w_i             ),
-    .EXE_up_writeNum_w_i        ( EXE_up_writeNum_w_i         ),
-    .EXE_down_writeNum_w_i      ( EXE_down_writeNum_w_i       ),
-    .SBA_writeNum_w_i           ( SBA_writeNum_w_i            ),
-    .MEM_writeNum_w_i           ( MEM_writeNum_w_i            ),
-    .REEXE_writeNum_w_i         ( REEXE_writeNum_w_i          ),
-    .PREMEM_writeNum_w_i        ( PREMEM_writeNum_w_i         ),
-    .EXE_up_forwardMode_w_i     ( EXE_up_forwardMode_w_i      ),
-    .MEM_forwardMode_w_i        ( MEM_forwardMode_w_i         ),
-    .EXE_down_forwardMode_w_i   ( EXE_down_forwardMode_w_i    ),
-    .SBA_forwardMode_w_i        ( SBA_forwardMode_w_i         ),
-    .PREMEM_forwardMode_w_i     ( PREMEM_forwardMode_w_i      ),
-    .REEXE_forwardMode_w_i      ( REEXE_forwardMode_w_i       ),
-    .EXE_down_hasDangerous_w_i  ( EXE_down_hasDangerous_w_i   ),
-    .MEM_hasDangerous_w_i       ( MEM_hasDangerous_w_i        ),
-    .PREMEM_hasDangerous_w_i    ( PREMEM_hasDangerous_w_i     ),
-    .WB_hasDangerous_w_i        ( WB_hasDangerous_w_i         ),
+    .clk                          ( clk                           ),
+    .rst                          ( rst                           ),
+    .IS_issueMode_i               ( IS_issueMode_i                ),
+    .IS_Inst_p_i                  ( IS_Inst_p_i                   ),
+    .IS_VAddr_p_i                 ( IS_VAddr_p_i                  ),
+    .IS_predDest_p_i              ( IS_predDest_p_i               ),
+    .IS_hasException_p_i          ( IS_hasException_p_i           ),
+    .IS_predTake_p_i              ( IS_predTake_p_i               ),
+    .IS_ExcCode_p_i               ( IS_ExcCode_p_i                ),
+    .IS_checkPoint_p_i            ( IS_checkPoint_p_i             ),
+    .IS_regReadNum_p_i            ( IS_regReadNum_p_i             ),
+    .IS_needRead_p_i              ( IS_needRead_p_i               ),
+    .IS_regWriteNum_p_i           ( IS_regWriteNum_p_i            ),
+    .IS_isRefill_p_i              ( IS_isRefill_p_i               ),
+    .IS_okReExe_i                 ( IS_okReExe_i                  ),
+    .SBA_flush_w_i                ( SBA_flush_w_i                 ),
+    .CP0_excOccur_w_i             ( CP0_excOccur_w_i              ),
+    .EXE_down_allowin_w_i         ( EXE_down_allowin_w_i          ),
+    .PBA_writeEnable_w_i          ( PBA_writeEnable_w_i           ),
+    .PBA_writeNum_w_i             ( PBA_writeNum_w_i              ),
+    .PBA_forwardData_w_i          ( PBA_forwardData_w_i           ),
+    .WB_writeEnable_w_i           ( WB_writeEnable_w_i            ),
+    .WB_writeNum_w_i              ( WB_writeNum_w_i               ),
+    .WB_finalRes_w_i              ( WB_finalRes_w_i               ),
+    .EXE_up_writeNum_w_i          ( EXE_up_writeNum_w_i           ),
+    .EXE_down_writeNum_w_i        ( EXE_down_writeNum_w_i         ),
+    .SBA_writeNum_w_i             ( SBA_writeNum_w_i              ),
+    .MEM_writeNum_w_i             ( MEM_writeNum_w_i              ),
+    .REEXE_writeNum_w_i           ( REEXE_writeNum_w_i            ),
+    .PREMEM_writeNum_w_i          ( PREMEM_writeNum_w_i           ),
+    .EXE_up_forwardMode_w_i       ( EXE_up_forwardMode_w_i        ),
+    .MEM_forwardMode_w_i          ( MEM_forwardMode_w_i           ),
+    .EXE_down_forwardMode_w_i     ( EXE_down_forwardMode_w_i      ),
+    .SBA_forwardMode_w_i          ( SBA_forwardMode_w_i           ),
+    .PREMEM_forwardMode_w_i       ( PREMEM_forwardMode_w_i        ),
+    .REEXE_forwardMode_w_i        ( REEXE_forwardMode_w_i         ),
+    .EXE_down_hasDangerous_w_i    ( EXE_down_hasDangerous_w_i     ),
+    .MEM_hasDangerous_w_i         ( MEM_hasDangerous_w_i          ),
+    .PREMEM_hasDangerous_w_i      ( PREMEM_hasDangerous_w_i       ),
+    .WB_hasDangerous_w_i          ( WB_hasDangerous_w_i           ),
+    .SBA_delayReadNum_w_p_i       ( SBA_delayReadNum_w_p_i        ),
+    .PREMEM_delayReadNum_w_p_i    ( PREMEM_delayReadNum_w_p_i     ),
 
-    .ID_allowin_w_o             ( ID_allowin_w_o              ),
-    .ID_down_valid_w_o          ( ID_down_valid_w_o           ),
-    .ID_up_valid_w_o            ( ID_up_valid_w_o             ),
-    .ID_up_writeNum_o           ( ID_up_writeNum_o            ),
-    .ID_up_readData_o           ( ID_up_readData_o            ),
-    .ID_up_VAddr_o              ( ID_up_VAddr_o               ),
-    .ID_up_oprand0_o            ( ID_up_oprand0_o             ),
-    .ID_up_oprand0IsReg_o       ( ID_up_oprand0IsReg_o        ),
-    .ID_up_oprand1IsReg_o       ( ID_up_oprand1IsReg_o        ),
-    .ID_up_forwardSel0_o        ( ID_up_forwardSel0_o         ),
-    .ID_up_data0Ready_o         ( ID_up_data0Ready_o          ),
-    .ID_up_oprand1_o            ( ID_up_oprand1_o             ),
-    .ID_up_forwardSel1_o        ( ID_up_forwardSel1_o         ),
-    .ID_up_data1Ready_o         ( ID_up_data1Ready_o          ),
-    .ID_up_aluOprator_o         ( ID_up_aluOprator_o          ),
-    .ID_up_branchRisk_o         ( ID_up_branchRisk_o          ),
-    .ID_up_repairAction_o       ( ID_up_repairAction_o        ),
-    .ID_up_predDest_o           ( ID_up_predDest_o            ),
-    .ID_up_predTake_o           ( ID_up_predTake_o            ),
-    .ID_up_checkPoint_o         ( ID_up_checkPoint_o          ),
-    .ID_up_branchKind_o         ( ID_up_branchKind_o          ),
-    .ID_down_writeNum_o         ( ID_down_writeNum_o          ),
-    .ID_down_readData_o         ( ID_down_readData_o          ),
-    .ID_down_isDelaySlot_o      ( ID_down_isDelaySlot_o       ),
-    .ID_down_isDangerous_o      ( ID_down_isDangerous_o       ),
-    .ID_down_VAddr_o            ( ID_down_VAddr_o             ),
-    .ID_down_oprand0_o          ( ID_down_oprand0_o           ),
-    .ID_down_oprand0IsReg_o     ( ID_down_oprand0IsReg_o      ),
-    .ID_down_oprand1IsReg_o     ( ID_down_oprand1IsReg_o      ),
-    .ID_down_forwardSel0_o      ( ID_down_forwardSel0_o       ),
-    .ID_down_data0Ready_o       ( ID_down_data0Ready_o        ),
-    .ID_down_oprand1_o          ( ID_down_oprand1_o           ),
-    .ID_down_forwardSel1_o      ( ID_down_forwardSel1_o       ),
-    .ID_down_data1Ready_o       ( ID_down_data1Ready_o        ),
-    .ID_down_aluOprator_o       ( ID_down_aluOprator_o        ),
-    .ID_down_mduOperator_o      ( ID_down_mduOperator_o       ),
-    .ID_down_readHiLo_o         ( ID_down_readHiLo_o          ),
-    .ID_down_writeHiLo_o        ( ID_down_writeHiLo_o         ),
-    .ID_down_ExcCode_o          ( ID_down_ExcCode_o           ),
-    .ID_down_exceptionSel_o     ( ID_down_exceptionSel_o      ),
-    .ID_down_hasException_o     ( ID_down_hasException_o      ),
-    .ID_down_exceptionRisk_o    ( ID_down_exceptionRisk_o     ),
-    .ID_down_positionCp0_o      ( ID_down_positionCp0_o       ),
-    .ID_down_readCp0_o          ( ID_down_readCp0_o           ),
-    .ID_down_eret_o             ( ID_down_eret_o              ),
-    .ID_down_isRefill_o         ( ID_down_isRefill_o          ),
-    .ID_down_writeCp0_o         ( ID_down_writeCp0_o          ),
-    .ID_down_trapKind_o         ( ID_down_trapKind_o          ),
-    .ID_down_memReq_o           ( ID_down_memReq_o            ),
-    .ID_down_memWR_o            ( ID_down_memWR_o             ),
-    .ID_down_memAtom_o          ( ID_down_memAtom_o           ),
-    .ID_down_loadMode_o         ( ID_down_loadMode_o          ),
-    .ID_down_storeMode_o        ( ID_down_storeMode_o         ),
-    .ID_down_isTLBInst_o        ( ID_down_isTLBInst_o         ),
-    .ID_down_TLBInstOperator_o  ( ID_down_TLBInstOperator_o   ),
-    .ID_down_isCacheInst_o      ( ID_down_isCacheInst_o       ),
-    .ID_down_CacheOperator_o    ( ID_down_CacheOperator_o     )
+    .ID_allowin_w_o               ( ID_allowin_w_o                ),
+    .ID_down_valid_w_o            ( ID_down_valid_w_o             ),
+    .ID_up_valid_w_o              ( ID_up_valid_w_o               ),
+    .ID_up_delayReadData_w_p_o    ( ID_up_delayReadData_w_p_o     ),
+    .ID_down_delayReadData_w_p_o  ( ID_down_delayReadData_w_p_o   ),
+    .ID_up_readNum_p_o            ( ID_up_readNum_p_o             ),
+    .ID_up_needRead_p_o           ( ID_up_needRead_p_o            ),
+    .ID_down_readNum_p_o          ( ID_down_readNum_p_o           ),
+    .ID_down_needRead_p_o         ( ID_down_needRead_p_o          ),
+    .ID_up_writeNum_o             ( ID_up_writeNum_o              ),
+    .ID_up_readData_o             ( ID_up_readData_o              ),
+    .ID_up_VAddr_o                ( ID_up_VAddr_o                 ),
+    .ID_up_oprand0_o              ( ID_up_oprand0_o               ),
+    .ID_up_oprand1_o              ( ID_up_oprand1_o               ),
+    .ID_up_oprand0IsReg_o         ( ID_up_oprand0IsReg_o          ),
+    .ID_up_oprand1IsReg_o         ( ID_up_oprand1IsReg_o          ),
+    .ID_up_forwardSel0_o          ( ID_up_forwardSel0_o           ),
+    .ID_up_forwardSel1_o          ( ID_up_forwardSel1_o           ),
+    .ID_up_aluOprator_o           ( ID_up_aluOprator_o            ),
+    .ID_up_branchRisk_o           ( ID_up_branchRisk_o            ),
+    .ID_up_repairAction_o         ( ID_up_repairAction_o          ),
+    .ID_up_predDest_o             ( ID_up_predDest_o              ),
+    .ID_up_predTake_o             ( ID_up_predTake_o              ),
+    .ID_up_checkPoint_o           ( ID_up_checkPoint_o            ),
+    .ID_up_branchKind_o           ( ID_up_branchKind_o            ),
+    .ID_down_writeNum_o           ( ID_down_writeNum_o            ),
+    .ID_down_readData_o           ( ID_down_readData_o            ),
+    .ID_down_isDelaySlot_o        ( ID_down_isDelaySlot_o         ),
+    .ID_down_isDangerous_o        ( ID_down_isDangerous_o         ),
+    .ID_down_VAddr_o              ( ID_down_VAddr_o               ),
+    .ID_down_oprand0_o            ( ID_down_oprand0_o             ),
+    .ID_down_oprand1_o            ( ID_down_oprand1_o             ),
+    .ID_down_oprand0IsReg_o       ( ID_down_oprand0IsReg_o        ),
+    .ID_down_oprand1IsReg_o       ( ID_down_oprand1IsReg_o        ),
+    .ID_down_forwardSel0_o        ( ID_down_forwardSel0_o         ),
+    .ID_down_forwardSel1_o        ( ID_down_forwardSel1_o         ),
+    .ID_down_aluOprator_o         ( ID_down_aluOprator_o          ),
+    .ID_down_mduOperator_o        ( ID_down_mduOperator_o         ),
+    .ID_down_readHiLo_o           ( ID_down_readHiLo_o            ),
+    .ID_down_writeHiLo_o          ( ID_down_writeHiLo_o           ),
+    .ID_down_ExcCode_o            ( ID_down_ExcCode_o             ),
+    .ID_down_exceptionSel_o       ( ID_down_exceptionSel_o        ),
+    .ID_down_hasException_o       ( ID_down_hasException_o        ),
+    .ID_down_exceptionRisk_o      ( ID_down_exceptionRisk_o       ),
+    .ID_down_positionCp0_o        ( ID_down_positionCp0_o         ),
+    .ID_down_readCp0_o            ( ID_down_readCp0_o             ),
+    .ID_down_eret_o               ( ID_down_eret_o                ),
+    .ID_down_isRefill_o           ( ID_down_isRefill_o            ),
+    .ID_down_writeCp0_o           ( ID_down_writeCp0_o            ),
+    .ID_down_trapKind_o           ( ID_down_trapKind_o            ),
+    .ID_down_memReq_o             ( ID_down_memReq_o              ),
+    .ID_down_memWR_o              ( ID_down_memWR_o               ),
+    .ID_down_memAtom_o            ( ID_down_memAtom_o             ),
+    .ID_down_loadMode_o           ( ID_down_loadMode_o            ),
+    .ID_down_storeMode_o          ( ID_down_storeMode_o           ),
+    .ID_down_isTLBInst_o          ( ID_down_isTLBInst_o           ),
+    .ID_down_TLBInstOperator_o    ( ID_down_TLBInstOperator_o     ),
+    .ID_down_isCacheInst_o        ( ID_down_isCacheInst_o         ),
+    .ID_down_CacheOperator_o      ( ID_down_CacheOperator_o       )
 );
 
 DataMemoryManagementUnit  u_DataMemoryManagementUnit (
@@ -922,6 +995,7 @@ Issue  u_Issue (
     .IS_regReadNum_p_o       ( IS_regReadNum_p_o     ),
     .IS_needRead_p_o         ( IS_needRead_p_o       ),
     .IS_regWriteNum_p_o      ( IS_regWriteNum_p_o    ),
+    .IS_okReExe_o            ( IS_okReExe_o          ),
     .IS_isRefill_p_o         ( IS_isRefill_p_o       )
 );
 
@@ -968,6 +1042,7 @@ PrimaryExceptionProcessor  u_PrimaryExceptionProcessor (
     .DMMU_EntryLo1_i              ( DMMU_EntryLo1_i               ),
     .DMMU_PageMask_i              ( DMMU_PageMask_i               ),
     .WB_hasRisk_w_i               ( WB_hasRisk_w_i                ),
+    .MEM_cacheFlush_w_i           ( MEM_cacheFlush_w_i            ),
     .MEM_hasException_w_i         ( MEM_hasException_w_i          ),
     .MEM_ExcCode_w_i              ( MEM_ExcCode_w_i               ),
     .MEM_isDelaySlot_w_i          ( MEM_isDelaySlot_w_i           ),
@@ -988,7 +1063,7 @@ PrimaryExceptionProcessor  u_PrimaryExceptionProcessor (
     .PREMEM_isRefill_w_i          ( PREMEM_isRefill_w_i           ),
     .PREMEM_isInterrupt_w_i       ( PREMEM_isInterrupt_w_i        ),
     .PREMEM_hasRisk_w_i           ( PREMEM_hasRisk_w_i            ),
-    .EXE_down_hasExceprion_w_i    ( EXE_down_hasExceprion_w_i     ),
+    .EXE_down_hasException_w_i    ( EXE_down_hasException_w_i     ),
     .EXE_down_ExcCode_w_i         ( EXE_down_ExcCode_w_i          ),
     .EXE_down_isDelaySlot_w_i     ( EXE_down_isDelaySlot_w_i      ),
     .EXE_down_exceptPC_w_i        ( EXE_down_exceptPC_w_i         ),
@@ -1020,9 +1095,19 @@ REEXE  u_REEXE (
     .rst                     ( rst                     ),
     .SBA_valid_w_i           ( SBA_valid_w_i           ),
     .MEM_allowin_w_i         ( MEM_allowin_w_i         ),
+    .WB_forwardData_w_i      ( WB_forwardData_w_i      ),
     .SBA_writeNum_i          ( SBA_writeNum_i          ),
     .SBA_VAddr_i             ( SBA_VAddr_i             ),
     .SBA_aluRes_i            ( SBA_aluRes_i            ),
+    .SBA_notExc_i            ( SBA_notExc_i            ),
+    .SBA_forwardSel0_i       ( SBA_forwardSel0_i       ),
+    .SBA_forwardSel1_i       ( SBA_forwardSel1_i       ),
+    .SBA_oprand0IsReg_i      ( SBA_oprand0IsReg_i      ),
+    .SBA_oprand1IsReg_i      ( SBA_oprand1IsReg_i      ),
+    .SBA_preSrc_p_i          ( SBA_preSrc_p_i          ),
+    .SBA_readData_p_i        ( SBA_readData_p_i        ),
+    .SBA_aluOperator_i       ( SBA_aluOperator_i       ),
+    .REEXE_regData_i         ( REEXE_regData_i         ),
 
     .REEXE_okToChange_w_o    ( REEXE_okToChange_w_o    ),
     .REEXE_valid_w_o         ( REEXE_valid_w_o         ),
@@ -1095,6 +1180,8 @@ MEM  u_MEM (
     .CP0_Cause_w_i            ( CP0_Cause_w_i             ),
     .CP0_Status_w_i           ( CP0_Status_w_i            ),
     .data_data_ok             ( data_data_ok              ),
+    .WB_forwardData_w_i       ( WB_forwardData_w_i        ),
+    .dcache_ok                ( dcache_ok                 ),
     .icache_ok                ( icache_ok                 ),
     .PREMEM_writeNum_i        ( PREMEM_writeNum_i         ),
     .PREMEM_VAddr_i           ( PREMEM_VAddr_i            ),
@@ -1117,7 +1204,17 @@ MEM  u_MEM (
     .PREMEM_writeCp0_i        ( PREMEM_writeCp0_i         ),
     .PREMEM_isCacheInst_i     ( PREMEM_isCacheInst_i      ),
     .PREMEM_CacheOperator_i   ( PREMEM_CacheOperator_i    ),
-    .PREMEM_CacheAddress_i    ( PREMEM_CacheAddress_i     ),
+    .PREMEM_notExc_i          ( PREMEM_notExc_i           ),
+    .PREMEM_forwardSel0_i     ( PREMEM_forwardSel0_i      ),
+    .PREMEM_forwardSel1_i     ( PREMEM_forwardSel1_i      ),
+    .PREMEM_oprand0IsReg_i    ( PREMEM_oprand0IsReg_i     ),
+    .PREMEM_oprand1IsReg_i    ( PREMEM_oprand1IsReg_i     ),
+    .PREMEM_preSrc_p_i        ( PREMEM_preSrc_p_i         ),
+    .PREMEM_readData_p_i      ( PREMEM_readData_p_i       ),
+    .PREMEM_aluOperator_i     ( PREMEM_aluOperator_i      ),
+    .PBA_forwardData_w_i      ( PBA_forwardData_w_i       ),
+    .REEXE_regData_i          ( REEXE_regData_i           ),
+    .WB_finalRes_w_i          ( WB_finalRes_w_i           ),
 
     .MEM_forwardMode_w_o      ( MEM_forwardMode_w_o       ),
     .MEM_writeNum_w_o         ( MEM_writeNum_w_o          ),
@@ -1131,12 +1228,12 @@ MEM  u_MEM (
     .dcache_tag               ( dcache_tag                ),
     .dcache_valid             ( dcache_valid              ),
     .dcache_dirty             ( dcache_dirty              ),
-    .dcache_ok                ( dcache_ok                 ),
     .icache_req               ( icache_req                ),
     .icache_op                ( icache_op                 ),
     .icache_addr              ( icache_addr               ),
     .icache_tag               ( icache_tag                ),
     .icache_valid             ( icache_valid              ),
+    .MEM_cacheFlush_w_o       ( MEM_cacheFlush_w_o        ),
     .MEM_ExcCode_w_o          ( MEM_ExcCode_w_o           ),
     .MEM_hasException_w_o     ( MEM_hasException_w_o      ),
     .MEM_isDelaySlot_w_o      ( MEM_isDelaySlot_w_o       ),
@@ -1180,39 +1277,59 @@ PrimaryBranchAmend  u_PrimaryBranchAmend (
 );
 
 SecondBranchAmend  u_SecondBranchAmend (
-    .clk                     ( clk                     ),
-    .rst                     ( rst                     ),
-    .MEM_hasRisk_w_i         ( MEM_hasRisk_w_i         ),
-    .CP0_excOccur_w_i        ( CP0_excOccur_w_i        ),
-    .CP0_exceptSeg_w_i       ( CP0_exceptSeg_w_i       ),
-    .EXE_up_valid_w_i        ( EXE_up_valid_w_i        ),
-    .PREMEM_allowin_w_i      ( PREMEM_allowin_w_i      ),
-    .EXE_up_writeNum_i       ( EXE_up_writeNum_i       ),
-    .EXE_up_VAddr_i          ( EXE_up_VAddr_i          ),
-    .EXE_up_aluRes_i         ( EXE_up_aluRes_i         ),
-    .EXE_up_corrDest_i       ( EXE_up_corrDest_i       ),
-    .EXE_up_corrTake_i       ( EXE_up_corrTake_i       ),
-    .EXE_up_repairAction_i   ( EXE_up_repairAction_i   ),
-    .EXE_up_checkPoint_i     ( EXE_up_checkPoint_i     ),
-    .EXE_up_branchRisk_i     ( EXE_up_branchRisk_i     ),
-    .EXE_up_isBranch_i       ( EXE_up_isBranch_i       ),
-    .EXE_down_nonBlockDS_i   ( EXE_down_nonBlockDS_i   ),
+    .clk                        ( clk                         ),
+    .rst                        ( rst                         ),
+    .MEM_hasRisk_w_i            ( MEM_hasRisk_w_i             ),
+    .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
+    .CP0_exceptSeg_w_i          ( CP0_exceptSeg_w_i           ),
+    .EXE_up_valid_w_i           ( EXE_up_valid_w_i            ),
+    .PREMEM_allowin_w_i         ( PREMEM_allowin_w_i          ),
+    .REEXE_writeNum_w_i         ( REEXE_writeNum_w_i          ),
+    .MEM_writeNum_w_i           ( MEM_writeNum_w_i            ),
+    .MEM_forwardMode_w_i        ( MEM_forwardMode_w_i         ),
+    .REEXE_forwardMode_w_i      ( REEXE_forwardMode_w_i       ),
+    .ID_up_delayReadData_w_p_i  ( ID_up_delayReadData_w_p_i   ),
+    .EXE_up_writeNum_i          ( EXE_up_writeNum_i           ),
+    .EXE_up_VAddr_i             ( EXE_up_VAddr_i              ),
+    .EXE_up_notExc_i            ( EXE_up_notExc_i             ),
+    .EXE_up_preSrc_p_i          ( EXE_up_preSrc_p_i           ),
+    .EXE_up_oprand0IsReg_i      ( EXE_up_oprand0IsReg_i       ),
+    .EXE_up_oprand1IsReg_i      ( EXE_up_oprand1IsReg_i       ),
+    .EXE_up_aluOprator_i        ( EXE_up_aluOprator_i         ),
+    .EXE_up_readNum_p_i         ( EXE_up_readNum_p_i          ),
+    .EXE_up_needRead_p_i        ( EXE_up_needRead_p_i         ),
+    .EXE_up_aluRes_i            ( EXE_up_aluRes_i             ),
+    .EXE_up_corrDest_i          ( EXE_up_corrDest_i           ),
+    .EXE_up_corrTake_i          ( EXE_up_corrTake_i           ),
+    .EXE_up_repairAction_i      ( EXE_up_repairAction_i       ),
+    .EXE_up_checkPoint_i        ( EXE_up_checkPoint_i         ),
+    .EXE_up_branchRisk_i        ( EXE_up_branchRisk_i         ),
+    .EXE_down_nonBlockDS_i      ( EXE_down_nonBlockDS_i       ),
 
-    .SBA_okToChange_w_o      ( SBA_okToChange_w_o      ),
-    .SBA_valid_w_o           ( SBA_valid_w_o           ),
-    .SBA_forwardMode_w_o     ( SBA_forwardMode_w_o     ),
-    .SBA_writeNum_w_o        ( SBA_writeNum_w_o        ),
-    .SBA_nonBlockDS_w_o      ( SBA_nonBlockDS_w_o      ),
-    .SBA_branchRisk_w_o      ( SBA_branchRisk_w_o      ),
-    .SBA_flush_w_o           ( SBA_flush_w_o           ),
-    .SBA_erroVAddr_w_o       ( SBA_erroVAddr_w_o       ),
-    .SBA_corrDest_w_o        ( SBA_corrDest_w_o        ),
-    .SBA_corrTake_w_o        ( SBA_corrTake_w_o        ),
-    .SBA_checkPoint_w_o      ( SBA_checkPoint_w_o      ),
-    .SBA_repairAction_w_o    ( SBA_repairAction_w_o    ),
-    .SBA_writeNum_o          ( SBA_writeNum_o          ),
-    .SBA_VAddr_o             ( SBA_VAddr_o             ),
-    .SBA_aluRes_o            ( SBA_aluRes_o            )
+    .SBA_okToChange_w_o         ( SBA_okToChange_w_o          ),
+    .SBA_valid_w_o              ( SBA_valid_w_o               ),
+    .SBA_forwardMode_w_o        ( SBA_forwardMode_w_o         ),
+    .SBA_writeNum_w_o           ( SBA_writeNum_w_o            ),
+    .SBA_nonBlockDS_w_o         ( SBA_nonBlockDS_w_o          ),
+    .SBA_branchRisk_w_o         ( SBA_branchRisk_w_o          ),
+    .SBA_flush_w_o              ( SBA_flush_w_o               ),
+    .SBA_erroVAddr_w_o          ( SBA_erroVAddr_w_o           ),
+    .SBA_corrDest_w_o           ( SBA_corrDest_w_o            ),
+    .SBA_corrTake_w_o           ( SBA_corrTake_w_o            ),
+    .SBA_checkPoint_w_o         ( SBA_checkPoint_w_o          ),
+    .SBA_repairAction_w_o       ( SBA_repairAction_w_o        ),
+    .SBA_delayReadNum_w_p_o     ( SBA_delayReadNum_w_p_o      ),
+    .SBA_writeNum_o             ( SBA_writeNum_o              ),
+    .SBA_VAddr_o                ( SBA_VAddr_o                 ),
+    .SBA_notExc_o               ( SBA_notExc_o                ),
+    .SBA_forwardSel0_o          ( SBA_forwardSel0_o           ),
+    .SBA_forwardSel1_o          ( SBA_forwardSel1_o           ),
+    .SBA_oprand0IsReg_o         ( SBA_oprand0IsReg_o          ),
+    .SBA_oprand1IsReg_o         ( SBA_oprand1IsReg_o          ),
+    .SBA_preSrc_p_o             ( SBA_preSrc_p_o              ),
+    .SBA_readData_p_o           ( SBA_readData_p_o            ),
+    .SBA_aluOperator_o          ( SBA_aluOperator_o           ),
+    .SBA_aluRes_o               ( SBA_aluRes_o                )
 );
 
 IF  u_IF (
@@ -1274,16 +1391,16 @@ EXEUP  u_EXEUP (
     .WB_forwardData_w_i       ( WB_forwardData_w_i        ),
     .ID_up_VAddr_i            ( ID_up_VAddr_i             ),
     .ID_up_writeNum_i         ( ID_up_writeNum_i          ),
+    .ID_up_readNum_p_i        ( ID_up_readNum_p_i         ),
+    .ID_up_needRead_p_i       ( ID_up_needRead_p_i        ),
     .ID_up_readData_i         ( ID_up_readData_i          ),
     .ID_up_oprand0_i          ( ID_up_oprand0_i           ),
+    .ID_up_oprand1_i          ( ID_up_oprand1_i           ),
     .ID_up_oprand0IsReg_i     ( ID_up_oprand0IsReg_i      ),
     .ID_up_oprand1IsReg_i     ( ID_up_oprand1IsReg_i      ),
-    .ID_up_forwardSel0_i      ( ID_up_forwardSel0_i       ),
-    .ID_up_data0Ready_i       ( ID_up_data0Ready_i        ),
-    .ID_up_oprand1_i          ( ID_up_oprand1_i           ),
-    .ID_up_forwardSel1_i      ( ID_up_forwardSel1_i       ),
-    .ID_up_data1Ready_i       ( ID_up_data1Ready_i        ),
     .ID_up_aluOprator_i       ( ID_up_aluOprator_i        ),
+    .ID_up_forwardSel0_i      ( ID_up_forwardSel0_i       ),
+    .ID_up_forwardSel1_i      ( ID_up_forwardSel1_i       ),
     .ID_up_branchRisk_i       ( ID_up_branchRisk_i        ),
     .ID_up_branchKind_i       ( ID_up_branchKind_i        ),
     .ID_up_repairAction_i     ( ID_up_repairAction_i      ),
@@ -1303,12 +1420,18 @@ EXEUP  u_EXEUP (
     .EXE_up_valid_w_o         ( EXE_up_valid_w_o          ),
     .EXE_up_writeNum_o        ( EXE_up_writeNum_o         ),
     .EXE_up_VAddr_o           ( EXE_up_VAddr_o            ),
+    .EXE_up_notExc_o          ( EXE_up_notExc_o           ),
+    .EXE_up_preSrc_p_o        ( EXE_up_preSrc_p_o         ),
+    .EXE_up_oprand0IsReg_o    ( EXE_up_oprand0IsReg_o     ),
+    .EXE_up_oprand1IsReg_o    ( EXE_up_oprand1IsReg_o     ),
+    .EXE_up_aluOprator_o      ( EXE_up_aluOprator_o       ),
+    .EXE_up_readNum_p_o       ( EXE_up_readNum_p_o        ),
+    .EXE_up_needRead_p_o      ( EXE_up_needRead_p_o       ),
     .EXE_up_aluRes_o          ( EXE_up_aluRes_o           ),
     .EXE_up_corrDest_o        ( EXE_up_corrDest_o         ),
     .EXE_up_corrTake_o        ( EXE_up_corrTake_o         ),
     .EXE_up_repairAction_o    ( EXE_up_repairAction_o     ),
     .EXE_up_checkPoint_o      ( EXE_up_checkPoint_o       ),
-    .EXE_up_isBranch_o        ( EXE_up_isBranch_o         ),
     .EXE_up_branchRisk_o      ( EXE_up_branchRisk_o       )
 );
 
@@ -1335,10 +1458,8 @@ EXEDOWN  u_EXEDOWN (
     .ID_down_oprand0IsReg_i       ( ID_down_oprand0IsReg_i        ),
     .ID_down_oprand1IsReg_i       ( ID_down_oprand1IsReg_i        ),
     .ID_down_forwardSel0_i        ( ID_down_forwardSel0_i         ),
-    .ID_down_data0Ready_i         ( ID_down_data0Ready_i          ),
     .ID_down_oprand1_i            ( ID_down_oprand1_i             ),
     .ID_down_forwardSel1_i        ( ID_down_forwardSel1_i         ),
-    .ID_down_data1Ready_i         ( ID_down_data1Ready_i          ),
     .ID_down_aluOprator_i         ( ID_down_aluOprator_i          ),
     .ID_down_mduOperator_i        ( ID_down_mduOperator_i         ),
     .ID_down_readHiLo_i           ( ID_down_readHiLo_i            ),
@@ -1369,13 +1490,15 @@ EXEDOWN  u_EXEDOWN (
     .REEXE_regData_i              ( REEXE_regData_i               ),
     .PREMEM_preliminaryRes_i      ( PREMEM_preliminaryRes_i       ),
     .MEM_finalRes_i               ( MEM_finalRes_i                ),
+    .ID_down_readNum_p_i          ( ID_down_readNum_p_i           ),
+    .ID_down_needRead_p_i         ( ID_down_needRead_p_i          ),
 
     .EXE_down_forwardMode_w_o     ( EXE_down_forwardMode_w_o      ),
     .EXE_down_writeNum_w_o        ( EXE_down_writeNum_w_o         ),
     .EXE_down_valid_w_o           ( EXE_down_valid_w_o            ),
     .EXE_down_allowin_w_o         ( EXE_down_allowin_w_o          ),
     .EXE_down_hasDangerous_w_o    ( EXE_down_hasDangerous_w_o     ),
-    .EXE_down_hasExceprion_w_o    ( EXE_down_hasExceprion_w_o     ),
+    .EXE_down_hasException_w_o    ( EXE_down_hasException_w_o     ),
     .EXE_down_ExcCode_w_o         ( EXE_down_ExcCode_w_o          ),
     .EXE_down_isDelaySlot_w_o     ( EXE_down_isDelaySlot_w_o      ),
     .EXE_down_exceptPC_w_o        ( EXE_down_exceptPC_w_o         ),
@@ -1410,6 +1533,13 @@ EXEDOWN  u_EXEDOWN (
     .EXE_down_memAtom_o           ( EXE_down_memAtom_o            ),
     .EXE_down_storeData_o         ( EXE_down_storeData_o          ),
     .EXE_down_loadSel_o           ( EXE_down_loadSel_o            ),
+    .EXE_down_notExc_o            ( EXE_down_notExc_o             ),
+    .EXE_down_preSrc_p_o          ( EXE_down_preSrc_p_o           ),
+    .EXE_down_oprand0IsReg_o      ( EXE_down_oprand0IsReg_o       ),
+    .EXE_down_oprand1IsReg_o      ( EXE_down_oprand1IsReg_o       ),
+    .EXE_down_aluOprator_o        ( EXE_down_aluOprator_o         ),
+    .EXE_down_readNum_p_o         ( EXE_down_readNum_p_o          ),
+    .EXE_down_needRead_p_o        ( EXE_down_needRead_p_o         ),
     .EXE_down_isTLBInst_o         ( EXE_down_isTLBInst_o          ),
     .EXE_down_TLBInstOperator_o   ( EXE_down_TLBInstOperator_o    ),
     .EXE_down_isCacheInst_o       ( EXE_down_isCacheInst_o        ),
@@ -1417,96 +1547,116 @@ EXEDOWN  u_EXEDOWN (
 );
 
 PREMEM  u_PREMEM (
-    .clk                         ( clk                          ),
-    .rst                         ( rst                          ),
-    .MEM_allowin_w_i             ( MEM_allowin_w_i              ),
-    .EXE_down_valid_w_i          ( EXE_down_valid_w_i           ),
-    .SBA_okToChange_w_i          ( SBA_okToChange_w_i           ),
-    .MEM_hasRisk_w_i             ( MEM_hasRisk_w_i              ),
-    .CP0_excOccur_w_i            ( CP0_excOccur_w_i             ),
-    .CP0_exceptSeg_w_i           ( CP0_exceptSeg_w_i            ),
-    .SBA_flush_w_i               ( SBA_flush_w_i                ),
-    .data_index_ok               ( data_index_ok                ),
-    .EXE_down_writeNum_i         ( EXE_down_writeNum_i          ),
-    .EXE_down_isDelaySlot_i      ( EXE_down_isDelaySlot_i       ),
-    .EXE_down_isDangerous_i      ( EXE_down_isDangerous_i       ),
-    .EXE_down_VAddr_i            ( EXE_down_VAddr_i             ),
-    .EXE_down_aluRes_i           ( EXE_down_aluRes_i            ),
-    .EXE_down_mduRes_i           ( EXE_down_mduRes_i            ),
-    .EXE_down_clRes_i            ( EXE_down_clRes_i             ),
-    .EXE_down_mulRes_i           ( EXE_down_mulRes_i            ),
-    .EXE_down_mathResSel_i       ( EXE_down_mathResSel_i        ),
-    .EXE_down_nonBlockMark_i     ( EXE_down_nonBlockMark_i      ),
-    .EXE_up_branchRisk_i         ( EXE_up_branchRisk_i          ),
-    .EXE_down_ExcCode_i          ( EXE_down_ExcCode_i           ),
-    .EXE_down_hasException_i     ( EXE_down_hasException_i      ),
-    .EXE_down_exceptionRisk_i    ( EXE_down_exceptionRisk_i     ),
-    .EXE_down_exceptBadVAddr_i   ( EXE_down_exceptBadVAddr_i    ),
-    .EXE_down_eret_i             ( EXE_down_eret_i              ),
-    .EXE_down_isRefill_i         ( EXE_down_isRefill_i          ),
-    .EXE_down_positionCp0_i      ( EXE_down_positionCp0_i       ),
-    .EXE_down_readCp0_i          ( EXE_down_readCp0_i           ),
-    .EXE_down_writeCp0_i         ( EXE_down_writeCp0_i          ),
-    .EXE_down_memReq_i           ( EXE_down_memReq_i            ),
-    .EXE_down_memWR_i            ( EXE_down_memWR_i             ),
-    .EXE_down_memEnable_i        ( EXE_down_memEnable_i         ),
-    .EXE_down_memAtom_i          ( EXE_down_memAtom_i           ),
-    .EXE_down_storeData_i        ( EXE_down_storeData_i         ),
-    .EXE_down_loadSel_i          ( EXE_down_loadSel_i           ),
-    .EXE_down_isTLBInst_i        ( EXE_down_isTLBInst_i         ),
-    .EXE_down_TLBInstOperator_i  ( EXE_down_TLBInstOperator_i   ),
-    .EXE_down_isCacheInst_i      ( EXE_down_isCacheInst_i       ),
-    .EXE_down_CacheOperator_i    ( EXE_down_CacheOperator_i     ),
+    .clk                          ( clk                           ),
+    .rst                          ( rst                           ),
+    .MEM_allowin_w_i              ( MEM_allowin_w_i               ),
+    .EXE_down_valid_w_i           ( EXE_down_valid_w_i            ),
+    .SBA_okToChange_w_i           ( SBA_okToChange_w_i            ),
+    .MEM_hasRisk_w_i              ( MEM_hasRisk_w_i               ),
+    .CP0_excOccur_w_i             ( CP0_excOccur_w_i              ),
+    .CP0_exceptSeg_w_i            ( CP0_exceptSeg_w_i             ),
+    .SBA_flush_w_i                ( SBA_flush_w_i                 ),
+    .data_index_ok                ( data_index_ok                 ),
+    .ID_down_delayReadData_w_p_i  ( ID_down_delayReadData_w_p_i   ),
+    .REEXE_writeNum_w_i           ( REEXE_writeNum_w_i            ),
+    .MEM_writeNum_w_i             ( MEM_writeNum_w_i              ),
+    .MEM_forwardMode_w_i          ( MEM_forwardMode_w_i           ),
+    .REEXE_forwardMode_w_i        ( REEXE_forwardMode_w_i         ),
+    .EXE_down_writeNum_i          ( EXE_down_writeNum_i           ),
+    .EXE_down_isDelaySlot_i       ( EXE_down_isDelaySlot_i        ),
+    .EXE_down_isDangerous_i       ( EXE_down_isDangerous_i        ),
+    .EXE_down_VAddr_i             ( EXE_down_VAddr_i              ),
+    .EXE_down_aluRes_i            ( EXE_down_aluRes_i             ),
+    .EXE_down_mduRes_i            ( EXE_down_mduRes_i             ),
+    .EXE_down_clRes_i             ( EXE_down_clRes_i              ),
+    .EXE_down_mulRes_i            ( EXE_down_mulRes_i             ),
+    .EXE_down_mathResSel_i        ( EXE_down_mathResSel_i         ),
+    .EXE_down_nonBlockMark_i      ( EXE_down_nonBlockMark_i       ),
+    .EXE_up_branchRisk_i          ( EXE_up_branchRisk_i           ),
+    .EXE_down_ExcCode_i           ( EXE_down_ExcCode_i            ),
+    .EXE_down_hasException_i      ( EXE_down_hasException_i       ),
+    .EXE_down_exceptionRisk_i     ( EXE_down_exceptionRisk_i      ),
+    .EXE_down_exceptBadVAddr_i    ( EXE_down_exceptBadVAddr_i     ),
+    .EXE_down_eret_i              ( EXE_down_eret_i               ),
+    .EXE_down_isRefill_i          ( EXE_down_isRefill_i           ),
+    .EXE_down_positionCp0_i       ( EXE_down_positionCp0_i        ),
+    .EXE_down_readCp0_i           ( EXE_down_readCp0_i            ),
+    .EXE_down_writeCp0_i          ( EXE_down_writeCp0_i           ),
+    .EXE_down_memReq_i            ( EXE_down_memReq_i             ),
+    .EXE_down_memWR_i             ( EXE_down_memWR_i              ),
+    .EXE_down_memEnable_i         ( EXE_down_memEnable_i          ),
+    .EXE_down_memAtom_i           ( EXE_down_memAtom_i            ),
+    .EXE_down_storeData_i         ( EXE_down_storeData_i          ),
+    .EXE_down_loadSel_i           ( EXE_down_loadSel_i            ),
+    .EXE_down_notExc_i            ( EXE_down_notExc_i             ),
+    .EXE_down_preSrc_p_i          ( EXE_down_preSrc_p_i           ),
+    .EXE_down_oprand0IsReg_i      ( EXE_down_oprand0IsReg_i       ),
+    .EXE_down_oprand1IsReg_i      ( EXE_down_oprand1IsReg_i       ),
+    .EXE_down_aluOprator_i        ( EXE_down_aluOprator_i         ),
+    .EXE_down_readNum_p_i         ( EXE_down_readNum_p_i          ),
+    .EXE_down_needRead_p_i        ( EXE_down_needRead_p_i         ),
+    .EXE_down_isTLBInst_i         ( EXE_down_isTLBInst_i          ),
+    .EXE_down_TLBInstOperator_i   ( EXE_down_TLBInstOperator_i    ),
+    .EXE_down_isCacheInst_i       ( EXE_down_isCacheInst_i        ),
+    .EXE_down_CacheOperator_i     ( EXE_down_CacheOperator_i      ),
 
-    .PREMEM_forwardMode_w_o      ( PREMEM_forwardMode_w_o       ),
-    .PREMEM_writeNum_w_o         ( PREMEM_writeNum_w_o          ),
-    .PREMEM_hasDangerous_w_o     ( PREMEM_hasDangerous_w_o      ),
-    .PREMEM_hasRisk_w_o          ( PREMEM_hasRisk_w_o           ),
-    .PREMEM_allowin_w_o          ( PREMEM_allowin_w_o           ),
-    .PREMEM_valid_w_o            ( PREMEM_valid_w_o             ),
-    .data_index                  ( data_index                   ),
-    .data_req                    ( data_req                     ),
-    .data_wr                     ( data_wr                      ),
-    .data_size                   ( data_size                    ),
-    .data_wstrb                  ( data_wstrb                   ),
-    .data_wdata                  ( data_wdata                   ),
-    .PREMEM_search_w_o           ( PREMEM_search_w_o            ),
-    .PREMEM_read_w_o             ( PREMEM_read_w_o              ),
-    .PREMEM_map_w_o              ( PREMEM_map_w_o               ),
-    .PREMEM_writeI_w_o           ( PREMEM_writeI_w_o            ),
-    .PREMEM_writeR_w_o           ( PREMEM_writeR_w_o            ),
-    .PREMEM_VAddr_w_o            ( PREMEM_VAddr_w_o             ),
-    .PREMEM_hasException_w_o     ( PREMEM_hasException_w_o      ),
-    .PREMEM_ExcCode_w_o          ( PREMEM_ExcCode_w_o           ),
-    .PREMEM_exceptBadVAddr_w_o   ( PREMEM_exceptBadVAddr_w_o    ),
-    .PREMEM_isDelaySlot_w_o      ( PREMEM_isDelaySlot_w_o       ),
-    .PREMEM_exceptPC_w_o         ( PREMEM_exceptPC_w_o          ),
-    .PREMEM_nonBlockMark_w_o     ( PREMEM_nonBlockMark_w_o      ),
-    .PREMEM_eret_w_o             ( PREMEM_eret_w_o              ),
-    .PREMEM_isRefill_w_o         ( PREMEM_isRefill_w_o          ),
-    .PREMEM_isInterrupt_w_o      ( PREMEM_isInterrupt_w_o       ),
-    .PREMEM_writeNum_o           ( PREMEM_writeNum_o            ),
-    .PREMEM_VAddr_o              ( PREMEM_VAddr_o               ),
-    .PREMEM_isDelaySlot_o        ( PREMEM_isDelaySlot_o         ),
-    .PREMEM_isDangerous_o        ( PREMEM_isDangerous_o         ),
-    .PREMEM_alignCheck_o         ( PREMEM_alignCheck_o          ),
-    .PREMEM_loadSel_o            ( PREMEM_loadSel_o             ),
-    .PREMEM_memReq_o             ( PREMEM_memReq_o              ),
-    .PREMEM_rtData_o             ( PREMEM_rtData_o              ),
-    .PREMEM_preliminaryRes_o     ( PREMEM_preliminaryRes_o      ),
-    .PREMEM_nonBlockMark_o       ( PREMEM_nonBlockMark_o        ),
-    .PREMEM_ExcCode_o            ( PREMEM_ExcCode_o             ),
-    .PREMEM_hasException_o       ( PREMEM_hasException_o        ),
-    .PREMEM_exceptionRisk_o      ( PREMEM_exceptionRisk_o       ),
-    .PREMEM_exceptBadVAddr_o     ( PREMEM_exceptBadVAddr_o      ),
-    .PREMEM_eret_o               ( PREMEM_eret_o                ),
-    .PREMEM_isRefill_o           ( PREMEM_isRefill_o            ),
-    .PREMEM_positionCp0_o        ( PREMEM_positionCp0_o         ),
-    .PREMEM_readCp0_o            ( PREMEM_readCp0_o             ),
-    .PREMEM_writeCp0_o           ( PREMEM_writeCp0_o            ),
-    .PREMEM_isCacheInst_o        ( PREMEM_isCacheInst_o         ),
-    .PREMEM_CacheOperator_o      ( PREMEM_CacheOperator_o       ),
-    .PREMEM_CacheAddress_o       ( PREMEM_CacheAddress_o        )
+    .PREMEM_forwardMode_w_o       ( PREMEM_forwardMode_w_o        ),
+    .PREMEM_writeNum_w_o          ( PREMEM_writeNum_w_o           ),
+    .PREMEM_hasDangerous_w_o      ( PREMEM_hasDangerous_w_o       ),
+    .PREMEM_hasRisk_w_o           ( PREMEM_hasRisk_w_o            ),
+    .PREMEM_allowin_w_o           ( PREMEM_allowin_w_o            ),
+    .PREMEM_valid_w_o             ( PREMEM_valid_w_o              ),
+    .data_index                   ( data_index                    ),
+    .data_req                     ( data_req                      ),
+    .data_wr                      ( data_wr                       ),
+    .data_size                    ( data_size                     ),
+    .data_wstrb                   ( data_wstrb                    ),
+    .data_wdata                   ( data_wdata                    ),
+    .PREMEM_search_w_o            ( PREMEM_search_w_o             ),
+    .PREMEM_read_w_o              ( PREMEM_read_w_o               ),
+    .PREMEM_map_w_o               ( PREMEM_map_w_o                ),
+    .PREMEM_writeI_w_o            ( PREMEM_writeI_w_o             ),
+    .PREMEM_writeR_w_o            ( PREMEM_writeR_w_o             ),
+    .PREMEM_VAddr_w_o             ( PREMEM_VAddr_w_o              ),
+    .PREMEM_hasException_w_o      ( PREMEM_hasException_w_o       ),
+    .PREMEM_ExcCode_w_o           ( PREMEM_ExcCode_w_o            ),
+    .PREMEM_exceptBadVAddr_w_o    ( PREMEM_exceptBadVAddr_w_o     ),
+    .PREMEM_isDelaySlot_w_o       ( PREMEM_isDelaySlot_w_o        ),
+    .PREMEM_exceptPC_w_o          ( PREMEM_exceptPC_w_o           ),
+    .PREMEM_nonBlockMark_w_o      ( PREMEM_nonBlockMark_w_o       ),
+    .PREMEM_eret_w_o              ( PREMEM_eret_w_o               ),
+    .PREMEM_isRefill_w_o          ( PREMEM_isRefill_w_o           ),
+    .PREMEM_isInterrupt_w_o       ( PREMEM_isInterrupt_w_o        ),
+    .PREMEM_delayReadNum_w_p_o    ( PREMEM_delayReadNum_w_p_o     ),
+    .PREMEM_writeNum_o            ( PREMEM_writeNum_o             ),
+    .PREMEM_VAddr_o               ( PREMEM_VAddr_o                ),
+    .PREMEM_isDelaySlot_o         ( PREMEM_isDelaySlot_o          ),
+    .PREMEM_isDangerous_o         ( PREMEM_isDangerous_o          ),
+    .PREMEM_alignCheck_o          ( PREMEM_alignCheck_o           ),
+    .PREMEM_notExc_o              ( PREMEM_notExc_o               ),
+    .PREMEM_forwardSel0_o         ( PREMEM_forwardSel0_o          ),
+    .PREMEM_forwardSel1_o         ( PREMEM_forwardSel1_o          ),
+    .PREMEM_oprand0IsReg_o        ( PREMEM_oprand0IsReg_o         ),
+    .PREMEM_oprand1IsReg_o        ( PREMEM_oprand1IsReg_o         ),
+    .PREMEM_preSrc_p_o            ( PREMEM_preSrc_p_o             ),
+    .PREMEM_readData_p_o          ( PREMEM_readData_p_o           ),
+    .PREMEM_aluOperator_o         ( PREMEM_aluOperator_o          ),
+    .PREMEM_loadSel_o             ( PREMEM_loadSel_o              ),
+    .PREMEM_memReq_o              ( PREMEM_memReq_o               ),
+    .PREMEM_rtData_o              ( PREMEM_rtData_o               ),
+    .PREMEM_preliminaryRes_o      ( PREMEM_preliminaryRes_o       ),
+    .PREMEM_nonBlockMark_o        ( PREMEM_nonBlockMark_o         ),
+    .PREMEM_ExcCode_o             ( PREMEM_ExcCode_o              ),
+    .PREMEM_hasException_o        ( PREMEM_hasException_o         ),
+    .PREMEM_exceptionRisk_o       ( PREMEM_exceptionRisk_o        ),
+    .PREMEM_exceptBadVAddr_o      ( PREMEM_exceptBadVAddr_o       ),
+    .PREMEM_eret_o                ( PREMEM_eret_o                 ),
+    .PREMEM_isRefill_o            ( PREMEM_isRefill_o             ),
+    .PREMEM_positionCp0_o         ( PREMEM_positionCp0_o          ),
+    .PREMEM_readCp0_o             ( PREMEM_readCp0_o              ),
+    .PREMEM_writeCp0_o            ( PREMEM_writeCp0_o             ),
+    .PREMEM_isCacheInst_o         ( PREMEM_isCacheInst_o          ),
+    .PREMEM_CacheOperator_o       ( PREMEM_CacheOperator_o        )
 );
 
  

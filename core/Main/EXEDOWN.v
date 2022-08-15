@@ -49,7 +49,7 @@ module EXEDOWN(
     output  wire                            EXE_down_allowin_w_o,   // 下周起该段是否可以更新
     //危险暂停信号
     output	wire	                        EXE_down_hasDangerous_w_o,  // mul,clo,clz,madd,msub,cache,tlb等危险指令
-	output   wire    [0:0]			        EXE_down_hasExceprion_w_o,
+	output   wire    [0:0]			        EXE_down_hasException_w_o,
 	output   wire    [`EXCCODE]			    EXE_down_ExcCode_w_o,
     output	wire	                        EXE_down_isDelaySlot_w_o,
     output	wire	[`SINGLE_WORD]          EXE_down_exceptPC_w_o,
@@ -71,14 +71,12 @@ module EXEDOWN(
     input	wire	                        ID_down_isDangerous_i,      // 表示该指令在执行期间不得执行其他指令
     input	wire	[`SINGLE_WORD]          ID_down_VAddr_i,            // 用于debug和异常处理}}}
     //算数,位移{{{
-    input	wire	[`SINGLE_WORD]          ID_down_oprand0_i,          // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
+    input	wire	[`SINGLE_WORD]          ID_down_oprand0_i,      
     input	wire	                        ID_down_oprand0IsReg_i,     
     input	wire	                        ID_down_oprand1IsReg_i,     
-    input	wire	[`FORWARD_MODE]         ID_down_forwardSel0_i,      // 用于选择前递信号
-    input	wire	                        ID_down_data0Ready_i,       // 表示该operand是否可用
-    input	wire	[`SINGLE_WORD]          ID_down_oprand1_i,       // 经过多路选择器,选择WB前递数据或立即数或SA的第一个操作数
-    input	wire	[`FORWARD_MODE]         ID_down_forwardSel1_i,      // 用于选择前递信号
-    input	wire	                        ID_down_data1Ready_i,       // 表示该operand是否可用
+    input	wire	[`FORWARD_MODE]         ID_down_forwardSel0_i,  // 用于选择前递信号
+    input	wire	[`SINGLE_WORD]          ID_down_oprand1_i,       
+    input	wire	[`FORWARD_MODE]         ID_down_forwardSel1_i,  // 用于选择前递信号
     input	wire	[`ALUOP]                ID_down_aluOprator_i,       //}}}
     // 乘除指令类信息{{{
     input	wire	[`MDUOP]                ID_down_mduOperator_i,      // 包括乘除,累加累减,立即数乘法
@@ -116,6 +114,10 @@ module EXEDOWN(
     input	wire	[`SINGLE_WORD]          PREMEM_preliminaryRes_i,
     input	wire	[`SINGLE_WORD]          MEM_finalRes_i,
     // }}}
+    // 延迟执行{{{
+    input	wire	[2*`GPR_NUM]            ID_down_readNum_p_i,
+    input	wire	[1:0]                   ID_down_needRead_p_i,
+    // }}}
 /*}}}*/
     /////////////////////////////////////////////////
     //////////////      寄存器输出     //////////////{{{
@@ -151,6 +153,15 @@ module EXEDOWN(
     output	wire	                        EXE_down_memAtom_o,         // 表示该访存操作是原子访存操作,需要读写LLbit
     output	wire	[`SINGLE_WORD]          EXE_down_storeData_o,
     output	wire    [`LOAD_SEL]             EXE_down_loadSel_o,         // load指令模式		}}}
+    // 延迟执行{{{
+    output	wire	                        EXE_down_notExc_o,            // 该指令是延迟执行指令
+    output	wire	[2*`SINGLE_WORD]        EXE_down_preSrc_p_o,          // 指令自带的操作数
+    output	wire	                        EXE_down_oprand0IsReg_o,       
+    output	wire	                        EXE_down_oprand1IsReg_o,       
+    output	wire	[`ALUOP]                EXE_down_aluOprator_o,
+    output	wire	[2*`GPR_NUM]            EXE_down_readNum_p_o,         // 读寄存器index 
+    output	wire	[1:0]                   EXE_down_needRead_p_o,        // 延迟执行需要读寄存器
+    // }}}
     // TLB指令,最危险指令，需要等待后面的流水线排空才能发射{{{
     output	wire	                        EXE_down_isTLBInst_o,       // 表示是TLB指令
     output	wire	[`TLB_INST]             EXE_down_TLBInstOperator_o, // 执行的种类
@@ -233,6 +244,8 @@ module EXEDOWN(
 	reg	[`SINGLE_WORD]			REEXE_regData_r_i;
 	reg	[`SINGLE_WORD]			PREMEM_preliminaryRes_r_i;
 	reg	[`SINGLE_WORD]			MEM_finalRes_r_i;
+	reg	[2*`GPR_NUM]			ID_down_readNum_p_r_i;
+	reg	[1:0]			ID_down_needRead_p_r_i;
     always @(posedge clk) begin
         if (!rst || needClear) begin
 			ID_down_writeNum_r_i	<=	'b0;
@@ -278,6 +291,8 @@ module EXEDOWN(
 			REEXE_regData_r_i	<=	'b0;
 			PREMEM_preliminaryRes_r_i	<=	'b0;
 			MEM_finalRes_r_i	<=	'b0;
+			ID_down_readNum_p_r_i	<=	'b0;
+			ID_down_needRead_p_r_i	<=	'b0;
         end
         else if (needUpdata) begin
 			ID_down_writeNum_r_i	<=	ID_down_writeNum_i;
@@ -289,10 +304,8 @@ module EXEDOWN(
 			ID_down_oprand0IsReg_r_i	<=	ID_down_oprand0IsReg_i;
 			ID_down_oprand1IsReg_r_i	<=	ID_down_oprand1IsReg_i;
 			ID_down_forwardSel0_r_i	<=	ID_down_forwardSel0_i;
-			ID_down_data0Ready_r_i	<=	ID_down_data0Ready_i;
 			ID_down_oprand1_r_i	<=	ID_down_oprand1_i;
 			ID_down_forwardSel1_r_i	<=	ID_down_forwardSel1_i;
-			ID_down_data1Ready_r_i	<=	ID_down_data1Ready_i;
 			ID_down_aluOprator_r_i	<=	ID_down_aluOprator_i;
 			ID_down_mduOperator_r_i	<=	ID_down_mduOperator_i;
 			ID_down_readHiLo_r_i	<=	ID_down_readHiLo_i;
@@ -323,9 +336,28 @@ module EXEDOWN(
 			REEXE_regData_r_i	<=	REEXE_regData_i;
 			PREMEM_preliminaryRes_r_i	<=	PREMEM_preliminaryRes_i;
 			MEM_finalRes_r_i	<=	MEM_finalRes_i;
+			ID_down_readNum_p_r_i	<=	ID_down_readNum_p_i;
+			ID_down_needRead_p_r_i	<=	ID_down_needRead_p_i;
         end
     end
     /*}}}*/
+    //延迟执行{{{
+    assign EXE_down_notExc_o          = !(|ID_down_forwardSel0_r_i) || !(|ID_down_forwardSel1_r_i);
+    assign EXE_down_preSrc_p_o        = {ID_down_oprand1_r_i,ID_down_oprand0_r_i};
+    assign EXE_down_aluOprator_o      = ID_down_aluOprator_r_i;
+    assign EXE_down_oprand0IsReg_o    = ID_down_oprand0IsReg_r_i;
+    assign EXE_down_oprand1IsReg_o    = ID_down_oprand1IsReg_r_i;
+    assign EXE_down_needRead_p_o      = ID_down_needRead_p_r_i;
+    assign EXE_down_readNum_p_o       = ID_down_readNum_p_r_i;
+    always @(*) begin
+        if (EXE_down_notExc_o && (ID_down_memReq_r_i ||
+                                  ID_down_writeCp0_r_i||
+                                  (|ID_down_writeHiLo_r_i))) begin
+            $display("branch has been delay, error!");
+            $finish(0);
+        end
+    end
+    //}}}
 //  线信号处理{{{
     // 流水线互锁
     reg hasData;
@@ -357,7 +389,7 @@ module EXEDOWN(
                         !(|ID_down_readCp0_r_i) && 
                         !(|ID_down_readHiLo_r_i);
     assign EXE_down_hasDangerous_w_o = ID_down_isDangerous_r_i;
-    assign EXE_down_forwardMode_w_o  = hasData && ready && !ID_down_memReq_r_i && isAluInst;
+    assign EXE_down_forwardMode_w_o  = hasData && ready && !ID_down_memReq_r_i && isAluInst && !EXE_down_notExc_o;
 /*}}}*/
     ALU ALU_u(/*{{{*/
       /*autoinst*/
@@ -627,7 +659,8 @@ module EXEDOWN(
                                     (|ID_down_readHiLo_r_i || mulrReq)  ? 4'b0100 : 4'b1000;
     /*}}}*/
     // 异常处理{{{
-    assign EXE_down_hasExceprion_w_o    = ID_down_hasException_r_i && !ID_down_isDelaySlot_r_i;  // 为了使得分支跳转在异常处理之前
+    // SBA跳转会使得EXEDOWN延迟槽异常跳转无效
+    assign EXE_down_hasException_w_o    = ID_down_hasException_r_i && !ID_down_isDelaySlot_r_i;  
     assign EXE_down_ExcCode_w_o         = EXE_down_ExcCode_o;                                      
     assign EXE_down_isDelaySlot_w_o     = EXE_down_isDelaySlot_o;                                     
     assign EXE_down_exceptPC_w_o        = EXE_down_VAddr_o;                                     

@@ -36,19 +36,19 @@ module EXEUP(
     //////////////    寄存器的输入    //////////////{{{
     ////////////////////////////////////////////////
     input	wire	[`SINGLE_WORD]          ID_up_VAddr_i,
-    input	wire	[`GPR_NUM]              ID_up_writeNum_i,             // 回写寄存器数值,0为不回写
+    input	wire	[`GPR_NUM]              ID_up_writeNum_i,           // 回写寄存器数值,0为不回写
+    input	wire	[2*`GPR_NUM]            ID_up_readNum_p_i,
+    input	wire	[1:0]                   ID_up_needRead_p_i,
     // 寄存器文件
     input	wire	[2*`SINGLE_WORD]        ID_up_readData_i,           // 寄存器值rsrt
     // 算数,位移
     input	wire	[`SINGLE_WORD]          ID_up_oprand0_i,            
+    input	wire	[`SINGLE_WORD]          ID_up_oprand1_i,            
     input	wire	                        ID_up_oprand0IsReg_i,       
     input	wire	                        ID_up_oprand1IsReg_i,       
-    input	wire	[`FORWARD_MODE]         ID_up_forwardSel0_i,        // 用于选择前递信号
-    input	wire	                        ID_up_data0Ready_i,         // 表示该operand是否可用
-    input	wire	[`SINGLE_WORD]          ID_up_oprand1_i,            
-    input	wire	[`FORWARD_MODE]         ID_up_forwardSel1_i,        // 用于选择前递信号
-    input	wire	                        ID_up_data1Ready_i,         // 表示该operand是否可用
     input	wire	[`ALUOP]                ID_up_aluOprator_i,
+    input	wire	[`FORWARD_MODE]         ID_up_forwardSel0_i,        // 用于选择前递信号
+    input	wire	[`FORWARD_MODE]         ID_up_forwardSel1_i,        // 用于选择前递信号
     // 分支确认的信息    
     input	wire                            ID_up_branchRisk_i,         // 存在分支确认失败的风险
     input	wire    [`BRANCH_KIND]          ID_up_branchKind_i,         // 分支指令的种类
@@ -79,6 +79,14 @@ module EXEUP(
     /////////////////////////////////////////////////
     output	wire	[`GPR_NUM]              EXE_up_writeNum_o,          // 回写寄存器数值,0为不回写
     output	wire	[`SINGLE_WORD]          EXE_up_VAddr_o,             // 用于debug和异常处理
+    // 延迟执行
+    output	wire	                        EXE_up_notExc_o,            // 该指令是延迟执行指令
+    output	wire	[2*`SINGLE_WORD]        EXE_up_preSrc_p_o,          // 指令自带的操作数
+    output	wire	                        EXE_up_oprand0IsReg_o,       
+    output	wire	                        EXE_up_oprand1IsReg_o,       
+    output	wire	[`ALUOP]                EXE_up_aluOprator_o,
+    output	wire	[2*`GPR_NUM]            EXE_up_readNum_p_o,         // 读寄存器index 
+    output	wire	[1:0]                   EXE_up_needRead_p_o,        // 延迟执行需要读寄存器 
     // 算数,位移
     output	wire    [`SINGLE_WORD]          EXE_up_aluRes_o,	        
     // 非阻塞乘除
@@ -87,7 +95,6 @@ module EXEUP(
     output	wire	                        EXE_up_corrTake_o,          // 预测的分支跳转
     output	wire	[`REPAIR_ACTION]        EXE_up_repairAction_o,      // 修复动作，包含是否需要修复的信号
     output	wire	[`ALL_CHECKPOINT]       EXE_up_checkPoint_o,
-    output	wire	                        EXE_up_isBranch_o,
     output	wire                            EXE_up_branchRisk_o         // 存在分支确认失败的风险
 /*}}}*/
 );
@@ -102,10 +109,10 @@ module EXEUP(
     //Define instance wires here
     wire [`ALUOP]               aluop                           ;
     wire                        overflow                        ;
+    wire [`SINGLE_WORD]         scr [1:0]                       ;
     wire [`SINGLE_WORD]         aluso                           ;
     //End of automatic wire
     //End of automatic define
-    wire [`SINGLE_WORD]         scr [1:0]                       ;
 /*}}}*/
     //Intersegment_register{{{
 
@@ -114,16 +121,16 @@ module EXEUP(
 
 	reg	[`SINGLE_WORD]			ID_up_VAddr_r_i;
 	reg	[`GPR_NUM]			ID_up_writeNum_r_i;
+	reg	[2*`GPR_NUM]			ID_up_readNum_p_r_i;
+	reg	[1:0]			ID_up_needRead_p_r_i;
 	reg	[2*`SINGLE_WORD]			ID_up_readData_r_i;
 	reg	[`SINGLE_WORD]			ID_up_oprand0_r_i;
+	reg	[`SINGLE_WORD]			ID_up_oprand1_r_i;
 	reg	[0:0]			ID_up_oprand0IsReg_r_i;
 	reg	[0:0]			ID_up_oprand1IsReg_r_i;
-	reg	[`FORWARD_MODE]			ID_up_forwardSel0_r_i;
-	reg	[0:0]			ID_up_data0Ready_r_i;
-	reg	[`SINGLE_WORD]			ID_up_oprand1_r_i;
-	reg	[`FORWARD_MODE]			ID_up_forwardSel1_r_i;
-	reg	[0:0]			ID_up_data1Ready_r_i;
 	reg	[`ALUOP]			ID_up_aluOprator_r_i;
+	reg	[`FORWARD_MODE]			ID_up_forwardSel0_r_i;
+	reg	[`FORWARD_MODE]			ID_up_forwardSel1_r_i;
 	reg	[0:0]			ID_up_branchRisk_r_i;
 	reg	[`BRANCH_KIND]			ID_up_branchKind_r_i;
 	reg	[`REPAIR_ACTION]			ID_up_repairAction_r_i;
@@ -140,16 +147,16 @@ module EXEUP(
         if (!rst || needClear) begin
 			ID_up_VAddr_r_i	<=	'b0;
 			ID_up_writeNum_r_i	<=	'b0;
+			ID_up_readNum_p_r_i	<=	'b0;
+			ID_up_needRead_p_r_i	<=	'b0;
 			ID_up_readData_r_i	<=	'b0;
 			ID_up_oprand0_r_i	<=	'b0;
+			ID_up_oprand1_r_i	<=	'b0;
 			ID_up_oprand0IsReg_r_i	<=	'b0;
 			ID_up_oprand1IsReg_r_i	<=	'b0;
-			ID_up_forwardSel0_r_i	<=	'b0;
-			ID_up_data0Ready_r_i	<=	'b0;
-			ID_up_oprand1_r_i	<=	'b0;
-			ID_up_forwardSel1_r_i	<=	'b0;
-			ID_up_data1Ready_r_i	<=	'b0;
 			ID_up_aluOprator_r_i	<=	'b0;
+			ID_up_forwardSel0_r_i	<=	'b0;
+			ID_up_forwardSel1_r_i	<=	'b0;
 			ID_up_branchRisk_r_i	<=	'b0;
 			ID_up_branchKind_r_i	<=	'b0;
 			ID_up_repairAction_r_i	<=	'b0;
@@ -166,16 +173,16 @@ module EXEUP(
         else if (needUpdata) begin
 			ID_up_VAddr_r_i	<=	ID_up_VAddr_i;
 			ID_up_writeNum_r_i	<=	ID_up_writeNum_i;
+			ID_up_readNum_p_r_i	<=	ID_up_readNum_p_i;
+			ID_up_needRead_p_r_i	<=	ID_up_needRead_p_i;
 			ID_up_readData_r_i	<=	ID_up_readData_i;
 			ID_up_oprand0_r_i	<=	ID_up_oprand0_i;
+			ID_up_oprand1_r_i	<=	ID_up_oprand1_i;
 			ID_up_oprand0IsReg_r_i	<=	ID_up_oprand0IsReg_i;
 			ID_up_oprand1IsReg_r_i	<=	ID_up_oprand1IsReg_i;
-			ID_up_forwardSel0_r_i	<=	ID_up_forwardSel0_i;
-			ID_up_data0Ready_r_i	<=	ID_up_data0Ready_i;
-			ID_up_oprand1_r_i	<=	ID_up_oprand1_i;
-			ID_up_forwardSel1_r_i	<=	ID_up_forwardSel1_i;
-			ID_up_data1Ready_r_i	<=	ID_up_data1Ready_i;
 			ID_up_aluOprator_r_i	<=	ID_up_aluOprator_i;
+			ID_up_forwardSel0_r_i	<=	ID_up_forwardSel0_i;
+			ID_up_forwardSel1_r_i	<=	ID_up_forwardSel1_i;
 			ID_up_branchRisk_r_i	<=	ID_up_branchRisk_i;
 			ID_up_branchKind_r_i	<=	ID_up_branchKind_i;
 			ID_up_repairAction_r_i	<=	ID_up_repairAction_i;
@@ -191,6 +198,21 @@ module EXEUP(
         end
     end
     /*}}}*/
+    //延迟执行{{{
+    assign EXE_up_notExc_o          = !(|ID_up_forwardSel0_r_i) || !(|ID_up_forwardSel1_r_i);
+    assign EXE_up_preSrc_p_o        = {ID_up_oprand1_r_i,ID_up_oprand0_r_i};
+    assign EXE_up_aluOprator_o      = ID_up_aluOprator_r_i;
+    assign EXE_up_oprand0IsReg_o    = ID_up_oprand0IsReg_r_i;
+    assign EXE_up_oprand1IsReg_o    = ID_up_oprand1IsReg_r_i;
+    assign EXE_up_needRead_p_o      = ID_up_needRead_p_r_i;
+    assign EXE_up_readNum_p_o       = ID_up_readNum_p_r_i;
+    always @(*) begin
+        if (EXE_up_notExc_o && ID_up_branchRisk_r_i) begin
+            $display("branch has been delay, error!");
+            $finish(0);
+        end
+    end
+    //}}}
 //  线信号处理{{{
     // 流水线互锁
     reg hasData;
@@ -211,7 +233,7 @@ module EXEUP(
         else if (EXE_down_allowin_w_i)
             hasData <=  ID_up_valid_w_i;
     end
-    assign EXE_up_forwardMode_w_o = hasData && ready;
+    assign EXE_up_forwardMode_w_o = hasData && ready && !EXE_up_notExc_o;
     assign EXE_up_writeNum_w_o = ID_up_writeNum_r_i;
 /*}}}*/
     ALU ALU_u(/*{{{*/
@@ -291,9 +313,10 @@ module EXEUP(
     wire [`RAS_ENRTY_NUM]   newRasTop = ID_up_checkPoint_r_i[`RAS_CHECK_TOP]+'d1;
     assign newRasCheckpint = {
         (ID_up_VAddr_r_i[31:2]+2'd2),
-        newRasTop};
-    wire isJr   = ID_up_repairAction_r_i[`RAS_ACTION]==2'b00;
-    wire [`ALL_CHECKPOINT]  checkPoint      = { (isJr ? newRasCheckpint : {ID_up_checkPoint_r_i[`RAS_CHECK_PC],ID_up_checkPoint_r_i[`RAS_CHECK_TOP]} ),
+        newRasTop
+        };
+    wire isCall   = (ID_up_repairAction_r_i[`RAS_ACTION]==2'b00 && ID_up_writeNum_r_i=='d31);
+    wire [`ALL_CHECKPOINT]  checkPoint      = { (isCall ? newRasCheckpint : {ID_up_checkPoint_r_i[`RAS_CHECK_PC],ID_up_checkPoint_r_i[`RAS_CHECK_TOP]} ),
                                                 ID_up_checkPoint_r_i[`GHT_CHECK_REG],
                                                 ID_up_checkPoint_r_i[`PHT_CHECKPOINT]
                                                 };
@@ -309,7 +332,6 @@ module EXEUP(
     wire    predictHit  =   ((!EXE_up_corrTake_o) && (!ID_up_predTake_r_i)) ||
                             ((EXE_up_corrDest_o==ID_up_predDest_r_i) && EXE_up_corrTake_o && ID_up_predTake_r_i);
     assign EXE_up_branchRisk_o   =  (!predictHit) && ID_up_branchRisk_r_i ;
-    assign EXE_up_isBranch_o     = ID_up_branchRisk_r_i;
 
     reg [31:0] truep,falsep;
     reg [31:0] truehit;

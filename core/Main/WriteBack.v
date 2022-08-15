@@ -49,6 +49,7 @@ module WriteBack (
     output	wire	[`SINGLE_WORD]          WB_finalRes_w_o,        // 送回寄存器堆的数据
     // ID回写信号
     output	wire	                        WB_writeEnable_w_o,       // 回写使能
+    // 延迟执行
 /*}}}*/
     ///////////////////////////////////////////////////
     //////////////     寄存器输出       ///////////////{{{
