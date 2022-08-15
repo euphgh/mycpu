@@ -86,7 +86,7 @@ module dcache(
     //三段流水
     //index -> tag -> data
     //sin_ ... sta_ ... sda_ ...
-    //sin段
+    //sin�?
     wire        sin_req   ;
     wire        sin_wr    ;
     wire [1 :0] sin_size  ;
@@ -94,7 +94,7 @@ module dcache(
     wire [4 :0] sin_offset;
     wire [3 :0] sin_wstrb ;
     wire [31:0] sin_wdata ;
-    //sta段
+    //sta�?
     reg         sta_req         ;
     reg         sta_wr          ;
     reg  [1 :0] sta_size        ;
@@ -105,7 +105,7 @@ module dcache(
     wire        sta_unCache     ;
     reg  [3 :0] sta_wstrb       ;
     reg  [31:0] sta_wdata       ;
-    //sda段
+    //sda�?
     reg          sda_req            ;
     reg          sda_wr             ;
     reg [1  :0]  sda_size           ;
@@ -123,7 +123,7 @@ module dcache(
     reg          sda_raw_col        ;
     reg [3 :0]   sda_raw_wstrb      ;
     reg [7 :0]   sda_raw_data [3:0] ;
-    //主自动机状态
+    //主自动机状�??
     reg [3:0] cache_stat;
     //RESET
     reg [6:0] reset_counter;
@@ -146,27 +146,27 @@ module dcache(
     wire        hit_run     ;
     wire [1 :0] hit_loc     ;
     wire [31:0] hit_run_data;
-    // tagv块
+    // tagv�?
     wire [3 :0] tag_wen        ;
     wire [3 :0] val_wen        ;
     wire [6 :0] tagv_index     ;
     wire [19:0] tagv_wdata     ;
     wire        tagv_valid     ;
     wire [20:0] tagv_back [3:0];
-    // data块
+    // data�?
     wire [31 :0] cache_wen   [3:0];
     wire [6  :0] cache_rindex     ;
     wire [6  :0] cache_windex     ;
     wire [255:0] cache_wdata      ;
     wire [255:0] cache_rdata [3:0];
-    // dirty位
+    // dirty�?
     reg  [3:0] dirty [127:0];
     wire [2:0] dirty_loc    ;
     // WRITEBUFFER
     wire         hit_write        ;
-    wire [4  :0] sl_wen           ;//移位用
+    wire [4  :0] sl_wen           ;//移位�?
     wire [31 :0] write_wstrb      ;
-    wire [31 :0] write_wen [3:0]  ;//写使能信号
+    wire [31 :0] write_wen [3:0]  ;//写使能信�?
     wire [255:0] write_buffer_line;
     wire [7:0] raw_data [3:0];
     // VICTIM BUFFER
@@ -180,7 +180,7 @@ module dcache(
     reg  [1 :0] ca_way_reg;
     reg  [3 :0] ca_tag_wen;
     reg  [19:0] ca_htag_reg;   //HIT类型
-    reg  [19:0] ca_wtag_reg;   //写入的数据
+    reg  [19:0] ca_wtag_reg;   //写入的数�?
     reg  [6 :0] ca_index_reg;
     reg  [3 :0] ca_val_wen;
     reg         ca_val_reg;
@@ -195,8 +195,8 @@ module dcache(
     reg  [255:0] ca_wb_data;
     wire [1:0] ca_dirty_loc;
 `endif    
-    // 额外的转换信号
-    reg ok_send_arv;//是否允许开始AXI读
+    // 额外的转换信�?
+    reg ok_send_arv;//是否允许�?始AXI�?
     //////////////////////////////////////////////////////// 
     ////////////////////////////////////////////////////////
     //TODO 与CPU交互
@@ -251,7 +251,7 @@ module dcache(
     assign data_uncache_wstrb = sda_wstrb;
     assign data_uncache_wdata = sda_wdata;
     
-    // AXI 读
+    // AXI �?
     assign arid    = `DCACHE_ARID;
     assign araddr  = {sda_tag , sda_index , sda_offset[4:2] , 2'b00 };
     assign arvalid = ok_send_arv;   
@@ -263,7 +263,7 @@ module dcache(
     assign arburst = 2'b10;//Wrap Mode
     assign rready  = (cache_stat == `REFILL);
 
-    //AXI 写
+    //AXI �?
     assign awid     = `DCACHE_AWID;
     assign awlen    = 4'd7;
     assign awburst  = 2'b01;
@@ -283,7 +283,7 @@ module dcache(
     assign bready   = victim_stat == `VIC_RES;
     ////////////////////////////////////////////////////////
 
-    //sin段信号处理
+    //sin段信号处�?
     assign sin_req          = data_req         ;
     assign sin_wr           = data_wr          ;
     assign sin_size         = data_size        ;
@@ -392,7 +392,7 @@ module dcache(
             sda_back_data <= sta_hit_run_data;
             hit_way  <= sta_hit_way;
         end
-        //TODO 当数据传输完毕，需要拉低sda_req
+        //TODO 当数据传输完毕，�?要拉低sda_req
         else if (sda_data_ok) begin
             sda_req          <= 1'b0;
         end
@@ -404,7 +404,7 @@ module dcache(
         end
     end
 
-    //cache状态转移自动机
+    //cache状�?�转移自动机
     always @(posedge clk) begin
         //重置信号有效
         if (!rst) begin
@@ -415,7 +415,7 @@ module dcache(
             case (cache_stat)
                 //用于调整时序
                 `IDLE:      cache_stat <= `RUN;
-                //如果发生了不命中，进入MISS状态
+                //如果发生了不命中，进入MISS状�??
 `ifdef EN_DCACHE_OP
                 `RUN:       cache_stat <= (deal_cache_op) ? `CA_SEL:
                                             (sda_req && sda_unCache && !sda_hasException && uca_ok) ? `RECOVER :
@@ -427,15 +427,15 @@ module dcache(
                 `RUN:       cache_stat <=  (sda_req && sda_unCache && !sda_hasException && uca_ok) ? `RECOVER :
                                          (sda_req && !sda_unCache &&!hit_run && !sda_hasException) ? `MISS : `RUN;
 `endif
-                //如果axi从设备表示已经准备好向cache发送数据，进入REFILL状态
+                //如果axi从设备表示已经准备好向cache发�?�数据，进入REFILL状�??
                 `MISS:      cache_stat <= arready && arvalid ? (`REFILL) : (`MISS);
-                //根据rid，是否读写完成（rlast和rvaild）判断是否装载完成
+                //根据rid，是否读写完成（rlast和rvaild）判断是否装载完�?
                 `REFILL:    cache_stat <= (rlast && rvalid && (rid == `DCACHE_RID)) ? (`FINISH) : (`REFILL);
                 //装载完毕
                 `FINISH:    cache_stat <= `RECOVER;
-                //TODO 可能需要一个恢复状态，来获取到之前MISS的行对应的数据
+                //TODO 可能�?要一个恢复状态，来获取到之前MISS的行对应的数�?
                 //`FINISH        -> `RECOVER            -> `IDLE            -> `RUN
-                //返回装入的数据    读取下一个请求的数据   保存到sda段寄存器   对比TAG
+                //返回装入的数�?    读取下一个请求的数据   保存到sda段寄存器   对比TAG
                 `RECOVER:   cache_stat <= `IDLE;
                 //初始装载
                 `RESET:     cache_stat <= (reset_counter == 127) ? `IDLE : `RESET; 
@@ -448,7 +448,7 @@ module dcache(
     //持续128个周期，每个周期将一行tag置为无效
     always @(posedge clk) begin
         if (!rst) begin 
-            reset_counter <=7'b0;//初始化为0，重置信号拉高后开始计数
+            reset_counter <=7'b0;//初始化为0，重置信号拉高后�?始计�?
         end 
         else begin
             reset_counter <= reset_counter + 7'b1;
@@ -456,7 +456,7 @@ module dcache(
     end
 
     //REFILL相关
-    //一般持续8个周期
+    //�?般持�?8个周�?
     always @(posedge clk) begin
         if (!rst) begin
             refill_counter <= 3'b0 ;
@@ -464,8 +464,8 @@ module dcache(
         else if (cache_stat == `MISS) begin
             refill_counter <= sda_offset[4:2]   ;
         end
-        // 地址握手完成，开始传输，计数器开始自�?
-        // 请求字优先， 总线交互时设置ARBUSRT�?2b'10
+        // 地址握手完成，开始传输，计数器开始自�??
+        // 请求字优先， 总线交互时设置ARBUSRT�??2b'10
         else if (rvalid && (rid == `DCACHE_RID)) begin
             refill_counter <= refill_counter + 3'b1;
         end
@@ -620,16 +620,16 @@ module dcache(
         end
         else if (cache_stat == `RUN && sda_req && !hit_run) begin
             case (plru[sda_index])
-                //选择第0路
+                //选择�?0�?
                 3'b000: way <= 4'b0001;
                 3'b100: way <= 4'b0001;
-                //选择第1路
+                //选择�?1�?
                 3'b010: way <= 4'b0010;
                 3'b110: way <= 4'b0010;
-                //选择第2路
+                //选择�?2�?
                 3'b001: way <= 4'b0100;
                 3'b011: way <= 4'b0100;
-                //选择第3路
+                //选择�?3�?
                 3'b101: way <= 4'b1000;
                 3'b111: way <= 4'b1000;
             endcase
@@ -647,16 +647,17 @@ module dcache(
                 4'b0001: plru[sda_index] <= {plru[sda_index][2],1'b1,1'b1};
                 //选中1路，则plru为x10,调整为x01
                 4'b0010: plru[sda_index] <= {plru[sda_index][2],1'b0,1'b1};
-                //选中2路，则plru为0x1,调整为1x0
+                //选中2路，则plru�?0x1,调整�?1x0
                 4'b0100: plru[sda_index] <= {1'b1,plru[sda_index][1],1'b0};
-                //选中3路，则plru为1x1,调整为0x0
+                //选中3路，则plru�?1x1,调整�?0x0
                 4'b1000: plru[sda_index] <= {1'b0,plru[sda_index][1],1'b0};
             endcase
         end
     end
 
-    //dirty位处理
+    //dirty位处�?
     assign dirty_loc = `encoder4_2(way);
+    wire [1:0] mod_dirty_loc = `encoder4_2(hit_way);
 `ifdef EN_DCACHE_OP
     assign ca_dirty_loc = `encoder4_2(ca_dirty_wen);
 `endif
@@ -666,16 +667,16 @@ module dcache(
                 dirty[i] <= 4'b0;
             end
         end
-        // 如果命中且为写操作，则直接修改对应行的dirty为1
+        // 如果命中且为写操作，则直接修改对应行的dirty�?1
         else if (hit_write) begin
-            dirty[sda_index][hit_way] <= 1'b1;
+            dirty[sda_index][mod_dirty_loc] <= 1'b1;
         end
 `ifdef EN_DCACHE_OP
         else if (cache_stat == `CA_OP && |ca_dirty_wen) begin
             dirty[ca_index_reg][ca_dirty_loc] <= ca_dirty_reg;
         end
 `endif 
-        // // 如果MISS，则选择被牺牲行所在的way和index，修改dirty，此路在之后重新填回后根据last_op进行读或写
+        // // 如果MISS，则选择被牺牲行�?在的way和index，修改dirty，此路在之后重新填回后根据last_op进行读或�?
         // else if (cache_stat == `FINISH) begin
         //     dirty[sda_index][dirty_loc] <= sda_wr;
         // end
@@ -725,11 +726,11 @@ module dcache(
             victim_addr <= ca_wb_addr;
         end
         else if (victim_stat == `VIC_MISS) begin
-            victim_addr <= {sda_tagv_back[dirty_loc],sda_index,5'b00000};
+            victim_addr <= {sda_tagv_back[dirty_loc][20:1],sda_index,5'b00000};
         end
 `else
         else if (victim_stat == `VIC_MISS) begin
-            victim_addr <= {sda_tagv_back[dirty_loc],sda_index,5'b00000};
+            victim_addr <= {sda_tagv_back[dirty_loc][20:1],sda_index,5'b00000};
         end
 `endif
     end
@@ -742,14 +743,14 @@ module dcache(
         end
 `ifdef EN_DCACHE_OP
         else if (victim_stat == `VIC_MISS && cache_stat == `CA_WB ) begin
-            {victim_buffer_data[0],victim_buffer_data[1],victim_buffer_data[2],victim_buffer_data[3],victim_buffer_data[4],victim_buffer_data[5],victim_buffer_data[6],victim_buffer_data[7]} <= ca_wb_data;
+            {victim_buffer_data[7],victim_buffer_data[6],victim_buffer_data[5],victim_buffer_data[4],victim_buffer_data[3],victim_buffer_data[2],victim_buffer_data[1],victim_buffer_data[0]} <= ca_wb_data;
         end
         else if (victim_stat == `VIC_MISS) begin
-            {victim_buffer_data[0],victim_buffer_data[1],victim_buffer_data[2],victim_buffer_data[3],victim_buffer_data[4],victim_buffer_data[5],victim_buffer_data[6],victim_buffer_data[7]} <= sda_rdata[dirty_loc];
+            {victim_buffer_data[7],victim_buffer_data[6],victim_buffer_data[5],victim_buffer_data[4],victim_buffer_data[3],victim_buffer_data[2],victim_buffer_data[1],victim_buffer_data[0]} <= sda_rdata[dirty_loc];
         end
 `else
         else if (victim_stat == `VIC_MISS) begin
-            {victim_buffer_data[0],victim_buffer_data[1],victim_buffer_data[2],victim_buffer_data[3],victim_buffer_data[4],victim_buffer_data[5],victim_buffer_data[6],victim_buffer_data[7]} <= sda_rdata[dirty_loc];
+            {victim_buffer_data[7],victim_buffer_data[6],victim_buffer_data[5],victim_buffer_data[4],victim_buffer_data[3],victim_buffer_data[2],victim_buffer_data[1],victim_buffer_data[0]} <= sda_rdata[dirty_loc];
         end
 `endif
     end
@@ -782,8 +783,8 @@ module dcache(
     
     //CACHEOP IMP
     // sin段检测到cacheop请求，先不拉起indexok，直到sda_req = 0
-    // 请求完成后，接收cacheop，进入cache_sel状态，阻塞正常请求
-    // 完成cacheop，接收sin段请求
+    // 请求完成后，接收cacheop，进入cache_sel状�?�，阻塞正常请求
+    // 完成cacheop，接收sin段请�?
 `ifdef EN_DCACHE_OP
     assign ca_hit[0] = (cache_stat == `CA_SEL) && (tagv_back[0][0]) && (tagv_back[0][20:1] == ca_htag_reg);
     assign ca_hit[1] = (cache_stat == `CA_SEL) && (tagv_back[1][0]) && (tagv_back[1][20:1] == ca_htag_reg);
@@ -833,15 +834,15 @@ module dcache(
                     ca_val_reg   <= 1'b0  ;
                     ca_dirty_wen <= ca_hit;
                     ca_dirty_reg <= 1'b0  ;
-                    ca_need_wb   <= 1'b0  ;//不需要写回内存
+                    ca_need_wb   <= 1'b0  ;//不需要写回内�?
                 end
                 `DC_HWI:begin
                     ca_tag_wen   <= 4'b0  ;//不写tag
-                    ca_val_wen   <= ca_hit;//修改val为0
+                    ca_val_wen   <= ca_hit;//修改val�?0
                     ca_val_reg   <= 1'b0  ;
-                    ca_dirty_wen <= ca_hit;//修改dirty为0
+                    ca_dirty_wen <= ca_hit;//修改dirty�?0
                     ca_dirty_reg <= 1'b0  ;
-                    ca_need_wb   <= |ca_hit && dirty[ca_index_reg][ca_hit_loc] ;//需要写回内存
+                    ca_need_wb   <= |ca_hit && dirty[ca_index_reg][ca_hit_loc] ;//�?要写回内�?
                     ca_wb_addr   <= {tagv_back[ca_hit_loc][20:1],ca_index_reg,5'b00000};
                     ca_wb_data   <= cache_rdata[ca_hit_loc];
                 end
