@@ -371,7 +371,7 @@ module dcache(
             sda_wb_addr_ok   <= !sta_wr         ;
             sda_raw_col      <= (sta_index == sda_index) && 
                                 (sta_offset[4:2] == sda_offset[4:2]) &&
-                                (sta_tag == sta_tag) && sda_wr;
+                                (sta_tag == sda_tag) && sda_wr;
             sda_raw_wstrb    <= sda_wstrb;
             sda_raw_data[0]  <= {8{sda_wstrb[0]}} & sda_wdata[7 : 0];
             sda_raw_data[1]  <= {8{sda_wstrb[1]}} & sda_wdata[15: 8];
