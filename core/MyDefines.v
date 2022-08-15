@@ -146,7 +146,8 @@
 `define TWO_DEMAND      2'b11
 // 寄存器堆{{{
 `define GPR_NUM         `GPR_NUM_LEN-1:0
-`define GPR_NUM_LEN     5/*}}}*/
+`define GPR_NUM_LEN     5
+/*}}}*/
 // EXE段ALU的异常选择{{{
 `define EXCEPRION_SEL_LEN 2
 `define EXCEPRION_SEL `EXCEPRION_SEL_LEN-1:0

@@ -30,7 +30,7 @@ module InstQueue (
     //////////////     寄存器输入      ///////////////{{{
     //////////////////////////////////////////////////
     // 取指令控制
-    input	wire	[1:0]                   ID_upDateMode_i,    // 输入数值2'b00,2'b01,2'b11，将队头的x个数据出队
+    input	wire	[1:0]                   IS_upDateMode_i,    // 输入数值2'b00,2'b01,2'b11，将队头的x个数据出队
     // 分支确认信号
     input   wire    [4*`SINGLE_WORD]        IF_predDest_p_i,
     input   wire    [3:0]                   IF_predTake_p_i,
@@ -63,7 +63,7 @@ module InstQueue (
 
     output  wire                                IQ_full  ,
     output  wire                                IQ_empty  ,
-    output	wire	                            ID_stopFetch_o,
+    output	wire	                            IS_stopFetch_o,
     output  wire    [`IQ_POINT]                 IQ_number_w  
     /*}}}*/
 );
@@ -77,7 +77,7 @@ module InstQueue (
     assign IQ_empty         =   tail == head;
     assign IQ_full          =   (tail[`IQ_NUMBER] == head[`IQ_NUMBER]) && 
                                 (tail[`IQ_POINT_SIGN]!=head[`IQ_POINT_SIGN]);
-    assign ID_stopFetch_o   =   (IQ_number_w>=`IQ_POINT_BIT 5) && !needClear;
+    assign IS_stopFetch_o   =   (IQ_number_w>=`IQ_POINT_BIT 5) && !needClear;
     wire    [`SINGLE_WORD]          IF_inst_up          [3:0];
     wire    [`SINGLE_WORD]          IF_predDest_up      [3:0];
     wire    [0:0]                   IF_predTake_up      [3:0];
@@ -143,7 +143,7 @@ module InstQueue (
                                                 IF_instEnable_i[2] ? 3'd3 :
                                                 IF_instEnable_i[1] ? 3'd2 :
                                                 IF_instEnable_i[0] ? 3'd1 : 3'd0);
-    wire    [`IQ_POINT] nextNumber = IQ_number_w + IF_supplyNum - ID_upDateMode_i[0] - ID_upDateMode_i[1];
+    wire    [`IQ_POINT] nextNumber = IQ_number_w + IF_supplyNum - IS_upDateMode_i[0] - IS_upDateMode_i[1];
     wire    enough = nextNumber >= 'd2;
     always @(posedge clk) begin
         if (!rst || needClear) begin
@@ -152,8 +152,8 @@ module InstQueue (
         end
         else begin
             head    <=  head +
-                {{$clog2(`IQ_CAPABILITY){1'b0}},ID_upDateMode_i  [0]} +
-                {{$clog2(`IQ_CAPABILITY){1'b0}},ID_upDateMode_i  [1]} ;
+                {{$clog2(`IQ_CAPABILITY){1'b0}},IS_upDateMode_i  [0]} +
+                {{$clog2(`IQ_CAPABILITY){1'b0}},IS_upDateMode_i  [1]} ;
             IQ_supplyValid   <= enough ? `DUAL_ISSUE : nextNumber[1:0];
         end
     end

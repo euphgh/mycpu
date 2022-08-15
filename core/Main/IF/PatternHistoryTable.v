@@ -54,6 +54,7 @@ module PatternHistoryTable (
             reg     [ITEM_NUM-1:0]  pht_valid;
             reg     [DATA_WID-1:0]  counters    [ITEM_NUM-1:0];
             reg     [DATA_WID-1:0]  rdata;
+            reg                     rValid;
             wire    [`PHT_ADDR]     wAddr = FU_erroVAddr_w_i[`PHT_PC_INDEX_L] ^ FU_erroVAddr_w_i[`PHT_PC_INDEX_H];
             wire    [`PHT_ADDR]     rAddr = vAddr[i][`PHT_PC_INDEX_L] ^ vAddr[i][`PHT_PC_INDEX_H];
             wire    isMax   =   (FU_allCheckPoint_w_i[`PHT_CHECK_COUNT]==2'b11) && FU_correctTake_w_i;
@@ -82,15 +83,18 @@ module PatternHistoryTable (
             always @(posedge clk) begin
                 if (!rst) begin
                     rdata   <=  'd0;
+                    rValid  <=  `FALSE;
                 end
                 else if (conflict) begin
+                    rValid  <=  `TRUE;
                     rdata   <=  nextStatu;
                 end
                 else begin
                     rdata   <=  counters[rAddr];
+                    rValid  <=  pht_valid[rAddr];
                 end
             end
-            assign PHT_predTake_p_o[i]  = pht_valid[rAddr] && rdata[1];
+            assign PHT_predTake_p_o[i]  = rValid && rdata[1];
             assign checkPoint[i]= rdata;
         end
     endgenerate

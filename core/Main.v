@@ -119,14 +119,12 @@ module Main(
     ////////////////        autoConnect Code Start       ////////////////{{{
     /////////////////////////////////////////////////////////////////////
 
-	wire	[0:0]	ID_stopFetch_o;	wire	[0:0]	ID_stopFetch_i;
-	assign	ID_stopFetch_i	=	ID_stopFetch_o;
+	wire	[0:0]	ID_allowin_w_o;	wire	[0:0]	ID_allowin_w_i;
+	assign	ID_allowin_w_i	=	ID_allowin_w_o;
 	wire	[0:0]	ID_down_valid_w_o;	wire	[0:0]	ID_down_valid_w_i;
 	assign	ID_down_valid_w_i	=	ID_down_valid_w_o;
 	wire	[0:0]	ID_up_valid_w_o;	wire	[0:0]	ID_up_valid_w_i;
 	assign	ID_up_valid_w_i	=	ID_up_valid_w_o;
-	wire	[1:0]	ID_upDateMode_o;	wire	[1:0]	ID_upDateMode_i;
-	assign	ID_upDateMode_i	=	ID_upDateMode_o;
 	wire	[4:0]	ID_up_writeNum_o;	wire	[4:0]	ID_up_writeNum_i;
 	assign	ID_up_writeNum_i	=	ID_up_writeNum_o;
 	wire	[63:0]	ID_up_readData_o;	wire	[63:0]	ID_up_readData_i;
@@ -159,7 +157,7 @@ module Main(
 	assign	ID_up_predDest_i	=	ID_up_predDest_o;
 	wire	[0:0]	ID_up_predTake_o;	wire	[0:0]	ID_up_predTake_i;
 	assign	ID_up_predTake_i	=	ID_up_predTake_o;
-	wire	[76:0]	ID_up_checkPoint_o;	wire	[76:0]	ID_up_checkPoint_i;
+	wire	[44:0]	ID_up_checkPoint_o;	wire	[44:0]	ID_up_checkPoint_i;
 	assign	ID_up_checkPoint_i	=	ID_up_checkPoint_o;
 	wire	[5:0]	ID_up_branchKind_o;	wire	[5:0]	ID_up_branchKind_i;
 	assign	ID_up_branchKind_i	=	ID_up_branchKind_o;
@@ -285,6 +283,32 @@ module Main(
 	assign	DMMU_PageMask_i	=	DMMU_PageMask_o;
 	wire	[31:0]	DMMU_Index_o;	wire	[31:0]	DMMU_Index_i;
 	assign	DMMU_Index_i	=	DMMU_Index_o;
+	wire	[0:0]	IS_stopFetch_o;	wire	[0:0]	IS_stopFetch_i;
+	assign	IS_stopFetch_i	=	IS_stopFetch_o;
+	wire	[1:0]	IS_issueMode_o;	wire	[1:0]	IS_issueMode_i;
+	assign	IS_issueMode_i	=	IS_issueMode_o;
+	wire	[63:0]	IS_Inst_p_o;	wire	[63:0]	IS_Inst_p_i;
+	assign	IS_Inst_p_i	=	IS_Inst_p_o;
+	wire	[63:0]	IS_VAddr_p_o;	wire	[63:0]	IS_VAddr_p_i;
+	assign	IS_VAddr_p_i	=	IS_VAddr_p_o;
+	wire	[63:0]	IS_predDest_p_o;	wire	[63:0]	IS_predDest_p_i;
+	assign	IS_predDest_p_i	=	IS_predDest_p_o;
+	wire	[1:0]	IS_hasException_p_o;	wire	[1:0]	IS_hasException_p_i;
+	assign	IS_hasException_p_i	=	IS_hasException_p_o;
+	wire	[1:0]	IS_predTake_p_o;	wire	[1:0]	IS_predTake_p_i;
+	assign	IS_predTake_p_i	=	IS_predTake_p_o;
+	wire	[9:0]	IS_ExcCode_p_o;	wire	[9:0]	IS_ExcCode_p_i;
+	assign	IS_ExcCode_p_i	=	IS_ExcCode_p_o;
+	wire	[89:0]	IS_checkPoint_p_o;	wire	[89:0]	IS_checkPoint_p_i;
+	assign	IS_checkPoint_p_i	=	IS_checkPoint_p_o;
+	wire	[19:0]	IS_regReadNum_p_o;	wire	[19:0]	IS_regReadNum_p_i;
+	assign	IS_regReadNum_p_i	=	IS_regReadNum_p_o;
+	wire	[3:0]	IS_needRead_p_o;	wire	[3:0]	IS_needRead_p_i;
+	assign	IS_needRead_p_i	=	IS_needRead_p_o;
+	wire	[9:0]	IS_regWriteNum_p_o;	wire	[9:0]	IS_regWriteNum_p_i;
+	assign	IS_regWriteNum_p_i	=	IS_regWriteNum_p_o;
+	wire	[1:0]	IS_isRefill_p_o;	wire	[1:0]	IS_isRefill_p_i;
+	assign	IS_isRefill_p_i	=	IS_isRefill_p_o;
 	wire	[4:0]	WB_writeNum_w_o;	wire	[4:0]	WB_writeNum_w_i;
 	assign	WB_writeNum_w_i	=	WB_writeNum_w_o;
 	wire	[0:0]	WB_hasDangerous_w_o;	wire	[0:0]	WB_hasDangerous_w_i;
@@ -463,7 +487,7 @@ module Main(
 	assign	SBA_corrDest_w_i	=	SBA_corrDest_w_o;
 	wire	[0:0]	SBA_corrTake_w_o;	wire	[0:0]	SBA_corrTake_w_i;
 	assign	SBA_corrTake_w_i	=	SBA_corrTake_w_o;
-	wire	[76:0]	SBA_checkPoint_w_o;	wire	[76:0]	SBA_checkPoint_w_i;
+	wire	[44:0]	SBA_checkPoint_w_o;	wire	[44:0]	SBA_checkPoint_w_i;
 	assign	SBA_checkPoint_w_i	=	SBA_checkPoint_w_o;
 	wire	[7:0]	SBA_repairAction_w_o;	wire	[7:0]	SBA_repairAction_w_i;
 	assign	SBA_repairAction_w_i	=	SBA_repairAction_w_o;
@@ -477,7 +501,7 @@ module Main(
 	assign	IF_predDest_p_i	=	IF_predDest_p_o;
 	wire	[3:0]	IF_predTake_p_o;	wire	[3:0]	IF_predTake_p_i;
 	assign	IF_predTake_p_i	=	IF_predTake_p_o;
-	wire	[307:0]	IF_predInfo_p_o;	wire	[307:0]	IF_predInfo_p_i;
+	wire	[179:0]	IF_predInfo_p_o;	wire	[179:0]	IF_predInfo_p_i;
 	assign	IF_predInfo_p_i	=	IF_predInfo_p_o;
 	wire	[31:0]	IF_instBasePC_o;	wire	[31:0]	IF_instBasePC_i;
 	assign	IF_instBasePC_i	=	IF_instBasePC_o;
@@ -523,7 +547,7 @@ module Main(
 	assign	EXE_up_corrTake_i	=	EXE_up_corrTake_o;
 	wire	[7:0]	EXE_up_repairAction_o;	wire	[7:0]	EXE_up_repairAction_i;
 	assign	EXE_up_repairAction_i	=	EXE_up_repairAction_o;
-	wire	[76:0]	EXE_up_checkPoint_o;	wire	[76:0]	EXE_up_checkPoint_i;
+	wire	[44:0]	EXE_up_checkPoint_o;	wire	[44:0]	EXE_up_checkPoint_i;
 	assign	EXE_up_checkPoint_i	=	EXE_up_checkPoint_o;
 	wire	[0:0]	EXE_up_isBranch_o;	wire	[0:0]	EXE_up_isBranch_i;
 	assign	EXE_up_isBranch_i	=	EXE_up_isBranch_o;
@@ -707,18 +731,18 @@ module Main(
 ID  u_ID (
     .clk                        ( clk                         ),
     .rst                        ( rst                         ),
-    .IF_inst_p_i                ( IF_inst_p_i                 ),
-    .ID_upDateMode_i            ( ID_upDateMode_i             ),
-    .IF_predDest_p_i            ( IF_predDest_p_i             ),
-    .IF_predTake_p_i            ( IF_predTake_p_i             ),
-    .IF_predInfo_p_i            ( IF_predInfo_p_i             ),
-    .IF_instBasePC_i            ( IF_instBasePC_i             ),
-    .IF_valid_i                 ( IF_valid_i                  ),
-    .IF_instEnable_i            ( IF_instEnable_i             ),
-    .IF_instNum_i               ( IF_instNum_i                ),
-    .IF_hasException_i          ( IF_hasException_i           ),
-    .IF_ExcCode_i               ( IF_ExcCode_i                ),
-    .IF_isRefill_i              ( IF_isRefill_i               ),
+    .IS_issueMode_i             ( IS_issueMode_i              ),
+    .IS_Inst_p_i                ( IS_Inst_p_i                 ),
+    .IS_VAddr_p_i               ( IS_VAddr_p_i                ),
+    .IS_predDest_p_i            ( IS_predDest_p_i             ),
+    .IS_hasException_p_i        ( IS_hasException_p_i         ),
+    .IS_predTake_p_i            ( IS_predTake_p_i             ),
+    .IS_ExcCode_p_i             ( IS_ExcCode_p_i              ),
+    .IS_checkPoint_p_i          ( IS_checkPoint_p_i           ),
+    .IS_regReadNum_p_i          ( IS_regReadNum_p_i           ),
+    .IS_needRead_p_i            ( IS_needRead_p_i             ),
+    .IS_regWriteNum_p_i         ( IS_regWriteNum_p_i          ),
+    .IS_isRefill_p_i            ( IS_isRefill_p_i             ),
     .SBA_flush_w_i              ( SBA_flush_w_i               ),
     .CP0_excOccur_w_i           ( CP0_excOccur_w_i            ),
     .EXE_down_allowin_w_i       ( EXE_down_allowin_w_i        ),
@@ -745,10 +769,9 @@ ID  u_ID (
     .PREMEM_hasDangerous_w_i    ( PREMEM_hasDangerous_w_i     ),
     .WB_hasDangerous_w_i        ( WB_hasDangerous_w_i         ),
 
-    .ID_stopFetch_o             ( ID_stopFetch_o              ),
+    .ID_allowin_w_o             ( ID_allowin_w_o              ),
     .ID_down_valid_w_o          ( ID_down_valid_w_o           ),
     .ID_up_valid_w_o            ( ID_up_valid_w_o             ),
-    .ID_upDateMode_o            ( ID_upDateMode_o             ),
     .ID_up_writeNum_o           ( ID_up_writeNum_o            ),
     .ID_up_readData_o           ( ID_up_readData_o            ),
     .ID_up_VAddr_o              ( ID_up_VAddr_o               ),
@@ -867,6 +890,39 @@ DataMemoryManagementUnit  u_DataMemoryManagementUnit (
     .DMMU_EntryLo1_o         ( DMMU_EntryLo1_o     ),
     .DMMU_PageMask_o         ( DMMU_PageMask_o     ),
     .DMMU_Index_o            ( DMMU_Index_o        )
+);
+
+Issue  u_Issue (
+    .clk                     ( clk                   ),
+    .rst                     ( rst                   ),
+    .IF_inst_p_i             ( IF_inst_p_i           ),
+    .IF_predDest_p_i         ( IF_predDest_p_i       ),
+    .IF_predTake_p_i         ( IF_predTake_p_i       ),
+    .IF_predInfo_p_i         ( IF_predInfo_p_i       ),
+    .IF_instBasePC_i         ( IF_instBasePC_i       ),
+    .IF_valid_i              ( IF_valid_i            ),
+    .IF_instEnable_i         ( IF_instEnable_i       ),
+    .IF_instNum_i            ( IF_instNum_i          ),
+    .IF_hasException_i       ( IF_hasException_i     ),
+    .IF_ExcCode_i            ( IF_ExcCode_i          ),
+    .IF_isRefill_i           ( IF_isRefill_i         ),
+    .SBA_flush_w_i           ( SBA_flush_w_i         ),
+    .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
+    .ID_allowin_w_i          ( ID_allowin_w_i        ),
+
+    .IS_stopFetch_o          ( IS_stopFetch_o        ),
+    .IS_issueMode_o          ( IS_issueMode_o        ),
+    .IS_Inst_p_o             ( IS_Inst_p_o           ),
+    .IS_VAddr_p_o            ( IS_VAddr_p_o          ),
+    .IS_predDest_p_o         ( IS_predDest_p_o       ),
+    .IS_hasException_p_o     ( IS_hasException_p_o   ),
+    .IS_predTake_p_o         ( IS_predTake_p_o       ),
+    .IS_ExcCode_p_o          ( IS_ExcCode_p_o        ),
+    .IS_checkPoint_p_o       ( IS_checkPoint_p_o     ),
+    .IS_regReadNum_p_o       ( IS_regReadNum_p_o     ),
+    .IS_needRead_p_o         ( IS_needRead_p_o       ),
+    .IS_regWriteNum_p_o      ( IS_regWriteNum_p_o    ),
+    .IS_isRefill_p_o         ( IS_isRefill_p_o       )
 );
 
 WriteBack  u_WriteBack (
@@ -1163,7 +1219,7 @@ IF  u_IF (
     .inst_rdata              ( inst_rdata             ),
     .inst_index_ok           ( inst_index_ok          ),
     .inst_data_ok            ( inst_data_ok           ),
-    .ID_stopFetch_i          ( ID_stopFetch_i         ),
+    .IS_stopFetch_i          ( IS_stopFetch_i         ),
     .SBA_flush_w_i           ( SBA_flush_w_i          ),
     .SBA_erroVAddr_w_i       ( SBA_erroVAddr_w_i      ),
     .SBA_corrDest_w_i        ( SBA_corrDest_w_i       ),
