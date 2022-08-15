@@ -36,7 +36,7 @@ module PCRegister (
     input   wire                    inst_index_ok,
 /*}}}*/
     // 指令buffer反馈{{{
-    input	wire	                ID_stopFetch_i,
+    input	wire	                IS_stopFetch_i,
 /*}}}*/
     // BTB预测下一条PC来源{{{
     input	wire	[`SINGLE_WORD]  DSP_predictPC_i,
@@ -139,7 +139,7 @@ module PCRegister (
     assign inst_wr      = `SRAM_READ;
     assign inst_size    = 2'b11;
     // 如果IQ满了，则始终将req拉低
-    assign inst_req = rst && !ID_stopFetch_i;
+    assign inst_req = rst && !IS_stopFetch_i;
     assign PCR_lastVAddr_o = lastBase;
 endmodule
 

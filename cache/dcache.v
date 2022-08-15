@@ -204,10 +204,10 @@ module dcache(
     assign dcache_ok     = (cache_stat == `CA_OP && !ca_need_wb) || (ca_wb_end);
     assign deal_cache_op = (cache_stat ==`RUN) && !sda_req && !sta_req && dcache_req;
     assign data_index_ok =  !deal_cache_op &&
-                            (cache_stat != `RESET && cache_stat != `IDLE && cache_stat != `CA_OP && cache_stat != `CA_SEL && cache_stat != `CA_WB) 
+                            (cache_stat == `RUN)
                             && sin_req & (!sda_req | data_data_ok);
 `else
-    assign data_index_ok = (cache_stat != `RESET) && sin_req & (!sda_req | sda_data_ok);    
+    assign data_index_ok = (cache_stat == `RUN) && sin_req & (!sda_req | sda_data_ok);    
 `endif
     assign sda_data_ok  = sda_req & (hit_run | uca_ok | sda_hasException);
     reg uca_ok;
@@ -371,7 +371,7 @@ module dcache(
             sda_wb_addr_ok   <= !sta_wr         ;
             sda_raw_col      <= (sta_index == sda_index) && 
                                 (sta_offset[4:2] == sda_offset[4:2]) &&
-                                (sta_tag == sta_tag) && sda_wr;
+                                (sta_tag == sda_tag) && sda_wr;
             sda_raw_wstrb    <= sda_wstrb;
             sda_raw_data[0]  <= {8{sda_wstrb[0]}} & sda_wdata[7 : 0];
             sda_raw_data[1]  <= {8{sda_wstrb[1]}} & sda_wdata[15: 8];

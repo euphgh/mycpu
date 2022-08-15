@@ -31,7 +31,7 @@ module IF (
     input   wire                            inst_data_ok,
 /*}}}*/
     // InstQueue交互{{{
-    input	wire	                    ID_stopFetch_i,
+    input	wire	                    IS_stopFetch_i,
     output  wire    [4*`SINGLE_WORD]    IF_predDest_p_o,
     output  wire    [3:0]               IF_predTake_p_o,
     output  wire    [4*`ALL_CHECKPOINT] IF_predInfo_p_o,
@@ -362,7 +362,7 @@ PCRegister  u_PCRegister (
     .clk                     ( clk                   ),
     .rst                     ( rst                   ),
     .inst_index_ok           ( inst_index_ok         ),
-    .ID_stopFetch_i          ( ID_stopFetch_i        ),
+    .IS_stopFetch_i          ( IS_stopFetch_i        ),
     .DSP_predictPC_i         ( DSP_predictPC_i       ),
     .DSP_needDelaySlot_i     ( DSP_needDelaySlot_i   ),
     .SBA_flush_w_i           ( SBA_flush_w_i         ),

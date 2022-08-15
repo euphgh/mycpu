@@ -23,18 +23,18 @@ module ID (
     /////////////////////////////////////////////////
     ///////////////     寄存器输入   ////////////////{{{
     /////////////////////////////////////////////////
-    input   wire    [`FOUR_WORDS]                   IF_inst_p_i,
-    input	wire	[`IQ_VALID]                     ID_upDateMode_i,   // 可选宏定义三种 
-    input   wire    [4*`SINGLE_WORD]                IF_predDest_p_i,
-    input   wire    [3:0]                           IF_predTake_p_i,
-    input   wire    [4*`ALL_CHECKPOINT]             IF_predInfo_p_i,
-    input   wire	[`SINGLE_WORD]                  IF_instBasePC_i,
-    input   wire	                                IF_valid_i,
-    input   wire	[3:0]                           IF_instEnable_i,
-    input   wire    [2:0]                           IF_instNum_i,
-    input	wire                                    IF_hasException_i,
-    input	wire    [`EXCCODE]                      IF_ExcCode_i,
-    input	wire	                                IF_isRefill_i,
+    input	wire [`ISSUE_MODE]                 IS_issueMode_i,
+    input	wire [2*`SINGLE_WORD]              IS_Inst_p_i,
+    input	wire [2*`SINGLE_WORD]              IS_VAddr_p_i,
+    input	wire [2*`SINGLE_WORD]              IS_predDest_p_i,
+    input	wire [1:0]                         IS_hasException_p_i,
+    input	wire [1:0]                         IS_predTake_p_i,
+    input	wire [2*`EXCCODE]                  IS_ExcCode_p_i,
+    input	wire [2*`ALL_CHECKPOINT]           IS_checkPoint_p_i,
+    input	wire [4*`GPR_NUM]                  IS_regReadNum_p_i,
+    input	wire [3:0]                         IS_needRead_p_i,
+    input	wire [2*`GPR_NUM]                  IS_regWriteNum_p_i,
+    input	wire [1:0]                         IS_isRefill_p_i,
     /*}}}*/
 
     //////////////////////////////////////////////////
@@ -77,12 +77,10 @@ module ID (
     //////////////////////////////////////////////////
     //////////////     线信号输出      ///////////////{{{
     //////////////////////////////////////////////////
-    // InstQueue反馈信号
-    output   wire                           ID_stopFetch_o,
     // 流水线控制
+    output	wire	                        ID_allowin_w_o,
     output	wire	                        ID_down_valid_w_o,
     output	wire	                        ID_up_valid_w_o,
-    output	wire	[`IQ_VALID]             ID_upDateMode_o,   // 可选宏定义三种 
 /*}}}*/
 
     /////////////////////////////////////////////////
@@ -155,6 +153,54 @@ module ID (
     /*}}}*/
 );
     /*autodef*/   
+    //Intersegment_register{{{
+
+    wire            needClear;
+    wire            needUpdata;
+
+	reg	[`ISSUE_MODE]			IS_issueMode_r_i;
+	reg	[2*`SINGLE_WORD]			IS_Inst_p_r_i;
+	reg	[2*`SINGLE_WORD]			IS_VAddr_p_r_i;
+	reg	[2*`SINGLE_WORD]			IS_predDest_p_r_i;
+	reg	[1:0]			IS_hasException_p_r_i;
+	reg	[1:0]			IS_predTake_p_r_i;
+	reg	[2*`EXCCODE]			IS_ExcCode_p_r_i;
+	reg	[2*`ALL_CHECKPOINT]			IS_checkPoint_p_r_i;
+	reg	[4*`GPR_NUM]			IS_regReadNum_p_r_i;
+	reg	[3:0]			IS_needRead_p_r_i;
+	reg	[2*`GPR_NUM]			IS_regWriteNum_p_r_i;
+	reg	[1:0]			IS_isRefill_p_r_i;
+    always @(posedge clk) begin
+        if (!rst || needClear) begin
+			IS_issueMode_r_i	<=	'b0;
+			IS_Inst_p_r_i	<=	'b0;
+			IS_VAddr_p_r_i	<=	'b0;
+			IS_predDest_p_r_i	<=	'b0;
+			IS_hasException_p_r_i	<=	'b0;
+			IS_predTake_p_r_i	<=	'b0;
+			IS_ExcCode_p_r_i	<=	'b0;
+			IS_checkPoint_p_r_i	<=	'b0;
+			IS_regReadNum_p_r_i	<=	'b0;
+			IS_needRead_p_r_i	<=	'b0;
+			IS_regWriteNum_p_r_i	<=	'b0;
+			IS_isRefill_p_r_i	<=	'b0;
+        end
+        else if (needUpdata) begin
+			IS_issueMode_r_i	<=	IS_issueMode_i;
+			IS_Inst_p_r_i	<=	IS_Inst_p_i;
+			IS_VAddr_p_r_i	<=	IS_VAddr_p_i;
+			IS_predDest_p_r_i	<=	IS_predDest_p_i;
+			IS_hasException_p_r_i	<=	IS_hasException_p_i;
+			IS_predTake_p_r_i	<=	IS_predTake_p_i;
+			IS_ExcCode_p_r_i	<=	IS_ExcCode_p_i;
+			IS_checkPoint_p_r_i	<=	IS_checkPoint_p_i;
+			IS_regReadNum_p_r_i	<=	IS_regReadNum_p_i;
+			IS_needRead_p_r_i	<=	IS_needRead_p_i;
+			IS_regWriteNum_p_r_i	<=	IS_regWriteNum_p_i;
+			IS_isRefill_p_r_i	<=	IS_isRefill_p_i;
+        end
+    end
+    /*}}}*/
     /*{{{*/
     //Start of automatic define
     //Start of automatic reg
@@ -164,30 +210,18 @@ module ID (
     //Start of automatic wire
     //Define assign wires here
     //Define instance wires here
-    wire [`IQ_VALID]                   IQ_supplyValid           ;
-    wire [2*`SINGLE_WORD]              IQ_VAddr_p               ;
-    wire [2*`SINGLE_WORD]              IQ_inst_p                ;
-    wire [1:0]                         IQ_hasException_p        ;
-    wire [2*`EXCCODE]                  IQ_ExcCode_p             ;
-    wire [2*`SINGLE_WORD]              IQ_predDest_p            ;
-    wire [1:0]                         IQ_predTake_p            ;
-    wire [2*`ALL_CHECKPOINT]           IQ_checkPoint_p          ;
-    wire                               IQ_full                  ;
-    wire                               IQ_empty                 ;
-    wire [$clog2(`IQ_CAPABILITY):0]    IQ_number_w              ;
-    wire [1:0]                         IQ_isRefill_p            ;
-    wire [2*`SINGLE_WORD]              AB_Inst_p                ;
-    wire [2*`SINGLE_WORD]              AB_VAddr_p               ;
-    wire [2*`SINGLE_WORD]              AB_predDest_p            ;
-    wire [1:0]                         AB_hasException_p        ;
-    wire [1:0]                         AB_predTake_p            ;
-    wire [2*`EXCCODE]                  AB_ExcCode_p             ;
-    wire [2*`ALL_CHECKPOINT]           AB_checkPoint_p          ;
-    wire [`ISSUE_MODE]                 AB_issueMode_w           ;
-    wire [4*`GPR_NUM]                  AB_regReadNum_p_w        ;
-    wire [3:0]                         AB_needRead_p_w          ; // WIRE_NEW
-    wire [2*`GPR_NUM]                  AB_regWriteNum_p_w       ;
-    wire [1:0]                         AB_isRefill_p            ;
+    wire [2*`SINGLE_WORD]              AB_Inst_p = IS_Inst_p_r_i;
+    wire [2*`SINGLE_WORD]              AB_VAddr_p = IS_VAddr_p_r_i;
+    wire [2*`SINGLE_WORD]              AB_predDest_p = IS_predDest_p_r_i;
+    wire [1:0]                         AB_hasException_p = IS_hasException_p_r_i;
+    wire [1:0]                         AB_predTake_p = IS_predTake_p_r_i;
+    wire [2*`EXCCODE]                  AB_ExcCode_p = IS_ExcCode_p_r_i;
+    wire [2*`ALL_CHECKPOINT]           AB_checkPoint_p = IS_checkPoint_p_r_i;
+    wire [`ISSUE_MODE]                 AB_issueMode_w = IS_issueMode_r_i;
+    wire [4*`GPR_NUM]                  AB_regReadNum_p_w = IS_regReadNum_p_r_i;
+    wire [3:0]                         AB_needRead_p_w = IS_needRead_p_r_i; // WIRE_NEW
+    wire [2*`GPR_NUM]                  AB_regWriteNum_p_w = IS_regWriteNum_p_r_i;
+    wire [1:0]                         AB_isRefill_p = IS_isRefill_p_r_i;
     wire [4*`SINGLE_WORD]              readData_p_o             ;
     wire [1:0]                         ID_exceptionRisk_p       ;
     wire [1:0]                         decorderException_p      ;
@@ -199,69 +233,7 @@ module ID (
     wire [`EXTEND_ACTION]              extendAction_up [1:0]    ;
     wire [`SINGLE_WORD]                extendedRes_up  [1:0]    ;
 /*}}}*/
-    InstQueue InstQueue_u (/*{{{*/
-        .clk                    (clk                                        ), //input
-        .rst                    (rst                                        ), //input
-        // 取指令控制
-        .ID_upDateMode_i        (ID_upDateMode_i[1:0]                       ), //input
-        // 分支确认信号
-        .IF_predDest_p_i        (IF_predDest_p_i[4*`SINGLE_WORD]            ), //input
-        .IF_predTake_p_i        (IF_predTake_p_i[3:0]                       ), //input
-        .IF_predInfo_p_i        (IF_predInfo_p_i[4*`ALL_CHECKPOINT]         ), //input
-        // 四条指令的基地址
-        .IF_instBasePC_i        (IF_instBasePC_i[`SINGLE_WORD]              ), //input
-        // 送入指令FIFO的指令    
-        .IF_valid_i             (IF_valid_i                                 ), //input
-        .IF_instEnable_i        (IF_instEnable_i[3:0]                       ), //input
-        .IF_inst_p_i            (IF_inst_p_i[`FOUR_WORDS]                   ), //input
-        .IF_instNum_i           (IF_instNum_i[2:0]                          ), //input
-        // 送入指令FIFO的异常信息
-        .IF_hasException_i      (IF_hasException_i                          ), //input
-        .IF_ExcCode_i           (IF_ExcCode_i[`EXCCODE]                     ), //input
-        // 取出指令
-        .IQ_supplyValid         (IQ_supplyValid  [`IQ_VALID]                ), //output
-        .IQ_VAddr_p             (IQ_VAddr_p  [2*`SINGLE_WORD]               ), //output
-        .IQ_inst_p              (IQ_inst_p  [2*`SINGLE_WORD]                ), //output
-        .IQ_hasException_p      (IQ_hasException_p  [1:0]                   ), //output
-        .IQ_ExcCode_p           (IQ_ExcCode_p  [2*`EXCCODE]                 ), //output
-        .IQ_predDest_p          (IQ_predDest_p  [2*`SINGLE_WORD]            ), //output
-        .IQ_predTake_p          (IQ_predTake_p  [1:0]                       ), //output
-        .IQ_checkPoint_p        (IQ_checkPoint_p  [2*`ALL_CHECKPOINT]       ), //output
-        .IQ_full                (IQ_full                                    ), //output
-        .IQ_empty               (IQ_empty                                   ), //output
-        .ID_stopFetch_o         (ID_stopFetch_o                             ), //output
-        .IQ_number_w            (IQ_number_w  [$clog2(`IQ_CAPABILITY):0]    ), //output
-        .IF_isRefill_i          (IF_isRefill_i                  ), //input
-        .IQ_isRefill_p          (IQ_isRefill_p[1:0]             ), //output
-        /*autoinst*/
-        .SBA_flush_w_i          (SBA_flush_w_i                  ), //input
-        .CP0_excOccur_w_i       (CP0_excOccur_w_i               )  //input
-    );
-    /*}}}*/
-    Arbitrator Arbitrator_u (/*{{{*/
-        .IQ_supplyValid          (IQ_supplyValid  [`IQ_VALID]              ), //input
-        .IQ_inst_p               (IQ_inst_p  [2*`SINGLE_WORD]              ), //input
-        .IQ_VAddr_p              (IQ_VAddr_p  [2*`SINGLE_WORD]             ), //input // INST_NEW
-        .IQ_hasException_p       (IQ_hasException_p  [1:0]                 ), //input // INST_NEW
-        .IQ_ExcCode_p            (IQ_ExcCode_p  [2*`EXCCODE]               ), //input // INST_NEW
-        .IQ_predDest_p           (IQ_predDest_p  [2*`SINGLE_WORD]          ), //input // INST_NEW
-        .IQ_predTake_p           (IQ_predTake_p  [1:0]                     ), //input // INST_NEW
-        .IQ_checkPoint_p         (IQ_checkPoint_p  [2*`ALL_CHECKPOINT]     ), //input // INST_NEW
-        .AB_Inst_p               (AB_Inst_p  [2*`SINGLE_WORD]              ), //output
-        .AB_VAddr_p              (AB_VAddr_p  [2*`SINGLE_WORD]             ), //output // INST_NEW
-        .AB_predDest_p           (AB_predDest_p  [2*`SINGLE_WORD]          ), //output // INST_NEW
-        .AB_hasException_p       (AB_hasException_p  [1:0]                 ), //output // INST_NEW
-        .AB_predTake_p           (AB_predTake_p  [1:0]                     ), //output // INST_NEW
-        .AB_ExcCode_p            (AB_ExcCode_p  [2*`EXCCODE]               ), //output // INST_NEW
-        .AB_checkPoint_p         (AB_checkPoint_p  [2*`ALL_CHECKPOINT]     ), //output // INST_NEW
-        .AB_issueMode_w          (AB_issueMode_w  [`ISSUE_MODE]            ), //output
-        .AB_regReadNum_p_w       (AB_regReadNum_p_w  [4*`GPR_NUM]          ), //output
-        .AB_needRead_p_w         (AB_needRead_p_w                          ),
-        .AB_regWriteNum_p_w      (AB_regWriteNum_p_w  [2*`GPR_NUM]         ), //output
-        /*autoinst*/
-        .IQ_isRefill_p          (IQ_isRefill_p[1:0]             ), //input
-        .AB_isRefill_p          (AB_isRefill_p[1:0]             )  //output
-    );
+    //{{{发射指令
     wire    [`SINGLE_WORD]              AB_VAddr_up           [1:0];  
     wire    [`SINGLE_WORD]              AB_inst_up            [1:0];  
     wire    [0:0]                       AB_hasException_up    [1:0];  
@@ -428,16 +400,6 @@ module ID (
     assign ID_down_oprand0IsReg_o = oprand_sel[1][0][`SEL_RS_DATA] || ID_down_writeCp0_o;
     assign ID_down_oprand1IsReg_o = oprand_sel[1][1][`SEL_RT_DATA] || ID_down_writeCp0_o;
 /*}}}*/
-    // 流水暂停控制{{{ 
-    wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
-    wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
-    wire stop = WAR_conflict || hasDangerous;
-    wire ok_to_change = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && !stop);
-    assign ID_upDateMode_o = !ok_to_change ? `NO_ISSUE : AB_issueMode_w;
-    wire    needInvalid = SBA_flush_w_i || CP0_excOccur_w_i;
-    assign ID_up_valid_w_o      = (AB_issueMode_w[1])   &&  !stop   &&  !needInvalid;
-    assign ID_down_valid_w_o    = (AB_issueMode_w[0])   &&  !stop   &&  !needInvalid;
-/*}}}*/
     // 异常处理{{{
     // 此处的存在异常发生仅仅包括CPU,RI,SYS,BP的可解码异常，之后传递ALU选择信号
     wire    [0:0]       decorderException_up    [1:0];
@@ -463,5 +425,22 @@ module ID (
 /*}}}*/
     // CACHE_OP{{{
     assign ID_down_CacheOperator_o = AB_inst_up[1][20:16];/*}}}*/
+    // 流水线互锁{{{
+    wire WAR_conflict = (WAR_conflict_up[0][0]) || (WAR_conflict_up[1][0]) || (WAR_conflict_up[0][1]) || (WAR_conflict_up[1][1]);
+    wire hasDangerous = EXE_down_hasDangerous_w_i || MEM_hasDangerous_w_i || PREMEM_hasDangerous_w_i || WB_hasDangerous_w_i;
+    wire stop = WAR_conflict || hasDangerous;
+    wire    ok_to_change    = !(|AB_issueMode_w) || (EXE_down_allowin_w_i && !stop);
+    assign  ID_allowin_w_o  = ok_to_change;
+
+    wire ready = !stop;
+    wire needFlush = SBA_flush_w_i || CP0_excOccur_w_i;
+    wire valid_out =            ready                   && 
+                                EXE_down_allowin_w_i    && 
+                                !needFlush;
+    assign ID_up_valid_w_o      = (AB_issueMode_w[1])   &&  valid_out;
+    assign ID_down_valid_w_o    = (AB_issueMode_w[0])   &&  valid_out;
+    assign needUpdata = ID_allowin_w_o && (|IS_issueMode_i);
+    assign needClear  = (!(|IS_issueMode_i)&&ID_allowin_w_o) || needFlush;
+    // }}}
 endmodule
 
