@@ -165,7 +165,7 @@ module Main(
 	assign	ID_up_predDest_i	=	ID_up_predDest_o;
 	wire	[0:0]	ID_up_predTake_o;	wire	[0:0]	ID_up_predTake_i;
 	assign	ID_up_predTake_i	=	ID_up_predTake_o;
-	wire	[44:0]	ID_up_checkPoint_o;	wire	[44:0]	ID_up_checkPoint_i;
+	wire	[41:0]	ID_up_checkPoint_o;	wire	[41:0]	ID_up_checkPoint_i;
 	assign	ID_up_checkPoint_i	=	ID_up_checkPoint_o;
 	wire	[5:0]	ID_up_branchKind_o;	wire	[5:0]	ID_up_branchKind_i;
 	assign	ID_up_branchKind_i	=	ID_up_branchKind_o;
@@ -303,7 +303,7 @@ module Main(
 	assign	IS_predTake_p_i	=	IS_predTake_p_o;
 	wire	[9:0]	IS_ExcCode_p_o;	wire	[9:0]	IS_ExcCode_p_i;
 	assign	IS_ExcCode_p_i	=	IS_ExcCode_p_o;
-	wire	[89:0]	IS_checkPoint_p_o;	wire	[89:0]	IS_checkPoint_p_i;
+	wire	[83:0]	IS_checkPoint_p_o;	wire	[83:0]	IS_checkPoint_p_i;
 	assign	IS_checkPoint_p_i	=	IS_checkPoint_p_o;
 	wire	[19:0]	IS_regReadNum_p_o;	wire	[19:0]	IS_regReadNum_p_i;
 	assign	IS_regReadNum_p_i	=	IS_regReadNum_p_o;
@@ -495,7 +495,7 @@ module Main(
 	assign	SBA_corrDest_w_i	=	SBA_corrDest_w_o;
 	wire	[0:0]	SBA_corrTake_w_o;	wire	[0:0]	SBA_corrTake_w_i;
 	assign	SBA_corrTake_w_i	=	SBA_corrTake_w_o;
-	wire	[44:0]	SBA_checkPoint_w_o;	wire	[44:0]	SBA_checkPoint_w_i;
+	wire	[41:0]	SBA_checkPoint_w_o;	wire	[41:0]	SBA_checkPoint_w_i;
 	assign	SBA_checkPoint_w_i	=	SBA_checkPoint_w_o;
 	wire	[7:0]	SBA_repairAction_w_o;	wire	[7:0]	SBA_repairAction_w_i;
 	assign	SBA_repairAction_w_i	=	SBA_repairAction_w_o;
@@ -527,7 +527,7 @@ module Main(
 	assign	IF_predDest_p_i	=	IF_predDest_p_o;
 	wire	[3:0]	IF_predTake_p_o;	wire	[3:0]	IF_predTake_p_i;
 	assign	IF_predTake_p_i	=	IF_predTake_p_o;
-	wire	[179:0]	IF_predInfo_p_o;	wire	[179:0]	IF_predInfo_p_i;
+	wire	[167:0]	IF_predInfo_p_o;	wire	[167:0]	IF_predInfo_p_i;
 	assign	IF_predInfo_p_i	=	IF_predInfo_p_o;
 	wire	[31:0]	IF_instBasePC_o;	wire	[31:0]	IF_instBasePC_i;
 	assign	IF_instBasePC_i	=	IF_instBasePC_o;
@@ -587,7 +587,7 @@ module Main(
 	assign	EXE_up_corrTake_i	=	EXE_up_corrTake_o;
 	wire	[7:0]	EXE_up_repairAction_o;	wire	[7:0]	EXE_up_repairAction_i;
 	assign	EXE_up_repairAction_i	=	EXE_up_repairAction_o;
-	wire	[44:0]	EXE_up_checkPoint_o;	wire	[44:0]	EXE_up_checkPoint_i;
+	wire	[41:0]	EXE_up_checkPoint_o;	wire	[41:0]	EXE_up_checkPoint_i;
 	assign	EXE_up_checkPoint_i	=	EXE_up_checkPoint_o;
 	wire	[0:0]	EXE_up_branchRisk_o;	wire	[0:0]	EXE_up_branchRisk_i;
 	assign	EXE_up_branchRisk_i	=	EXE_up_branchRisk_o;
@@ -1177,6 +1177,7 @@ MEM  u_MEM (
     .data_hasException        ( data_hasException         ),
     .DMMU_tlbRefill_i         ( DMMU_tlbRefill_i          ),
     .DMMU_ExcCode_i           ( DMMU_ExcCode_i            ),
+    .data_tag                 ( data_tag                  ),
     .CP0_Cause_w_i            ( CP0_Cause_w_i             ),
     .CP0_Status_w_i           ( CP0_Status_w_i            ),
     .data_data_ok             ( data_data_ok              ),

@@ -38,6 +38,7 @@ module MEM(
     input	wire	                        data_hasException,
     input	wire	                        DMMU_tlbRefill_i,   // 是否有重填异常
     input	wire	[`EXCCODE]              DMMU_ExcCode_i,     //包括TLB异常以及非对齐异常
+    input	wire	[`CACHE_TAG]            data_tag,     //包括TLB异常以及非对齐异常
     input	wire	[`SINGLE_WORD]          CP0_Cause_w_i,
     input	wire	[`SINGLE_WORD]          CP0_Status_w_i,
     // 总线信号
@@ -330,10 +331,10 @@ module MEM(
     assign dcache_tag   = 'd0;
     assign dcache_valid = 'd0;
     assign dcache_dirty = 'd0;
-    assign dcache_addr  = PREMEM_preliminaryRes_r_i;
+    assign dcache_addr  = {data_tag,PREMEM_preliminaryRes_r_i[11:0]};
     assign icache_tag   = 'd0;
     assign icache_valid = 'd0;
-    assign icache_addr  = PREMEM_preliminaryRes_r_i;
+    assign icache_addr  = {data_tag,PREMEM_preliminaryRes_r_i[11:0]};
     // }}}
     // 延迟执行{{{
     ALU ALU_u(/*{{{*/

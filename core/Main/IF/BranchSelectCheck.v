@@ -19,8 +19,6 @@
 `timescale 1ns/1ps
 `include "../../MyDefines.v"
 module BranchSelectCheck (
-    input	wire	clk,
-    input	wire	rst,
     // 总线接口{{{
     input   wire    [`FOUR_WORDS]           inst_rdata,
     /*}}}*/
@@ -44,11 +42,6 @@ module BranchSelectCheck (
 /*}}}*/
     input	wire	                        SCT_valid_i,        // SecondCacheTrace送入信号
     // BPU预测结果{{{
-    // GHT的预测结果{{{
-    input	wire    [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_i,
-    input	wire	[3:0]                   SCT_GHT_predTake_p_i,
-    input	wire    [4*`SINGLE_WORD]        SCT_GHT_predDest_p_i,
-/*}}}*/
     // RAS的预测结果{{{
     input	wire    [4*`SINGLE_WORD]        SCT_RAS_predDest_p_i,
     input	wire	[3:0]                   SCT_RAS_predTake_p_i,
@@ -57,6 +50,7 @@ module BranchSelectCheck (
     // PHT 预测结果 {{{
     input	wire	[3:0]                   SCT_PHT_predTake_p_i,
     input	wire	[4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_i,
+    input	wire    [3:0]                   SCT_PHT_valid_p_i,
     // }}}
 /*}}}*/
     // 线信号输出{{{
@@ -140,15 +134,11 @@ module BranchSelectCheck (
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,SCT_predDest_p_i)
     wire [`SINGLE_WORD] RAS_predDest [3:0];
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,RAS_predDest,SCT_RAS_predDest_p_i)
-    wire [`SINGLE_WORD] GHT_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,GHT_predDest,SCT_GHT_predDest_p_i)
     // 检查点重新排列
     wire    [`ALL_CHECKPOINT]   allCheckPoint_up    [3:0]; // 重新排列后所有的检查点
     wire    [`RAS_CHECKPOINT]   RAS_checkPoint_up   [3:0];
-    wire    [`GHT_CHECKPOINT]   GHT_checkPoint_up   [3:0];
     wire    [`PHT_CHECKPOINT]   PHT_checkPoint_up   [3:0];
     `UNPACK_ARRAY(`RAS_CHECKPOINT_LEN,4,RAS_checkPoint_up,SCT_RAS_checkPoint_p_i)
-    `UNPACK_ARRAY(`GHT_CHECKPOINT_LEN,4,GHT_checkPoint_up,SCT_GHT_checkPoint_p_i)
     `UNPACK_ARRAY(`PHT_CHECKPOINT_LEN,4,PHT_checkPoint_up,SCT_PHT_checkPoint_p_i)
     // }}}
     generate
@@ -156,7 +146,6 @@ module BranchSelectCheck (
     for (k = 0; k < 4; k=k+1)	begin
         assign allCheckPoint_up[k] = {
             RAS_checkPoint_up[k],
-            GHT_checkPoint_up[k],
             PHT_checkPoint_up[k]
             };
     end
@@ -170,10 +159,10 @@ module BranchSelectCheck (
                                     (takeDestSel[i][`MUST_TAKE]);
         assign BPU_predDest_up[i] = BTB_predDest_up[i];
         `else
-        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && PHT_predTake[i]) ||
+        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && 
+                                    (SCT_PHT_valid_p_i[i] ? PHT_predTake[i] : BTB_predTake_up[i])) ||
                                     (takeDestSel[i][`MUST_TAKE]);
         assign BPU_predDest_up[i] = (takeDestSel[i][`RAS_DEST]  && SCT_RAS_predTake_p_i[i]) ? RAS_predDest[i] :
-                                    (takeDestSel[i][`IJTC_DEST] && SCT_GHT_predTake_p_i[i]) ? GHT_predDest[i] : 
                                     BTB_predDest_up[i];
         `endif
         assign BPU_checkPoint_up[i] = ({`ALL_CHECKPOINT_LEN{firstValidBit[i]}} & allCheckPoint_up[i]);

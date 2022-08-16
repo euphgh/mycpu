@@ -23,6 +23,7 @@ module PatternHistoryTable (
     input	wire	[`SINGLE_WORD]          PCR_VAddr_i,
     output	wire	[4*`PHT_CHECKPOINT]     PHT_checkPoint_p_o,
     output	wire	[3:0]                   PHT_predTake_p_o,
+    output	wire	[3:0]                   PHT_valid_p_o,
     // }}}
     // 修改接口{{{
     input	wire	[`REPAIR_ACTION]        FU_repairAction_w_i,   // IJTC行为
@@ -39,8 +40,8 @@ module PatternHistoryTable (
     `define PHT_PC_INDEX_H  2*$clog2(ITEM_NUM)+4-1:4+$clog2(ITEM_NUM)
     wire [`SINGLE_WORD]     vAddr   [3:0];
     wire [1:0]              number  [3:0];
-    wire [DATA_WID-1:0]     checkPoint[3:0];
-    `PACK_ARRAY(DATA_WID,4,checkPoint,PHT_checkPoint_p_o)
+    wire [`PHT_CHECKPOINT]     checkPoint[3:0];
+    `PACK_ARRAY(`PHT_CHECKPOINT_LEN,4,checkPoint,PHT_checkPoint_p_o)
     assign vAddr[0] = {PCR_VAddr_i[31:4],2'b00,PCR_VAddr_i[1:0]};
     assign vAddr[1] = {PCR_VAddr_i[31:4],2'b01,PCR_VAddr_i[1:0]};
     assign vAddr[2] = {PCR_VAddr_i[31:4],2'b10,PCR_VAddr_i[1:0]};
@@ -51,12 +52,14 @@ module PatternHistoryTable (
     assign number[3] = 2'b11;
     generate
         for (genvar i = 0; i < 4; i = i+1)	begin
-            reg     [ITEM_NUM-1:0]  pht_valid;
+            reg     [ITEM_NUM-1:0]      pht_valid;
+            reg     [`PHT_PC_INDEX_H]   pht_tag [ITEM_NUM-1:0];
             reg     [DATA_WID-1:0]  counters    [ITEM_NUM-1:0];
             reg     [DATA_WID-1:0]  rdata;
             reg                     rValid;
-            wire    [`PHT_ADDR]     wAddr = FU_erroVAddr_w_i[`PHT_PC_INDEX_L] ^ FU_erroVAddr_w_i[`PHT_PC_INDEX_H];
-            wire    [`PHT_ADDR]     rAddr = vAddr[i][`PHT_PC_INDEX_L] ^ vAddr[i][`PHT_PC_INDEX_H];
+            reg     [`PHT_PC_INDEX_H]   rTag;
+            wire    [`PHT_ADDR]     wAddr = FU_erroVAddr_w_i[`PHT_PC_INDEX_L];
+            wire    [`PHT_ADDR]     rAddr = vAddr[i][`PHT_PC_INDEX_L];
             wire    isMax   =   (FU_allCheckPoint_w_i[`PHT_CHECK_COUNT]==2'b11) && FU_correctTake_w_i;
             wire    isMin   =   (FU_allCheckPoint_w_i[`PHT_CHECK_COUNT]==2'b00) && !FU_correctTake_w_i;
             wire    [DATA_WID-1:0]  nowstatu    =   FU_allCheckPoint_w_i[`PHT_CHECK_COUNT];
@@ -66,36 +69,43 @@ module PatternHistoryTable (
                             FU_repairAction_w_i[`NEED_REPAIR] &&
                             number[i]==FU_erroVAddr_w_i[3:2];
             wire    conflict = wen && (wAddr==rAddr);
+            wire    replace  = !FU_allCheckPoint_w_i[`PHT_CHECK_VALID];
             integer k;
             always @(posedge clk) begin
                 if (!rst) begin
                     pht_valid   <=  'd0;
                     // counters 重置为10
                     for (k = 0; k < ITEM_NUM; k=k+1) begin
-                        counters[k]    =  2'b10; 
+                        counters[k]     <=  2'b10; 
+                        pht_tag[k]      <=   'd0;
                     end
                 end
                 else if (wen) begin
                     pht_valid[wAddr]<=  `TRUE;
-                    counters[wAddr] <=  nextStatu;
+                    counters[wAddr] <=  !replace ? nextStatu : 2'b10;
+                    pht_tag[wAddr]  <=  FU_erroVAddr_w_i[`PHT_PC_INDEX_H];
                 end
             end
             always @(posedge clk) begin
                 if (!rst) begin
                     rdata   <=  'd0;
                     rValid  <=  `FALSE;
+                    rTag    <=  'd0;
                 end
                 else if (conflict) begin
                     rValid  <=  `TRUE;
                     rdata   <=  nextStatu;
+                    rTag    <=  FU_erroVAddr_w_i[`PHT_PC_INDEX_H];
                 end
                 else begin
                     rdata   <=  counters[rAddr];
                     rValid  <=  pht_valid[rAddr];
+                    rTag    <=  pht_tag[rAddr];
                 end
             end
-            assign PHT_predTake_p_o[i]  = rValid && rdata[1];
-            assign checkPoint[i]= rdata;
+            assign PHT_predTake_p_o[i]  = rdata[1];
+            assign checkPoint[i]        = {PHT_valid_p_o[i],rdata};
+            assign PHT_valid_p_o[i]     = rValid && (rTag==vAddr[i][`PHT_PC_INDEX_H]);
         end
     endgenerate
 endmodule

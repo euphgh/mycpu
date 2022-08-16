@@ -317,7 +317,6 @@ module EXEUP(
         };
     wire isCall   = (ID_up_repairAction_r_i[`RAS_ACTION]==2'b00 && ID_up_writeNum_r_i=='d31);
     wire [`ALL_CHECKPOINT]  checkPoint      = { (isCall ? newRasCheckpint : {ID_up_checkPoint_r_i[`RAS_CHECK_PC],ID_up_checkPoint_r_i[`RAS_CHECK_TOP]} ),
-                                                ID_up_checkPoint_r_i[`GHT_CHECK_REG],
                                                 ID_up_checkPoint_r_i[`PHT_CHECKPOINT]
                                                 };
     assign EXE_up_aluRes_o = isLink ? (ID_up_VAddr_r_i + 5'd8) : aluso;

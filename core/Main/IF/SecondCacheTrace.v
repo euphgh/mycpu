@@ -20,11 +20,6 @@ module SecondCacheTrace (
     input	wire	clk,
     input	wire	rst,
     // 线信号输入{{{
-    // GHT的预测结果{{{
-    input	wire	[4*`GHT_CHECKPOINT]     GHT_checkPoint_p_i,
-    input	wire	[4*`SINGLE_WORD]        GHT_predDest_p_i,
-    input	wire	[3:0]                   GHT_predTake_p_i,
-/*}}}*/
     // RAS的预测结果{{{
     input	wire	[4*`SINGLE_WORD]        RAS_predDest_p_i,
     input	wire    [4*`RAS_CHECKPOINT]     RAS_checkPoint_p_i,
@@ -33,6 +28,7 @@ module SecondCacheTrace (
     // PHT预测接口{{{
     input	wire	[4*`PHT_CHECKPOINT]     PHT_checkPoint_p_i,
     input	wire	[3:0]                   PHT_predTake_p_i,
+    input	wire	[3:0]                   PHT_valid_p_i,
     // }}}
     // 总线接口{{{
     input	wire	                    inst_data_ok,
@@ -88,11 +84,6 @@ module SecondCacheTrace (
     output	reg                             SCT_isRefill_o,
 /*}}}*/
     // BPU预测结果
-    // GHT的预测结果{{{
-    output	reg     [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_o,
-    output	reg     [4*`SINGLE_WORD]        SCT_GHT_predDest_p_o,
-    output	reg	    [3:0]                   SCT_GHT_predTake_p_o,
-/*}}}*/
     // RAS的预测结果{{{
     output	reg     [4*`SINGLE_WORD]        SCT_RAS_predDest_p_o,
     output	reg     [3:0]                   SCT_RAS_predTake_p_o,
@@ -100,7 +91,8 @@ module SecondCacheTrace (
 /*}}}*/
     // PHT预测接口{{{
     output	reg	    [4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_o,
-    output	reg	    [3:0]                   SCT_PHT_predTake_p_o
+    output	reg	    [3:0]                   SCT_PHT_predTake_p_o,
+    output	reg     [3:0]                   SCT_PHT_valid_p_o
     // }}}
 /*}}}*/
 );
@@ -124,14 +116,12 @@ module SecondCacheTrace (
             SCT_BTBValidTake_o  <=  `FALSE;
             SCT_BTBfifthVAddr_o <=  `ZEROWORD;
             SCT_needDelaySlot_o <=  `FALSE;
-            SCT_GHT_predDest_p_o    <=  'd0;
             SCT_RAS_predDest_p_o    <=  'd0;
             SCT_RAS_checkPoint_p_o  <=  'd0;
-            SCT_GHT_checkPoint_p_o  <=  'd0;
             SCT_PHT_checkPoint_p_o  <=  'd0; 
             SCT_PHT_predTake_p_o    <=  'd0;
-            SCT_GHT_predTake_p_o    <=  'd0;
             SCT_RAS_predTake_p_o    <=  'd0;
+            SCT_PHT_valid_p_o       <=  'd0;
         end
         else if (SCT_allowin_w_o && FCT_valid_i) begin
             hasData             <=  `TRUE;
@@ -148,14 +138,12 @@ module SecondCacheTrace (
             SCT_BTBfifthVAddr_o <=  FCT_BTBfifthVAddr_i;
             SCT_needDelaySlot_o <=  FCT_needDelaySlot_i;
             SCT_isRefill_o      <=  MMU_isRefill_i;
-            SCT_GHT_checkPoint_p_o  <=  GHT_checkPoint_p_i ;
-            SCT_GHT_predDest_p_o    <=  GHT_predDest_p_i   ;
             SCT_RAS_predDest_p_o    <=  RAS_predDest_p_i    ;
             SCT_RAS_checkPoint_p_o  <=  RAS_checkPoint_p_i  ;
             SCT_PHT_checkPoint_p_o  <=  PHT_checkPoint_p_i  ; 
             SCT_PHT_predTake_p_o    <=  PHT_predTake_p_i    ;
-            SCT_GHT_predTake_p_o    <=  GHT_predTake_p_i;
             SCT_RAS_predTake_p_o    <=  RAS_predTake_p_i;
+            SCT_PHT_valid_p_o       <=  PHT_valid_p_i;
         end
         else if (hasData && needCancel) begin
             SCT_isCanceled_o    <=  `TRUE;
