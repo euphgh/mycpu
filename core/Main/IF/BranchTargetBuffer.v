@@ -125,10 +125,6 @@ module BranchTargetBuffer (
                     btbReg[repairAddr]   <=     FU_correctDest_w_i[31:2];
                     btbValid[repairAddr]    <=  FU_correctTake_w_i;
                     btbTag[repairAddr]      <=  repairTag;
-                    `ifdef DEBUG
-                    $display("btb modify: next pc %h  will %b goto %h, in slot %h %d",
-                    FU_erroVAddr_w_i,FU_correctTake_w_i,FU_correctDest_w_i,number[i],repairAddr);
-                    `endif
                 end
             end
             assign BTB_predDest_up[i]   = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];

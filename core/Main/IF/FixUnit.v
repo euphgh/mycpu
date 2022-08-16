@@ -33,13 +33,11 @@ module FixUnit(
     input	wire	[`SINGLE_WORD]      BSC_correctDest_w_i,      // 跳转目的
 
     output	wire	[`REPAIR_ACTION]    FU_repairAction_w_o,     // 
-    output	wire	[`ALL_CHECKPOINT]   FU_allCheckPoint_w_o,    // 三个分支预测单元共用一个
     output	wire	[`SINGLE_WORD]      FU_erroVAddr_w_o,
     output	wire	                    FU_correctTake_w_o,      // 跳转方向
     output	wire	[`SINGLE_WORD]      FU_correctDest_w_o       // 跳转目的
 );
     assign FU_repairAction_w_o  = SBA_flush_w_i ? SBA_repairAction_w_i  : BSC_repairAction_w_i  ;
-    assign FU_allCheckPoint_w_o = SBA_flush_w_i ? SBA_checkPoint_w_i    : BSC_allCheckPoint_w_i ;
     assign FU_erroVAddr_w_o     = SBA_flush_w_i ? SBA_erroVAddr_w_i     : BSC_erroVAdr_w_i      ;
     assign FU_correctTake_w_o   = SBA_flush_w_i ? SBA_corrTake_w_i      : BSC_correctTake_w_i   ;  
     assign FU_correctDest_w_o   = SBA_flush_w_i ? SBA_corrDest_w_i      : BSC_correctDest_w_i   ;  

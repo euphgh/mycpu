@@ -101,15 +101,11 @@ module PCRegister (
                             BSC_isDiffRes_w_i   ||          // 分支确认
                             SBA_flush_w_i       ;           // 两种分支预测结果不同
     // 总线交互
-    reg     [31:0]  totalGet;
-    reg     [31:0]  notHitGet;
     always @(posedge clk) begin
         if (!rst) begin
             nextNotAlignedPC    <=  `STARTPOINT;
             PCR_needDelaySlot_o <=  `FALSE;
             temp_enable         <=  4'b1111;// 在没有异常和失败的条件下且是延迟槽
-            totalGet            <=  'd0;
-            notHitGet           <=  'd0;
         end
         // 只有在index_ok 和请求都有效的情况下才会刷新另一个请求
         else if (ok_to_change) begin
@@ -118,16 +114,14 @@ module PCRegister (
                                     SBA_flush_w_i       ?   SBA_corrDest_w_i    :   DSP_predictPC_i;
             PCR_needDelaySlot_o <=  DSP_needDelaySlot_i &&  useDSP;
             temp_enable         <=  {{3{!(useDSP&&DSP_needDelaySlot_i)}},1'b1};// 在没有异常和失败的条件下且是延迟槽
-            totalGet            <=  totalGet  + 'd1;
-            notHitGet           <=  notHitGet + !(inst_index_ok && inst_req);
         end
     end
-    always @(posedge clk) begin
-        if (SBA_flush_w_i || BSC_isDiffRes_w_i) begin
-            #2;
-            #1;
-        end
-    end
+    //always @(posedge clk) begin
+    //    if (SBA_flush_w_i || BSC_isDiffRes_w_i) begin
+    //        #2;
+    //        #1;
+    //    end
+    //end
 
     assign inst_index       = nextAlignedPC[`CACHE_INDEX];
     assign lastBase         = {nextAlignedPC[31:4]-1'b1,nextAlignedPC[3:0]};

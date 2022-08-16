@@ -43,22 +43,6 @@ module BranchSelectCheck (
 /*}}}*/
 /*}}}*/
     input	wire	                        SCT_valid_i,        // SecondCacheTrace送入信号
-    // BPU预测结果{{{
-    // GHT的预测结果{{{
-    input	wire    [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_i,
-    input	wire	[3:0]                   SCT_GHT_predTake_p_i,
-    input	wire    [4*`SINGLE_WORD]        SCT_GHT_predDest_p_i,
-/*}}}*/
-    // RAS的预测结果{{{
-    input	wire    [4*`SINGLE_WORD]        SCT_RAS_predDest_p_i,
-    input	wire	[3:0]                   SCT_RAS_predTake_p_i,
-    input	wire    [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_i,
-/*}}}*/
-    // PHT 预测结果 {{{
-    input	wire	[3:0]                   SCT_PHT_predTake_p_i,
-    input	wire	[4*`PHT_CHECKPOINT]     SCT_PHT_checkPoint_p_i,
-    // }}}
-/*}}}*/
     // 线信号输出{{{
     // BTB和BPU修复时所需要的信息{{{
     output	wire	[`REPAIR_ACTION]    BSC_repairAction_w_o,     // 
@@ -133,49 +117,25 @@ module BranchSelectCheck (
     );
     wire [`B_SELECT] takeDestSel [3:0];
     `UNPACK_ARRAY(`B_SEL_LEN,4,takeDestSel,takeDestSel_p)
-    wire [0:0] PHT_predTake [3:0];
-    `UNPACK_ARRAY(1,4,PHT_predTake,SCT_PHT_predTake_p_i)
     wire [`SINGLE_WORD] BTB_predDest_up [3:0];
     wire [3:0]          BTB_predTake_up  = SCT_predTake_p_i;
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,SCT_predDest_p_i)
-    wire [`SINGLE_WORD] RAS_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,RAS_predDest,SCT_RAS_predDest_p_i)
-    wire [`SINGLE_WORD] GHT_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,GHT_predDest,SCT_GHT_predDest_p_i)
     // 检查点重新排列
     wire    [`ALL_CHECKPOINT]   allCheckPoint_up    [3:0]; // 重新排列后所有的检查点
-    wire    [`RAS_CHECKPOINT]   RAS_checkPoint_up   [3:0];
-    wire    [`GHT_CHECKPOINT]   GHT_checkPoint_up   [3:0];
-    wire    [`PHT_CHECKPOINT]   PHT_checkPoint_up   [3:0];
-    `UNPACK_ARRAY(`RAS_CHECKPOINT_LEN,4,RAS_checkPoint_up,SCT_RAS_checkPoint_p_i)
-    `UNPACK_ARRAY(`GHT_CHECKPOINT_LEN,4,GHT_checkPoint_up,SCT_GHT_checkPoint_p_i)
-    `UNPACK_ARRAY(`PHT_CHECKPOINT_LEN,4,PHT_checkPoint_up,SCT_PHT_checkPoint_p_i)
     // }}}
     generate
     genvar k;
     for (k = 0; k < 4; k=k+1)	begin
-        assign allCheckPoint_up[k] = {
-            RAS_checkPoint_up[k],
-            GHT_checkPoint_up[k],
-            PHT_checkPoint_up[k]
-            };
+        assign allCheckPoint_up[k] = 'd0;
     end
     endgenerate
     assign isEnableSame = actualEnable==SCT_BTBInstEnable_i;
     generate
     genvar i;
     for (i=0; i<4; i=i+1)	begin
-        `ifdef BTB_ONLY
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && BTB_predTake_up[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
         assign BPU_predDest_up[i] = BTB_predDest_up[i];
-        `else
-        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && PHT_predTake[i]) ||
-                                    (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = (takeDestSel[i][`RAS_DEST]  && SCT_RAS_predTake_p_i[i]) ? RAS_predDest[i] :
-                                    (takeDestSel[i][`IJTC_DEST] && SCT_GHT_predTake_p_i[i]) ? GHT_predDest[i] : 
-                                    BTB_predDest_up[i];
-        `endif
         assign BPU_checkPoint_up[i] = ({`ALL_CHECKPOINT_LEN{firstValidBit[i]}} & allCheckPoint_up[i]);
         end
     endgenerate
