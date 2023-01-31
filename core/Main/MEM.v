@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 17:29
-// Last Modified : 2022/08/01 09:49
+// Last Modified : 2022/08/08 11:05
 // File Name     : MEM.v
 // Description   : 访存，取出tlb映射送入cache，执行cache指令和tlb指令
 //         
@@ -53,10 +53,26 @@ module MEM(
     output	wire	                        MEM_hasDangerous_w_o,   // mul,clo,clz,madd,msub,cache,tlb等危险指令
     // 异常互锁
     output	wire	                        MEM_hasRisk_w_o,         
-    // 流水线互锁信号 
+    // 流水线互锁信号 {{{
     output	wire	                        MEM_allowin_w_o,        // 逐级互锁信号
     output	wire	                        MEM_valid_w_o,          // 给下一级流水线决定是否采样
-    // 用于CP0进行异常处理的信号
+    // }}}
+    // cache指令接口{{{
+    /* output                                  dcache_req  , */
+    /* output           [4 :0]                 dcache_op   , */
+    /* output           [31:0]                 dcache_addr , */
+    /* output           [19:0]                 dcache_tag  , */
+    /* output                                  dcache_valid, */
+    /* output                                  dcache_dirty, */
+    /* output                                  dcache_ok   , */
+    /* output                                  icache_req  , */
+    /* output          [4 :0]                  icache_op   , */
+    /* output          [31:0]                  icache_addr , */
+    /* output          [19:0]                  icache_tag  , */
+    /* output                                  icache_valid, */
+    /* input                                   icache_ok   , */
+    // }}}
+    // 用于CP0进行异常处理的信号{{{
     output	wire    [`EXCCODE]              MEM_ExcCode_w_o,          // 异常信号
     output	wire	                        MEM_hasException_w_o,     // 存在异常
     output	wire	                        MEM_isDelaySlot_w_o,
@@ -68,7 +84,8 @@ module MEM(
     output	wire	                        MEM_nonBlockMark_w_o,
     output	wire	                        MEM_isRefill_w_o,       // 不同异常地址
     output	wire	                        MEM_isInterrupt_w_o,    // 不同异常地址
-    output	wire	                        MEM_writeCp0_w_o,       // mtc0,才会拉高}}}
+    output	wire	                        MEM_writeCp0_w_o,       // mtc0,才会拉高 }}}
+    // }}}
     /////////////////////////////////////////////////
     //////////////      寄存器输入   ////////////////{{{
     /////////////////////////////////////////////////
@@ -251,5 +268,20 @@ module MEM(
     assign MEM_isRefill_w_o = DMMU_tlbRefill_i || PREMEM_isRefill_r_i;
     assign MEM_nonBlockMark_w_o = PREMEM_nonBlockMark_r_i;
     // }}}
+    // Cache指令op{{{
+    /* wire   isDcache     = PREMEM_CacheOperator_r_i[1:0]==2'b01; */
+    /* wire   isIcache     = PREMEM_CacheOperator_r_i[1:0]==2'b00; */
+    /* assign dcache_req   = PREMEM_isCacheInst_i && isDcache && !MEM_hasException_w_o; */
+    /* assign icache_req   = PREMEM_isCacheInst_i && isIcache && !MEM_hasException_w_o; */
+    /* assign dcache_op    = PREMEM_CacheOperator_r_i; */
+    /* assign icache_op    = PREMEM_CacheOperator_r_i; */
+    /* assign dcache_tag   = 'd0; */
+    /* assign dcache_valid = 'd0; */
+    /* assign dcache_dirty = 'd0; */
+    /* assign dcache_addr  = PREMEM_preliminaryRes_r_i; */
+    /* assign icache_tag   = 'd0; */
+    /* assign icache_valid = 'd0; */
+    /* assign icache_addr  = PREMEM_preliminaryRes_r_i; */
+    /* // }}} */
 endmodule
 

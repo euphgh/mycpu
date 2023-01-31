@@ -1,5 +1,4 @@
 module data_mux    (
-    input wire clk, rst_n,
     //icache input AXI{{{
     input [3 :0]    arid_dc   ,
     input [31:0]    araddr_dc ,
@@ -125,9 +124,6 @@ module data_mux    (
     output        bready  /*}}}*/
 );
     axi_rmux axi_dc_du(/*{{{*/
-        .clk(clk),
-        .rst_n(rst_n),
-
         .arid_0(arid_dc),   
         .araddr_0(araddr_dc), 
         .arlen_0(arlen_dc),  
@@ -180,8 +176,6 @@ module data_mux    (
         .rready (rready )
     );/*}}}*/
 
-    reg is_cache_aw, is_cache_w;
-    reg has_req_aw, has_req_w;
     assign {/*{{{*/
         awid,   
         awaddr, 
@@ -191,7 +185,7 @@ module data_mux    (
         awlock, 
         awcache,
         awprot
-        } = is_cache_aw ? {
+        } = awvalid_dc ? {
         awid_dc,   
         awaddr_dc, 
         awlen_dc,  
@@ -201,7 +195,7 @@ module data_mux    (
         awcache_dc,
         awprot_dc
         } : {
-        awid_du,   
+        awid_du | 4'b0010,   
         awaddr_du, 
         awlen_du,  
         awsize_du, 
@@ -215,72 +209,40 @@ module data_mux    (
         wdata, 
         wstrb,  
         wlast
-        } = is_cache_w ? {
-        wid_dc  ,   
-        wdata_dc, 
-        wstrb_dc,  
-        wlast_dc
-        } : {
-        wid_du  ,   
+        } = (wvalid_du && !wvalid_dc) ? {
+        wid_du | 4'b0010, 
         wdata_du, 
         wstrb_du,  
         wlast_du
+        } : {
+        wid_dc,
+        wdata_dc, 
+        wstrb_dc,  
+        wlast_dc
         };/*}}}*/
     assign awvalid = awvalid_dc || awvalid_du;
-    assign wvalid = wvalid_dc || wvalid_du;
     assign awready_dc = awready;
     assign awready_du = awready;
-    assign wready_dc = wready;
-    assign wready_du = wready;
-    always @(posedge clk) begin/*{{{*/
-        if (!rst_n) begin
-            has_req_aw <= 'd0;
-            is_cache_aw <= 'd0;
-        end
-        else if (awvalid && awready) begin
-            has_req_aw <= 1'b1;
-            is_cache_aw <= awvalid_dc;
-        end
-        else if (bready && bvalid) begin
-            has_req_aw <= 1'b0;
-        end
-    end/*}}}*/
-    always @(posedge clk) begin/*{{{*/
-        if (!rst_n) begin
-            has_req_w <= 'd0;
-            is_cache_w <= 'd0;
-        end
-        else if (wvalid && wready && wlast) begin
-            has_req_w <= 1'b1;
-            is_cache_w <= wvalid_dc;
-        end
-        else if (bready && bvalid) begin
-            has_req_w <= 1'b0;
-        end
-    end/*}}}*/
 
+    assign wvalid = wvalid_dc || wvalid_du;
+    assign wready_dc = wvalid_dc && wready;
+    assign wready_du = (!wvalid_dc && wvalid_du) && wready;
 
     assign  {/*{{{*/
         bid_du   ,
         bresp_du
         } = {
-            bid   ,
+            bid & 4'b1101,
             bresp
             };/*}}}*/
     assign  {/*{{{*/
         bid_dc   ,
         bresp_dc
         } = {
-            bid   ,
+            bid & 4'b1101,
             bresp
             };/*}}}*/
-    wire addr_data_sended = has_req_w && has_req_aw;
-    assign bvalid_dc = addr_data_sended &&  is_cache_w && bvalid;
-    assign bvalid_du = addr_data_sended && !is_cache_w && bvalid;
-    assign bready = addr_data_sended && (is_cache_w ? bready_dc : bready_du);
-    always @(posedge clk) begin
-        if (addr_data_sended) begin
-            if (is_cache_w ^ is_cache_aw) $finish(0);
-        end 
-    end
+    assign bvalid_dc = !bid[1] && bvalid;
+    assign bvalid_du =  bid[1] && bvalid;
+    assign bready =  bid[1] ? bready_du : bready_dc;
 endmodule

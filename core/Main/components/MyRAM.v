@@ -28,64 +28,62 @@ module MyRAM #(
     input  [MY_DATA_WIDTH-1:0]      wdata,
     output [MY_DATA_WIDTH-1:0]      rdata
 );
-
-    reg  [MY_DATA_WIDTH-1:0]    wline;
-    reg                         collison_reg;
-    wire [MY_DATA_WIDTH-1:0]    collison_output;
-    wire [MY_DATA_WIDTH-1:0]    doutb;
-    wire collison = (rAddr == wAddr) && wen;
-    always @(posedge clk) begin
-        collison_reg <= collison;
-        wline        <= wdata;
-    end
-    assign rdata = collison_reg ? wline : doutb;
-    
-    // xpm_memory_sdpram: Simple Dual Port RAM
-    // Xilinx Parameterized Macro, version 2019.2
-    wire    [(MY_DATA_WIDTH/8)-1:0] wstrb = {MY_DATA_WIDTH/8{wen}};
-    xpm_memory_sdpram #(
-        .ADDR_WIDTH_A           ($clog2(MY_NUMBER)              ),
-        .ADDR_WIDTH_B           ($clog2(MY_NUMBER)              ),
-        .READ_DATA_WIDTH_B      (MY_DATA_WIDTH             ),
-        .WRITE_DATA_WIDTH_A     (MY_DATA_WIDTH             ),
-        .AUTO_SLEEP_TIME        (0              ),
-        .BYTE_WRITE_WIDTH_A     (8              ),
-        .CASCADE_HEIGHT         (0              ),
-        .CLOCKING_MODE          ("common_clock" ),
-        .ECC_MODE               ("no_ecc"       ),
-        .MEMORY_INIT_FILE       ("none"         ),
-        .MEMORY_INIT_PARAM      ("0"            ),
-        .MEMORY_OPTIMIZATION    ("true"         ),
-        .MEMORY_PRIMITIVE       ("block"        ),
-        .MEMORY_SIZE            (MY_DATA_WIDTH*MY_NUMBER),
-        .MESSAGE_CONTROL        (0              ),
-        .READ_LATENCY_B         (1              ),
-        .READ_RESET_VALUE_B     ("0"            ),
-        .RST_MODE_A             ("SYNC"         ),
-        .RST_MODE_B             ("SYNC"         ),
-        .SIM_ASSERT_CHK         (1              ),
-        .USE_EMBEDDED_CONSTRAINT(0              ),
-        .USE_MEM_INIT           (0              ),
-        .WAKEUP_TIME            ("disable_sleep"),
-        .WRITE_MODE_B           ("read_first"   )
-    )
-    xpm_memory_sdpram_inst (
-        .clka          (clk     ),
-        .clkb          (clk     ),
-        .rstb          (1'b0    ),
-        .ena           (wen     ),
-        .wea           (wstrb   ),
-        .addra         (wAddr   ),
-        .dina          (wdata   ),
-        .enb           (1'b1    ),
-        .addrb         (rAddr   ),
-        .doutb         (doutb   ),
-        .injectdbiterra(1'b0    ),
-        .injectsbiterra(1'b0    ),
-        .regceb        (1'b0    ),
-        .sleep         (1'b0    ),
-        .dbiterrb      (        ),
-        .sbiterrb      (        )
+    simple_dual_wf #(
+    .NUM_COL         (   MY_DATA_WIDTH/8),
+    .COL_WIDTH       (   8),
+    .ADDR_WIDTH      (  $clog2(MY_NUMBER))
+    ) inst_data (
+    .clk(clk),
+    .en(1'b1), 
+    .addrA(rAddr),
+    .doutA(rdata),
+    .wen({8{wen}}),
+    .addrB(wAddr),
+    .dinB(wdata)
     );
+    /* xpm_memory_sdpram #( */
+    /*     .ADDR_WIDTH_A           ($clog2(MY_NUMBER)              ), */
+    /*     .ADDR_WIDTH_B           ($clog2(MY_NUMBER)              ), */
+    /*     .READ_DATA_WIDTH_B      (MY_DATA_WIDTH             ), */
+    /*     .WRITE_DATA_WIDTH_A     (MY_DATA_WIDTH             ), */
+    /*     .AUTO_SLEEP_TIME        (0              ), */
+    /*     .BYTE_WRITE_WIDTH_A     (8              ), */
+    /*     .CASCADE_HEIGHT         (0              ), */
+    /*     .CLOCKING_MODE          ("common_clock" ), */
+    /*     .ECC_MODE               ("no_ecc"       ), */
+    /*     .MEMORY_INIT_FILE       ("none"         ), */
+    /*     .MEMORY_INIT_PARAM      ("0"            ), */
+    /*     .MEMORY_OPTIMIZATION    ("true"         ), */
+    /*     .MEMORY_PRIMITIVE       ("block"        ), */
+    /*     .MEMORY_SIZE            (MY_DATA_WIDTH*MY_NUMBER), */
+    /*     .MESSAGE_CONTROL        (0              ), */
+    /*     .READ_LATENCY_B         (1              ), */
+    /*     .READ_RESET_VALUE_B     ("0"            ), */
+    /*     .RST_MODE_A             ("SYNC"         ), */
+    /*     .RST_MODE_B             ("SYNC"         ), */
+    /*     .SIM_ASSERT_CHK         (1              ), */
+    /*     .USE_EMBEDDED_CONSTRAINT(0              ), */
+    /*     .USE_MEM_INIT           (0              ), */
+    /*     .WAKEUP_TIME            ("disable_sleep"), */
+    /*     .WRITE_MODE_B           ("read_first"   ) */
+    /* ) */
+    /* xpm_memory_sdpram_inst ( */
+    /*     .clka          (clk     ), */
+    /*     .clkb          (clk     ), */
+    /*     .rstb          (1'b0    ), */
+    /*     .ena           (wen     ), */
+    /*     .wea           (wstrb   ), */
+    /*     .addra         (wAddr   ), */
+    /*     .dina          (wdata   ), */
+    /*     .enb           (1'b1    ), */
+    /*     .addrb         (rAddr   ), */
+    /*     .doutb         (doutb   ), */
+    /*     .injectdbiterra(1'b0    ), */
+    /*     .injectsbiterra(1'b0    ), */
+    /*     .regceb        (1'b0    ), */
+    /*     .sleep         (1'b0    ), */
+    /*     .dbiterrb      (        ), */
+    /*     .sbiterrb      (        ) */
+    /* ); */
 endmodule
 

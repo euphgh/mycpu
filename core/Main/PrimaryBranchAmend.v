@@ -115,6 +115,19 @@ module PrimaryBranchAmend(
             debug_wb_rf_wdata0  <=  PBA_forwardData_w_o;
         end
     end
+    reg commit;
+    always @(posedge clk) begin
+        if (!rst) commit <= 1'b0;
+        else commit <= hasData;
+    end
+    export "DPI-C" function commit0;
+    function bit commit0();
+        return commit;
+    endfunction
+    export "DPI-C" function commitPC0;
+    function int commitPC0();
+        return debug_wb_pc0;
+    endfunction: commitPC0
     // }}}
 endmodule
 

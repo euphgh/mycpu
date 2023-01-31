@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 21:19
-// Last Modified : 2022/08/03 20:29
+// Last Modified : 2022/08/04 22:54
 // File Name     : BranchSelectCheck.v
 // Description   : BSC的后半部分，从三种预测结果中，根据解码结果选择一种分支，
 //                  同时修改BTB，该部分还接受后段分支确认的信号，分别写入BSC的
@@ -43,17 +43,6 @@ module BranchSelectCheck (
 /*}}}*/
 /*}}}*/
     input	wire	                        SCT_valid_i,        // SecondCacheTrace送入信号
-    // BPU预测结果{{{
-    // GHT的预测结果{{{
-    input	wire     [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_i,
-    input	wire     [4*`SINGLE_WORD]        SCT_GHT_predDest_p_i,
-    input	wire     [3:0]                   SCT_GHT_predTake_p_i,
-/*}}}*/
-    // RAS的预测结果{{{
-    input	wire     [4*`SINGLE_WORD]        SCT_RAS_predDest_p_i,
-    input	wire     [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_i,
-/*}}}*/
-/*}}}*/
     // 线信号输出{{{
     // BTB和BPU修复时所需要的信息{{{
     output	wire	[`REPAIR_ACTION]    BSC_repairAction_w_o,     // 
@@ -128,45 +117,25 @@ module BranchSelectCheck (
     );
     wire [`B_SELECT] takeDestSel [3:0];
     `UNPACK_ARRAY(`B_SEL_LEN,4,takeDestSel,takeDestSel_p)
-    wire [0:0] GHT_predTake [3:0];
-    `UNPACK_ARRAY(1,4,GHT_predTake,SCT_GHT_predTake_p_i)
     wire [`SINGLE_WORD] BTB_predDest_up [3:0];
     wire [3:0]          BTB_predTake_up  = SCT_predTake_p_i;
     `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,BTB_predDest_up,SCT_predDest_p_i)
-    wire [`SINGLE_WORD] RAS_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,RAS_predDest,SCT_RAS_predDest_p_i)
-    wire [`SINGLE_WORD] GHT_predDest [3:0];
-    `UNPACK_ARRAY(`SINGLE_WORD_LEN,4,GHT_predDest,SCT_GHT_predDest_p_i)
     // 检查点重新排列
     wire    [`ALL_CHECKPOINT]   allCheckPoint_up    [3:0]; // 重新排列后所有的检查点
-    wire    [`RAS_CHECKPOINT]   RAS_checkPoint_up   [3:0];
-    wire    [`GHT_CHECKPOINT]   GHT_checkPoint_up   [3:0];
-    `UNPACK_ARRAY(`RAS_CHECKPOINT_LEN,4,RAS_checkPoint_up,SCT_RAS_checkPoint_p_i)
-    `UNPACK_ARRAY(`GHT_CHECKPOINT_LEN,4,GHT_checkPoint_up,SCT_GHT_checkPoint_p_i)
     // }}}
     generate
     genvar k;
     for (k = 0; k < 4; k=k+1)	begin
-        assign allCheckPoint_up[k] = {
-            GHT_checkPoint_up[k],
-            RAS_checkPoint_up[k]
-            };
+        assign allCheckPoint_up[k] = 'd0;
     end
     endgenerate
     assign isEnableSame = actualEnable==SCT_BTBInstEnable_i;
     generate
     genvar i;
     for (i=0; i<4; i=i+1)	begin
-        `ifdef BTB_ONLY
         assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && BTB_predTake_up[i]) ||
                                     (takeDestSel[i][`MUST_TAKE]);
         assign BPU_predDest_up[i] = BTB_predDest_up[i];
-        `else
-        assign BPU_predTake_up[i] = (takeDestSel[i][`PHT_TAKE] && GHT_predTake[i]) ||
-                                    (takeDestSel[i][`MUST_TAKE]);
-        assign BPU_predDest_up[i] = takeDestSel[i][`RAS_DEST] ? RAS_predDest[i]     :
-                                    takeDestSel[i][`IJTC_DEST]? GHT_predDest[i]    : BTB_predDest_up[i]
-        `endif
         assign BPU_checkPoint_up[i] = ({`ALL_CHECKPOINT_LEN{firstValidBit[i]}} & allCheckPoint_up[i]);
         end
     endgenerate
@@ -286,27 +255,14 @@ module BranchSelectCheck (
     assign BPU_erroVAddr = {baseAddr,position,offset};
     wire [`SINGLE_WORD] firstBranchInst;
     assign firstBranchInst =    ({32{firstValidBit[0]}} & inst_up[0])|
-                                ({32{firstValidBit[1]}} & inst_up[1])|
+                                 ({32{firstValidBit[1]}} & inst_up[1])|
                                 ({32{firstValidBit[2]}} & inst_up[2])|
                                 ({32{firstValidBit[3]}} & inst_up[3]);
     RepairDecorder RepairDecorder_u(
         /*autoinst*/
         .inst                   (firstBranchInst                      ), //input
         .isDiffRes              (BSC_isDiffRes_w_o                    ), //input
-        .now_RepairAction       (now_RepairAction[`REPAIR_ACTION ]    )  //output // INST_NEW
+        .now_RepairAction       (now_RepairAction[`REPAIR_ACTION]     )  //output // INST_NEW
     );
 /*}}}*/
-    // debug
-    reg [31:0]  getTotal;
-    reg [31:0]  miss;
-    always @(posedge clk) begin
-        if (!rst) begin
-            getTotal    <=  'd0;
-            miss        <=  'd0;
-        end
-        else if (SCT_valid_i) begin
-            getTotal    <=  getTotal+'d1;
-            miss        <=  miss + BSC_isDiffRes_w_o;
-        end
-    end
 endmodule

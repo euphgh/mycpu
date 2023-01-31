@@ -152,7 +152,7 @@ module axi_2to1_arbiter (
     assign arvalid = arvalid_0 || arvalid_1;
     assign arready_0 = arvalid_0 && arready;
     assign arready_1 = !arvalid_0 && arvalid_1 && arready;
-    assign arid = arvalid_0 ? arid_0 : {arid_1 | 4'b0010};
+    assign arid = arvalid_0 ? arid_0 : {arid_1 | 4'b0100};
 
     assign {/*{{{*/
         rid_0,
@@ -160,7 +160,7 @@ module axi_2to1_arbiter (
         rresp_0,  
         rlast_0
         } = {
-            (rid & 4'b1101),
+            (rid & 4'b1011),
             rdata,  
             rresp,  
             rlast 
@@ -171,12 +171,12 @@ module axi_2to1_arbiter (
         rresp_1,  
         rlast_1
         } = {
-            (rid & 4'b1101),
+            (rid & 4'b1011),
             rdata,  
             rresp,  
             rlast 
         };/*}}}*/
-    wire is_chl1 = rid==(`DCACHE_RID | 4'b0010);
+    wire is_chl1 = rid[2];
     assign rvalid_0 = (!is_chl1) && rvalid ;
     assign rvalid_1 = (is_chl1) && rvalid ;
     assign rready = is_chl1 ? rready_1 : rready_0;

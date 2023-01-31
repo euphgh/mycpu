@@ -62,13 +62,16 @@ module MyMultiplier(
             assign oprand[i] = {isSignedMul && mulOprand_up[i][31],mulOprand_up[i]};
         end
     endgenerate
-    Multiplier Multiplier_u(
+
+    ip_multiplier Multiplier_u(
         /*autoinst*/
-        .CLK                    (clk), //input
-        .A                      (oprand[0]), //input
-        .B                      (oprand[1]), //input
-        .P                      (res)  //output
-    );
+        .clk                    (clk), //input */
+        .rst                    (rst),
+        .A                      (oprand[0]), //input */
+        .B                      (oprand[1]), //input */
+        .P                      (res)  //output */
+    ); 
+
     wire [2*`SINGLE_WORD]   multOnly_data = res[63:0];
 /*}}}*/
     adder #(.BUS(`SINGLE_WORD_LEN)) adder_u (/*{{{*/
@@ -83,15 +86,24 @@ module MyMultiplier(
     );
 /*}}}*/
     // 状态保存
-    wire [3:0] upBound = isAccumlate ? 'd4 : 'd2;
+    reg [3:0] upBound ;
+    reg isAccumlate_r;
+    reg add_sub_op_r;
     always @(posedge clk) begin
         if (!rst || cancel) begin
             start   <=  `FALSE;
             timer   <=  'b0;
+            upBound <=  'd2;
+            isAccumlate_r   <=  `FALSE;
+            add_sub_op_r    <=  `FALSE;
         end
         else if (mulReq && mulOprand_ok) begin
             start   <=  `TRUE;
             timer   <=  'b1;
+            upBound <= isAccumlate ? 'd4 : 'd2;
+            isAccumlate_r   <=  isAccumlate;
+            add_sub_op_r    <=  add_sub_op;
+
         end 
         else if (start==`TRUE) begin
             timer   <=  timer < upBound ? timer + 'b1 : 'b0; 
@@ -102,10 +114,11 @@ module MyMultiplier(
     reg [`SINGLE_WORD]  multiRes;
     reg [`SINGLE_WORD]  adderRes;
     reg                 savedCin;
-    assign add_a = (timer==2) ? res[31:0]       : multiRes;
-    assign add_b = (timer==2) ? HiLoData[31:0]  : HiLoData[63:32];
-    assign cin_i = (timer==2) ? 1'b0            : savedCin;
-    assign adder_op = (timer==2) ? {2'b0,!add_sub_op,add_sub_op} : 4'b0001;
+    assign add_a = (timer==2) ? HiLoData[31:0]  : HiLoData[63:32];
+    assign add_b = (timer==2)   ? (add_sub_op_r ? res[31:0] : ~res[31:0])
+                                : (add_sub_op_r ? multiRes  : ~multiRes ) ;
+    assign cin_i = (timer==2) ? !add_sub_op_r   : savedCin;
+    assign adder_op = 4'd8;
     always @(posedge clk) begin
         if (!rst || cancel) begin
             multiRes    <=  `ZEROWORD;
@@ -121,7 +134,7 @@ module MyMultiplier(
     wire    [2*`SINGLE_WORD]   accuRes = {add_res,adderRes};
 /*}}}*/
     assign mulOprand_ok = mulReq && (!start || mulData_ok);
-    assign mulData_ok = timer==upBound;
-    assign mulRes = isAccumlate ? accuRes : multOnly_data;
+    assign mulData_ok   = (timer==upBound) && start;
+    assign mulRes       = isAccumlate_r ? accuRes : multOnly_data;
 endmodule
 

@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/02 11:53
-// Last Modified : 2022/07/31 16:34
+// Last Modified : 2022/08/08 09:40
 // File Name     : PREMEM.v
 // Description   :  预MEM段，用于处简单的数据选择,且进行TLB和cache访存第一步
 //         
@@ -309,7 +309,7 @@ module PREMEM (
     wire [2:0] size =   {2'b00,data_wstrb[0]} + {2'b00,data_wstrb[1]} + 
                         {2'b00,data_wstrb[2]} + {2'b00,data_wstrb[3]} ;
     assign data_size=   (size=='d1) ? 2'b00 : 
-                        (size=='d2) ? 2'b01 : 2'b11;
+                        (size=='d2) ? 2'b01 : 2'b10;
     assign data_wdata   =   EXE_down_storeData_r_i;
     // }}}
     // 简单的信号传递{{{
@@ -351,7 +351,7 @@ module PREMEM (
     assign PREMEM_isInterrupt_w_o   = 1'b0;    
     // }}}
     // Cache指令{{{
-    assign PREMEM_CacheAddress_o = EXE_down_aluRes_r_i;
+    assign PREMEM_CacheAddress_o    = EXE_down_aluRes_r_i;
     assign PREMEM_isCacheInst_o     = EXE_down_isCacheInst_r_i;
     assign PREMEM_CacheOperator_o   = EXE_down_CacheOperator_r_i;
     // }}}

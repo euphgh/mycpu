@@ -110,5 +110,9 @@ module RegFile(
         end
     end
 /*}}}*/
+    export "DPI-C" function get_regfile;
+    function int get_regfile(input byte num);
+        return regfile[num[4:0]];
+    endfunction: get_regfile
 endmodule
 

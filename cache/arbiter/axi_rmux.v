@@ -1,5 +1,4 @@
 module axi_rmux (
-    input wire clk, rst_n,
     //input0 read AXI{{{
     input [3 :0]    arid_0   ,
     input [31:0]    araddr_0 ,
@@ -55,8 +54,6 @@ module axi_rmux (
     input         rvalid ,
     output        rready/*}}}*/
 );
-    reg is_cache_r;
-    reg has_req_r;
     assign  {/*{{{*/
             arid,
             araddr,
@@ -66,16 +63,7 @@ module axi_rmux (
             arlock ,
             arcache,
             arprot
-        } = arvalid_1 ? {
-                arid_1,
-                araddr_1,
-                arlen_1,
-                arsize_1,
-                arburst_1,
-                arlock_1 ,
-                arcache_1,
-                arprot_1
-            } : {
+        } = arvalid_0 ? {
                 arid_0,
                 araddr_0,
                 arlen_0,
@@ -84,23 +72,19 @@ module axi_rmux (
                 arlock_0 ,
                 arcache_0,
                 arprot_0
+            } : {
+                arid_1 | 4'b0010,
+                araddr_1,
+                arlen_1,
+                arsize_1,
+                arburst_1,
+                arlock_1 ,
+                arcache_1,
+                arprot_1
             };/*}}}*/
     assign arvalid =  arvalid_1 || arvalid_0;
     assign arready_0 = arready;
     assign arready_1 = arready;
-    always @(posedge clk) begin/*{{{*/
-        if (!rst_n) begin
-            has_req_r <= 'd0;
-            is_cache_r <= 'd0;
-        end
-        else if (arvalid && arready) begin
-            has_req_r <= 1'b1;
-            is_cache_r <= arvalid_0;
-        end
-        else if (rvalid && rready && rlast) begin
-            has_req_r <= 1'b0;
-        end
-    end/*}}}*/
 
     assign  {/*{{{*/
         rid_1   ,
@@ -108,7 +92,7 @@ module axi_rmux (
         rresp_1 ,
         rlast_1
         } = {
-            rid   ,
+            rid & 4'b1101,
             rdata ,
             rresp ,
             rlast
@@ -119,12 +103,12 @@ module axi_rmux (
         rresp_0 ,
         rlast_0
         } = {
-            rid   ,
+            rid & 4'b1101,
             rdata ,
             rresp ,
             rlast
             };/*}}}*/
-    assign rvalid_0 = has_req_r && is_cache_r && rvalid;
-    assign rvalid_1 = has_req_r && !is_cache_r && rvalid;
-    assign rready = is_cache_r ?  rready_0 : rready_1;
+    assign rvalid_0 = !rid[1] && rvalid;
+    assign rvalid_1 =  rid[1] && rvalid;
+    assign rready =  rid[1] ?  rready_1 : rready_0;
 endmodule

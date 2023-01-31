@@ -1,6 +1,6 @@
 //`define CONTINUE
 `define OPEN_CACHE
-`define BTB_ONLY
+//`define BTB_ONLY
 //`define DEBUG 
 //`define BREAK
 `define REG_FILE                "../../../../../../mycpu/trace/regfile.txt"
@@ -58,6 +58,27 @@
 `define RAS_DEST    4
 /*}}}*/
 //分支预测检查点长度定义{{{
+//GHT {{{
+// 条目{{{
+`define GHT_DEST_PC_LEN         32
+`define GHT_DEST_PC             `GHT_DEST_PC_LEN-1:0
+// }}}
+// 检查点{{{
+`define GHT_REG_LEN             4
+`define GHT_REG                 `GHT_REG_LEN-1:0
+`define GHT_CHECK_BASE          `GHT_REG_LEN
+`define GHT_CHECK_REG           (`GHT_REG_LEN+`PHT_CHECK_BASE-1):`PHT_CHECK_BASE
+`define GHT_CHECKPOINT_LEN      `GHT_REG_LEN
+`define GHT_CHECKPOINT          `GHT_CHECKPOINT_LEN-1:0
+// }}}
+// }}}
+// PHT {{{
+`define PHT_COUNTER_LEN         2
+`define PHT_CHECK_COUNT         `PHT_COUNTER_LEN-1:0
+`define PHT_CHECK_BASE          `PHT_COUNTER_LEN
+`define PHT_CHECKPOINT_LEN      `PHT_COUNTER_LEN
+`define PHT_CHECKPOINT          `PHT_CHECKPOINT_LEN-1:0
+// }}}
 //RAS的检查点{{{
 `define RAS_SIZE            512
 `define RAS_PC_LEN          32
@@ -67,28 +88,10 @@
 `define RAS_ENRTY_NUM       `RAS_ENRTY_NUM_LEN-1:0
 `define RAS_CHECKPOINT_LEN  (30+`RAS_ENRTY_NUM_LEN)
 `define RAS_CHECKPOINT      `RAS_CHECKPOINT_LEN-1:0         // 栈指针，栈元素
-`define RAS_CHECK_PC        30+`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE:`RAS_ENRTY_NUM_LEN+`GHT_CHECK_BASE
-`define RAS_CHECK_TOP       `RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE:`GHT_CHECK_BASE
+`define RAS_CHECK_PC        30+`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE:`RAS_ENRTY_NUM_LEN+`GHT_CHECK_BASE+`PHT_CHECK_BASE
+`define RAS_CHECK_TOP       (`RAS_ENRTY_NUM_LEN-1+`GHT_CHECK_BASE+`PHT_CHECK_BASE):(`GHT_CHECK_BASE+`PHT_CHECK_BASE)
 //}}}
-//GHT {{{
-// 条目{{{
-`define GHT_DEST_PC_LEN         30
-`define GHT_COUNTER_LEN         2
-`define GHT_COUNTER             `GHT_COUNTER_LEN-1:0
-`define GHT_DEST_PC             `GHT_DEST_PC_LEN+`GHT_COUNTER_LEN-1:`GHT_COUNTER_LEN
-// }}}
-// 检查点{{{
-`define GHT_REG_LEN             4
-`define GHT_REG                 `GHT_REG_LEN-1:0
-`define GHT_CHECK_BASE          `GHT_REG_LEN+`GHT_COUNTER_LEN
-`define GHT_CHECK_DEST          `GHT_REG_LEN+`GHT_COUNTER_LEN+`GHT_DEST_PC_LEN-1:`GHT_REG_LEN+`GHT_COUNTER_LEN
-`define GHT_CHECK_REG           `GHT_REG_LEN+`GHT_COUNTER_LEN-1:`GHT_COUNTER_LEN 
-`define GHT_CHECK_COUNT         `GHT_COUNTER_LEN-1:0
-`define GHT_CHECKPOINT_LEN      (`GHT_COUNTER_LEN+`GHT_REG_LEN+`GHT_DEST_PC_LEN)
-`define GHT_CHECKPOINT          `GHT_CHECKPOINT_LEN-1:0
-// }}}
-// }}}
-`define ALL_CHECKPOINT_LEN      (`RAS_CHECKPOINT_LEN+`GHT_CHECKPOINT_LEN)
+`define ALL_CHECKPOINT_LEN      (`RAS_CHECKPOINT_LEN+`GHT_CHECKPOINT_LEN+`PHT_CHECKPOINT_LEN)
 `define ALL_CHECKPOINT          `ALL_CHECKPOINT_LEN-1:0
 `define NO_CHECKPOINT           `ALL_CHECKPOINT_LEN'b0
 /*}}}*/
@@ -110,8 +113,9 @@
 `define RAS_NOACTION        2'b00
 
 `define IJTC_ACTION         2:1
-`define IJTC_REPAIRE        2'b10   // 预测地址错误处理
-`define IJTC_DIRECT         2'b01   // 更新ghr
+`define IJTC_UPDATA_REG     2'b11   // 只根据检查点恢复ghr，不写存储器
+`define IJTC_REPAIRE        2'b10   // 根据检查点恢复ghr，写寄存器
+`define IJTC_DIRECT         2'b01   // ghr左移一位
 `define IJTC_NOACTION       2'b00   // 分支不作为
 
 `define BTB_ACTION          0
@@ -119,7 +123,7 @@
 `define BTB_NOACTION        1'b0 /*}}}*/
 //InstQueue{{{
 `define TEST1
-`define IQ_ENTRY_LEN    179
+`define IQ_ENTRY_LEN    181
 `define IQ_LENTH        `IQ_ENTRY_LEN-1:0
 `define IQ_VALID        1:0
 `define IQ_VALID_SINGLE 2'b01
@@ -142,7 +146,8 @@
 `define TWO_DEMAND      2'b11
 // 寄存器堆{{{
 `define GPR_NUM         `GPR_NUM_LEN-1:0
-`define GPR_NUM_LEN     5/*}}}*/
+`define GPR_NUM_LEN     5
+/*}}}*/
 // EXE段ALU的异常选择{{{
 `define EXCEPRION_SEL_LEN 2
 `define EXCEPRION_SEL `EXCEPRION_SEL_LEN-1:0

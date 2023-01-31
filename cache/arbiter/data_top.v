@@ -275,9 +275,6 @@ module data_top (
     );
     //}}}
 data_mux  u_data_mux (/*{{{*/
-    .clk                     ( aclk         ),
-    .rst_n                   ( aresetn      ),
-
     .arid_dc                 ( data_cache_arid      ),
     .araddr_dc               ( data_cache_araddr    ),
     .arlen_dc                ( data_cache_arlen     ),

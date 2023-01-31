@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/13 09:29
-// Last Modified : 2022/07/30 15:35
+// Last Modified : 2022/08/08 09:34
 // File Name     : Decorder.v
 // Description   : ID段的解码器，用于生成所有的控制信号
 //         
@@ -54,9 +54,9 @@ module Decorder(
     output	wire    [`STORE_MODE]           ID_down_storeMode_o,        // store模式	
     output	wire	                        ID_down_isTLBInst_o,        // 表示是TLB指令
     output	wire	[`TLB_INST]             ID_down_TLBInstOperator_o,  // 执行的种类
-    output	wire	                        ID_down_isCacheInst_o,      // 表示是Cache指令
-    output	wire	[`CACHE_OP]             ID_down_CacheOperator_o     // Cache指令op}}}
+    output	wire	                        ID_down_isCacheInst_o       // 表示是Cache指令
     /*}}}*/
+    // }}}
 );
     // 变量重命名和打包{{{
     wire [`SINGLE_WORD] inst [1:0];
@@ -120,7 +120,7 @@ wire temp_0_4 = ( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][30
  (!(temp_0_4) & (((temp_0_3) & (1'b0)) |
  (!(temp_0_3) & ((!inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][31]) | ( inst[i][27]& inst[i][28]&!inst[i][29]&!inst[i][31]) |
 ( inst[i][27]&!inst[i][28]&!inst[i][29]&!inst[i][31])))));
-	assign	decorderException_up[i]	=	((temp_0_2) & (( inst[i][2]& inst[i][3]))) |
+	assign	decorderException_up[i]	=	((temp_0_2) & ((!inst[i][1]& inst[i][2]& inst[i][3]))) |
  (!(temp_0_2) & (( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]) | (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]) |
 ( inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]&!inst[i][31]) | ( inst[i][26]&!inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31]) |
 (!inst[i][26]& inst[i][27]&!inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31]) | ( inst[i][26]&!inst[i][27]& inst[i][28]&!inst[i][29]& inst[i][30]& inst[i][31]) |
@@ -319,9 +319,11 @@ wire temp_1_1 = (!inst[0][27]&!inst[0][28]&!inst[0][29]&!inst[0][30]&!inst[0][31
 	assign	ID_up_repairAction_o[0]	=	((temp_1_0) & ((!inst[0][5]))) |
  (!(temp_1_0) & ((!inst[0][31])));
 	assign	ID_up_repairAction_o[1]	=	((temp_1_0) & (1'b0)) |
- (!(temp_1_0) & (1'b0));
+ (!(temp_1_0) & ((!inst[0][27]& inst[0][28]) | ( inst[0][27]& inst[0][28]) |
+( inst[0][27]&!inst[0][28])));
 	assign	ID_up_repairAction_o[2]	=	((temp_1_0) & ((!inst[0][5]))) |
- (!(temp_1_0) & (( inst[0][26]& inst[0][27]&!inst[0][28])));
+ (!(temp_1_0) & ((!inst[0][27]& inst[0][28]) | ( inst[0][27]& inst[0][28]) |
+( inst[0][27]&!inst[0][28])));
 	assign	ID_up_repairAction_o[3]	=	((temp_1_0) & ((!inst[0][0]))) |
  (!(temp_1_0) & (((temp_1_1) & ((!inst[0][20]))) |
  (!(temp_1_1) & ((!inst[0][26]& inst[0][28]) | ( inst[0][26]& inst[0][28]) |
@@ -341,49 +343,50 @@ wire temp_1_1 = (!inst[0][27]&!inst[0][28]&!inst[0][29]&!inst[0][30]&!inst[0][31
 /*autoDecoder1_End*/ /*}}}*/
 	/*autoDecoder2_Start*/ /*{{{*/
 wire temp_2_0 = ( inst[1][25]);
-wire temp_2_1 = (!inst[1][26]&!inst[1][27]&!inst[1][29]& inst[1][30]&!inst[1][31]);
-wire temp_2_2 = (!inst[1][26]&!inst[1][27]& inst[1][28]& inst[1][30]&!inst[1][31]);
-wire temp_2_3 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]&!inst[1][31]);
+wire temp_2_1 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][31]);
+wire temp_2_2 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]&!inst[1][31]);
+wire temp_2_3 = (!inst[1][26]&!inst[1][27]& inst[1][28]& inst[1][29]& inst[1][30]&!inst[1][31]);
+wire temp_2_4 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]& inst[1][30]&!inst[1][31]);
 
-	assign	ID_down_isDangerous_o	=	((temp_2_1) & (((temp_2_0) & ((!inst[1][4]))) |
+	assign	ID_down_isDangerous_o	=	((temp_2_2) & (( inst[1][1]& inst[1][2]& inst[1][3]))) |
+ (!(temp_2_2) & (((temp_2_1) & (((temp_2_0) & ((!inst[1][4]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (( inst[1][26]& inst[1][27]& inst[1][28]& inst[1][29]&!inst[1][30]& inst[1][31])));
-	assign	ID_down_mduOperator_o[0]	=	((temp_2_3) & ((!inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
- (!(temp_2_3) & (((temp_2_2) & ((!inst[1][0]&!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_mduOperator_o[1]	=	((temp_2_3) & (( inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
- (!(temp_2_3) & (((temp_2_2) & (( inst[1][0]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_mduOperator_o[2]	=	((temp_2_3) & ((!inst[1][0]& inst[1][1]& inst[1][3]& inst[1][4]))) |
+ (!(temp_2_1) & ((!inst[1][26]&!inst[1][27]& inst[1][28]& inst[1][29]& inst[1][30]&!inst[1][31]) | (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]& inst[1][30]& inst[1][31]) |
+(!inst[1][26]&!inst[1][27]&!inst[1][28]& inst[1][29]& inst[1][30]& inst[1][31]) | ( inst[1][26]& inst[1][27]& inst[1][28]& inst[1][29]&!inst[1][30]& inst[1][31])))));
+	assign	ID_down_mduOperator_o[0]	=	((temp_2_2) & ((!inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
+ (!(temp_2_2) & (((temp_2_3) & ((!inst[1][0]&!inst[1][5]))) |
+ (!(temp_2_3) & (1'b0))));
+	assign	ID_down_mduOperator_o[1]	=	((temp_2_2) & (( inst[1][0]&!inst[1][1]& inst[1][3]& inst[1][4]))) |
+ (!(temp_2_2) & (((temp_2_3) & (( inst[1][0]&!inst[1][5]))) |
+ (!(temp_2_3) & (1'b0))));
+	assign	ID_down_mduOperator_o[2]	=	((temp_2_2) & ((!inst[1][0]& inst[1][1]& inst[1][3]& inst[1][4]))) |
+ (!(temp_2_2) & (1'b0));
+	assign	ID_down_mduOperator_o[3]	=	((temp_2_2) & (( inst[1][0]& inst[1][1]& inst[1][3]& inst[1][4]))) |
+ (!(temp_2_2) & (1'b0));
+	assign	ID_down_mduOperator_o[4]	=	((temp_2_3) & ((!inst[1][1]&!inst[1][2]&!inst[1][5]))) |
  (!(temp_2_3) & (1'b0));
-	assign	ID_down_mduOperator_o[3]	=	((temp_2_3) & (( inst[1][0]& inst[1][1]& inst[1][3]& inst[1][4]))) |
+	assign	ID_down_mduOperator_o[5]	=	((temp_2_3) & (( inst[1][2]))) |
  (!(temp_2_3) & (1'b0));
-	assign	ID_down_mduOperator_o[4]	=	((temp_2_2) & ((!inst[1][1]&!inst[1][2]&!inst[1][5]))) |
+	assign	ID_down_mduOperator_o[6]	=	((temp_2_3) & (( inst[1][1]))) |
+ (!(temp_2_3) & (1'b0));
+	assign	ID_down_mduOperator_o[7]	=	((temp_2_3) & (( inst[1][0]& inst[1][5]))) |
+ (!(temp_2_3) & (1'b0));
+	assign	ID_down_mduOperator_o[8]	=	((temp_2_3) & ((!inst[1][0]& inst[1][5]))) |
+ (!(temp_2_3) & (1'b0));
+	assign	ID_down_readHiLo_o[0]	=	((temp_2_2) & ((!inst[1][0]&!inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
+ (!(temp_2_2) & (((temp_2_3) & ((!inst[1][1]&!inst[1][5]))) |
+ (!(temp_2_3) & (1'b0))));
+	assign	ID_down_readHiLo_o[1]	=	((temp_2_2) & ((!inst[1][0]& inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
+ (!(temp_2_2) & (((temp_2_3) & ((!inst[1][1]&!inst[1][5]))) |
+ (!(temp_2_3) & (1'b0))));
+	assign	ID_down_writeHiLo_o[0]	=	((temp_2_2) & (( inst[1][0]&!inst[1][1]&!inst[1][3]&!inst[1][5]))) |
  (!(temp_2_2) & (1'b0));
-	assign	ID_down_mduOperator_o[5]	=	((temp_2_2) & (( inst[1][2]))) |
+	assign	ID_down_writeHiLo_o[1]	=	((temp_2_2) & (( inst[1][0]& inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
  (!(temp_2_2) & (1'b0));
-	assign	ID_down_mduOperator_o[6]	=	((temp_2_2) & (( inst[1][1]))) |
- (!(temp_2_2) & (1'b0));
-	assign	ID_down_mduOperator_o[7]	=	((temp_2_2) & (( inst[1][0]& inst[1][5]))) |
- (!(temp_2_2) & (1'b0));
-	assign	ID_down_mduOperator_o[8]	=	((temp_2_2) & ((!inst[1][0]& inst[1][5]))) |
- (!(temp_2_2) & (1'b0));
-	assign	ID_down_readHiLo_o[0]	=	((temp_2_3) & ((!inst[1][0]&!inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
- (!(temp_2_3) & (((temp_2_2) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_readHiLo_o[1]	=	((temp_2_3) & ((!inst[1][0]& inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
- (!(temp_2_3) & (((temp_2_2) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_writeHiLo_o[0]	=	((temp_2_3) & (( inst[1][0]&!inst[1][1]&!inst[1][3]&!inst[1][5]))) |
- (!(temp_2_3) & (((temp_2_2) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_writeHiLo_o[1]	=	((temp_2_3) & (( inst[1][0]& inst[1][1]&!inst[1][3]& inst[1][4]&!inst[1][5]))) |
- (!(temp_2_3) & (((temp_2_2) & ((!inst[1][1]&!inst[1][5]))) |
- (!(temp_2_2) & (1'b0))));
-	assign	ID_down_readCp0_o	=	((temp_2_1) & ((!inst[1][23]&!inst[1][25]))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_writeCp0_o	=	((temp_2_1) & (( inst[1][23]))) |
- (!(temp_2_1) & (1'b0));
+	assign	ID_down_readCp0_o	=	((temp_2_4) & ((!inst[1][23]&!inst[1][25]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_writeCp0_o	=	((temp_2_4) & (( inst[1][23]))) |
+ (!(temp_2_4) & (1'b0));
 	assign	ID_down_memReq_o	=	(!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) | (!inst[1][26]&!inst[1][27]& inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) |
 ( inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) | ( inst[1][26]&!inst[1][27]& inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) |
 ( inst[1][26]& inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) | (!inst[1][26]& inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30]& inst[1][31]) |
@@ -406,24 +409,24 @@ wire temp_2_3 = (!inst[1][26]&!inst[1][27]&!inst[1][28]&!inst[1][29]&!inst[1][30
 (!inst[1][26]&!inst[1][27]& inst[1][29]& inst[1][30]);
 	assign	ID_down_storeMode_o[3]	=	(!inst[1][26]& inst[1][27]&!inst[1][28]& inst[1][29]);
 	assign	ID_down_storeMode_o[4]	=	( inst[1][28]& inst[1][29]);
-	assign	ID_down_eret_o	=	((temp_2_1) & (((temp_2_0) & (( inst[1][4]))) |
+	assign	ID_down_eret_o	=	((temp_2_4) & (((temp_2_0) & (( inst[1][4]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_isTLBInst_o	=	((temp_2_1) & (((temp_2_0) & ((!inst[1][4]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_isTLBInst_o	=	((temp_2_4) & (((temp_2_0) & ((!inst[1][4]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_TLBInstOperator_o[0]	=	((temp_2_1) & (((temp_2_0) & (( inst[1][3]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_TLBInstOperator_o[0]	=	((temp_2_4) & (((temp_2_0) & (( inst[1][3]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_TLBInstOperator_o[1]	=	((temp_2_1) & (((temp_2_0) & (( inst[1][0]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_TLBInstOperator_o[1]	=	((temp_2_4) & (((temp_2_0) & (( inst[1][0]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_TLBInstOperator_o[2]	=	((temp_2_1) & (((temp_2_0) & (( inst[1][1]&!inst[1][2]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_TLBInstOperator_o[2]	=	((temp_2_4) & (((temp_2_0) & (( inst[1][1]&!inst[1][2]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
-	assign	ID_down_TLBInstOperator_o[3]	=	((temp_2_1) & (((temp_2_0) & (( inst[1][2]))) |
+ (!(temp_2_4) & (1'b0));
+	assign	ID_down_TLBInstOperator_o[3]	=	((temp_2_4) & (((temp_2_0) & (( inst[1][2]))) |
  (!(temp_2_0) & (1'b0)))) |
- (!(temp_2_1) & (1'b0));
+ (!(temp_2_4) & (1'b0));
 	assign	ID_down_isCacheInst_o	=	( inst[1][26]& inst[1][27]& inst[1][28]& inst[1][29]&!inst[1][30]& inst[1][31]);
 /*autoDecoder2_End*/ /*}}}*/
     // }}}

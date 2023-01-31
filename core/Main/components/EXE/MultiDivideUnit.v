@@ -79,7 +79,7 @@ module MultiDivideUnit(
         .mulData_ok             (mulData_ok                     ), //output
         .mulRes                 (mulRes[2*`SINGLE_WORD]         )  //output
     );
-    assign mulReq       = (mulrReq || MDU_operator[`MUL_REQ]) && MduReq;
+    assign mulReq       = (MDU_operator[`MUL_REQ]) && MduReq;
     assign mulr_data_ok = mulData_ok;
     assign isSignedMul  = MDU_operator[`MUL_SIGN];
     assign add_sub_op   = MDU_operator[`ACCUM_OP];
@@ -106,11 +106,11 @@ module MultiDivideUnit(
     /*}}}*/ 
     // HiLo模块和MDU模块的交互{{{
     always @(posedge clk) begin
-        if(!rst || cancel || MDU_data_ok) begin
+        if(!rst || cancel) begin
             HiLo_busy   <=  `FALSE;
         end
-        else if (MDU_Oprand_ok && MduReq) begin
-            HiLo_busy   <=  `TRUE;
+        else if ((MDU_Oprand_ok&&MduReq)!=MDU_data_ok) begin
+            HiLo_busy   <=  !HiLo_busy;
         end 
     end
 /*}}}*/

@@ -275,8 +275,6 @@ inst_mux  u_inst_mux (/*{{{*/
     .bresp_ic                ( inst_cache_bresp     ),
     .bready_ic               ( inst_cache_bready    ),
 
-    .clk                     ( aclk         ),
-    .rst_n                   ( aresetn      ),
     .arid_iu                 ( inst_uncache_arid      ),
     .araddr_iu               ( inst_uncache_araddr    ),
     .arlen_iu                ( inst_uncache_arlen     ),

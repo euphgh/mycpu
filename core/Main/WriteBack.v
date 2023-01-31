@@ -188,6 +188,19 @@ module WriteBack (
             debug_wb_rf_wdata1  <=  WB_finalRes_w_o;
         end
     end
+    reg commit;
+    always @(posedge clk) begin
+        if (!rst) commit <= 1'b0;
+        else commit <= hasData;
+    end
+    export "DPI-C" function commit1;
+    function bit commit1();
+        return commit;
+    endfunction
+    export "DPI-C" function commitPC1;
+    function int commitPC1();
+        return debug_wb_pc1;
+    endfunction: commitPC1
     // }}}
 endmodule
  

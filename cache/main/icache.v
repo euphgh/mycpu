@@ -508,7 +508,7 @@ module icache(
     always @(posedge clk) begin
         if (!rst) begin
             for (i = 0; i < 128; i = i+1) begin 
-                plru[i] <= 3'b0;
+                plru[i] = 3'b0;
             end
         end
         else if (cache_stat == `MISS) begin

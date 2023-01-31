@@ -636,7 +636,7 @@ module dcache(
     always @(posedge clk) begin
         if (!rst) begin
             for (i = 0; i < 128; i = i+1) begin 
-                plru[i] <= 3'b0;
+                plru[i] = 3'b0;
             end
         end
         else if (cache_stat == `MISS) begin
@@ -661,7 +661,7 @@ module dcache(
     always @(posedge clk ) begin
         if (!rst) begin
             for (i = 0; i < 128; i = i+1) begin 
-                dirty[i] <= 4'b0;
+                dirty[i] = 4'b0;
             end
         end
         // 如果命中且为写操作，则直接修改对应行的dirty为1

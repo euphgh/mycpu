@@ -454,4 +454,8 @@ module PrimaryExceptionProcessor (
     // assign CP0_Random_w_i = Random; TODO 
 
     // }}}
+    export "DPI-C" function get_cp0_count;
+    function int get_cp0_count();
+        return count;
+    endfunction
 endmodule

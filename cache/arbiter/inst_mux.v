@@ -1,5 +1,4 @@
 module inst_mux (
-    input wire clk, rst_n,
     //icache input AXI{{{
     input [3 :0]    arid_ic   ,
     input [31:0]    araddr_ic ,
@@ -125,9 +124,6 @@ module inst_mux (
     output        bready  /*}}}*/
 );
     axi_rmux axi_ic_iu(/*{{{*/
-        .clk(clk),
-        .rst_n(rst_n),
-
         .arid_0(arid_ic),   
         .araddr_0(araddr_ic), 
         .arlen_0(arlen_ic),  

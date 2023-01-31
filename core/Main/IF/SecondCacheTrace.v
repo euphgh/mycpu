@@ -3,7 +3,7 @@
 // Device        : Artix-7 xc7a200tfbg676-2
 // Author        : Guanghui Hu
 // Created On    : 2022/07/04 15:41
-// Last Modified : 2022/08/03 18:54
+// Last Modified : 2022/08/04 19:27
 // File Name     : SecondCacheTrace.v
 // Description   : 跟踪Cache的数据流动
 //         
@@ -20,18 +20,9 @@ module SecondCacheTrace (
     input	wire	clk,
     input	wire	rst,
     // 线信号输入{{{
-    // GHT的预测结果{{{
-    input	wire	[4*`GHT_CHECKPOINT]     GHT_checkPoint_p_i,
-    input	wire	[4*`SINGLE_WORD]        GHT_predDest_p_i,
-    input	wire	[3:0]                   GHT_predTake_p_i,
-/*}}}*/
-    // RAS的预测结果{{{
-    input	wire	[4*`SINGLE_WORD]        RAS_predDest_p_i,
-    input	wire    [4*`RAS_CHECKPOINT]     RAS_checkPoint_p_i,
-/*}}}*/
     // 总线接口{{{
     input	wire	                    inst_data_ok,
-/*}}}*/
+    /*}}}*/
     // 取消信号{{{
     input	wire	                    BSC_needCancel_w_i, // 两种分支预测结果不同
     input	wire	                    CP0_excOccur_w_i,   // 异常发生
@@ -80,17 +71,7 @@ module SecondCacheTrace (
     output	reg     [`SINGLE_WORD]          SCT_VAddr_o,
     output	reg	                            SCT_hasException_o,
     output	reg	    [`EXCCODE]              SCT_ExcCode_o,
-    output	reg                             SCT_isRefill_o,
-/*}}}*/
-    // BPU预测结果
-    // GHT的预测结果{{{
-    output	reg     [4*`GHT_CHECKPOINT]     SCT_GHT_checkPoint_p_o,
-    output	reg     [4*`SINGLE_WORD]        SCT_GHT_predDest_p_o,
-    output	reg     [3:0]                   SCT_GHT_predTake_p_o,
-/*}}}*/
-    // RAS的预测结果{{{
-    output	reg     [4*`SINGLE_WORD]        SCT_RAS_predDest_p_o,
-    output	reg     [4*`RAS_CHECKPOINT]     SCT_RAS_checkPoint_p_o
+    output	reg                             SCT_isRefill_o
 /*}}}*/
 /*}}}*/
 );
@@ -114,11 +95,6 @@ module SecondCacheTrace (
             SCT_BTBValidTake_o  <=  `FALSE;
             SCT_BTBfifthVAddr_o <=  `ZEROWORD;
             SCT_needDelaySlot_o <=  `FALSE;
-            SCT_GHT_predDest_p_o   <=  'd0;
-            SCT_RAS_predDest_p_o    <=  'd0;
-            SCT_RAS_checkPoint_p_o  <=  'd0;
-            SCT_GHT_predTake_p_o    <=  'd0;
-            SCT_GHT_checkPoint_p_o  <=  'd0;
         end
         else if (SCT_allowin_w_o && FCT_valid_i) begin
             hasData             <=  `TRUE;
@@ -135,11 +111,6 @@ module SecondCacheTrace (
             SCT_BTBfifthVAddr_o <=  FCT_BTBfifthVAddr_i;
             SCT_needDelaySlot_o <=  FCT_needDelaySlot_i;
             SCT_isRefill_o      <=  MMU_isRefill_i;
-            SCT_GHT_checkPoint_p_o <=  GHT_checkPoint_p_i ;
-            SCT_GHT_predDest_p_o   <=  GHT_predDest_p_i   ;
-            SCT_GHT_predTake_p_o    <=  GHT_predTake_p_i    ;
-            SCT_RAS_predDest_p_o    <=  RAS_predDest_p_i    ;
-            SCT_RAS_checkPoint_p_o  <=  RAS_checkPoint_p_i  ;
         end
         else if (hasData && needCancel) begin
             SCT_isCanceled_o    <=  `TRUE;
