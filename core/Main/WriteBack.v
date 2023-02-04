@@ -197,10 +197,26 @@ module WriteBack (
     function bit commit1();
         return commit;
     endfunction
+
     export "DPI-C" function commitPC1;
     function int commitPC1();
         return debug_wb_pc1;
-    endfunction: commitPC1
+    endfunction
+
+    export "DPI-C" function commitWEN1;
+    function bit[3:0] commitWEN1();
+        return debug_wb_rf_wen1;
+    endfunction
+
+    export "DPI-C" function commitWNUM1;
+    function bit[4:0] commitWNUM1();
+        return debug_wb_rf_wnum1;
+    endfunction
+
+    export "DPI-C" function commitWDATA1;
+    function int commitWDATA1();
+        return debug_wb_rf_wdata1;
+    endfunction
     // }}}
 endmodule
  

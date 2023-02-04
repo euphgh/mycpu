@@ -128,6 +128,21 @@ module PrimaryBranchAmend(
     function int commitPC0();
         return debug_wb_pc0;
     endfunction: commitPC0
+    export "DPI-C" function commitWEN0;
+    function bit[3:0] commitWEN0();
+        return debug_wb_rf_wen0;
+    endfunction
+
+    export "DPI-C" function commitWNUM0;
+    function bit[4:0] commitWNUM0();
+        return debug_wb_rf_wnum0;
+    endfunction
+
+    export "DPI-C" function commitWDATA0;
+    function int commitWDATA0();
+        return debug_wb_rf_wdata0;
+    endfunction
+
     // }}}
-endmodule
+    endmodule
 
