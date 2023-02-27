@@ -115,6 +115,7 @@ module PrimaryBranchAmend(
             debug_wb_rf_wdata0  <=  PBA_forwardData_w_o;
         end
     end
+`ifdef VERILATOR
     reg commit;
     always @(posedge clk) begin
         if (!rst) commit <= 1'b0;
@@ -142,7 +143,7 @@ module PrimaryBranchAmend(
     function int commitWDATA0();
         return debug_wb_rf_wdata0;
     endfunction
-
+`endif
     // }}}
     endmodule
 

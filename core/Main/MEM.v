@@ -186,7 +186,31 @@ module MEM(
 			PREMEM_CacheOperator_r_i	<=	'b0;
 			PREMEM_CacheAddress_r_i	<=	'b0;
         end
-        else if (needUpdata) begin
+        else if (needUpdata && CP0_excOccur_w_i && CP0_exceptSeg_w_i[`EXCEP_PREMEM]) begin/*{{{*/
+			PREMEM_VAddr_r_i	<=	PREMEM_VAddr_i;
+			PREMEM_writeNum_r_i	<=	'd0;
+			PREMEM_isDelaySlot_r_i	<=	'd0;
+			PREMEM_isDangerous_r_i	<=	'd0;
+			PREMEM_alignCheck_r_i	<=	'd0;
+			PREMEM_loadSel_r_i	<=	'd0;
+			PREMEM_memReq_r_i	<=	'd0;
+			PREMEM_preliminaryRes_r_i	<=	'd0;
+			PREMEM_nonBlockMark_r_i	<=	'd0;
+			PREMEM_rtData_r_i	<=	'd0;
+			PREMEM_ExcCode_r_i	<=	'd0;
+			PREMEM_hasException_r_i	<=	'd0;
+			PREMEM_exceptBadVAddr_r_i	<=	'd0;
+			PREMEM_eret_r_i	<=	'd0;
+			PREMEM_isRefill_r_i	<=	'd0;
+			PREMEM_exceptionRisk_r_i	<=	'd0;
+			PREMEM_positionCp0_r_i	<=	'd0;
+			PREMEM_readCp0_r_i	<=	'd0;
+			PREMEM_writeCp0_r_i	<=	'd0;
+			PREMEM_isCacheInst_r_i	<=	'd0;
+			PREMEM_CacheOperator_r_i	<=	'd0;
+			PREMEM_CacheAddress_r_i	<=	'd0;
+        end/*}}}*/
+        else if (needUpdata) begin/*{{{*/
 			PREMEM_writeNum_r_i	<=	PREMEM_writeNum_i;
 			PREMEM_VAddr_r_i	<=	PREMEM_VAddr_i;
 			PREMEM_isDelaySlot_r_i	<=	PREMEM_isDelaySlot_i;
@@ -209,7 +233,7 @@ module MEM(
 			PREMEM_isCacheInst_r_i	<=	PREMEM_isCacheInst_i;
 			PREMEM_CacheOperator_r_i	<=	PREMEM_CacheOperator_i;
 			PREMEM_CacheAddress_r_i	<=	PREMEM_CacheAddress_i;
-        end
+        end/*}}}*/
     end
     /*}}}*/
     // 线信号处理{{{
@@ -219,7 +243,8 @@ module MEM(
     // 上下控制
     assign MEM_allowin_w_o = REEXE_okToChange_w_i && (ready||!hasData) && WB_allowin_w_i;
     // 上下不同部分
-    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i ;
+    wire is_pc_save = MEM_hasException_w_o || MEM_eret_w_o;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_MEM] && CP0_excOccur_w_i && (!is_pc_save);
     assign MEM_valid_w_o =  hasData && 
                             ready && 
                             MEM_allowin_w_o &&
@@ -246,7 +271,7 @@ module MEM(
     assign MEM_isDangerous_o = PREMEM_isDangerous_r_i;
     assign MEM_finalRes_o = PREMEM_readCp0_r_i ? CP0_readData_w_i : PREMEM_preliminaryRes_r_i;
     assign MEM_alignCheck_o = PREMEM_alignCheck_r_i;
-    assign MEM_exceptionRisk_o = 1'b0;
+    assign MEM_exceptionRisk_o = has_int;
     assign MEM_memReq_o = PREMEM_memReq_r_i;
     // }}}
     // 异常处理{{{
@@ -255,7 +280,7 @@ module MEM(
                     (CP0_Status_w_i[`EXL]==1'b0) && hasData;
     assign MEM_hasRisk_w_o  = PREMEM_exceptionRisk_r_i || WB_hasRisk_w_i || has_int;
     assign MEM_isInterrupt_w_o = has_int;
-    assign MEM_ExcCode_w_o =    has_int ? `INT : 
+    assign MEM_ExcCode_w_o =    has_int ? `INT :
                                 PREMEM_hasException_r_i ? PREMEM_ExcCode_r_i : DMMU_ExcCode_i;
     assign MEM_hasException_w_o = data_hasException || PREMEM_hasException_r_i || has_int;
     assign MEM_exceptBadVAddr_w_o = PREMEM_hasException_r_i ? PREMEM_exceptBadVAddr_r_i : PREMEM_exceptBadVAddr_r_i;

@@ -332,13 +332,14 @@ module EXEDOWN(
     wire ready;
     assign EXE_down_allowin_w_o = EXE_up_okToChange_w_i && (ready||!hasData) && PREMEM_allowin_w_i;
     // 上下不同部分
-    wire needFlush = CP0_excOccur_w_i || SBA_flush_w_i;
+    wire is_pc_save = EXE_down_hasExceprion_w_o || EXE_down_eret_w_o;
+    wire needFlush = (CP0_excOccur_w_i && !is_pc_save) || SBA_flush_w_i;
     assign EXE_down_valid_w_o = hasData && 
                                 ready && 
                                 EXE_down_allowin_w_o &&
-                                !CP0_excOccur_w_i;
+                                (!CP0_excOccur_w_i || is_pc_save);
     assign needUpdata = EXE_down_allowin_w_o && ID_down_valid_w_i;
-    assign needClear  = (!ID_down_valid_w_i&&EXE_down_allowin_w_o) || needFlush;
+    assign needClear  = (!ID_down_valid_w_i && EXE_down_allowin_w_o) || needFlush;
     always @(posedge clk) begin
         if(!rst || needClear) begin
             hasData <=  1'b0;

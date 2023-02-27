@@ -280,7 +280,8 @@ module PrimaryExceptionProcessor (
     ////////////////    EPC     ////////////////{{{
     reg     [`SINGLE_WORD]      epc;
     always @(posedge clk) begin
-        if (isExceptionInNormal) begin
+        if (!rst) epc <= 'd0;
+        else if (isExceptionInNormal) begin
             epc <=  isDelaySlot ? exceptPC - 32'h4 : exceptPC;
         end
         else if (mtc0_wen && mtc0_addr==`ADDR_EPC) begin
@@ -294,7 +295,8 @@ module PrimaryExceptionProcessor (
     wire    badVaddrCode = (ExcCode==`ADEL)||(ExcCode==`ADES)||
                             (ExcCode==`TLBL)||(ExcCode==`TLBS)||(ExcCode==`MOD);
     always @(posedge clk) begin
-        if (isExceptionInNormal && badVaddrCode) begin
+        if (!rst) badVaddr <= 'd0;
+        else if (isExceptionInNormal && badVaddrCode) begin
             badVaddr    <=  exceptBadVAddr;
         end
     end
@@ -454,8 +456,44 @@ module PrimaryExceptionProcessor (
     // assign CP0_Random_w_i = Random; TODO 
 
     // }}}
-    export "DPI-C" function get_cp0_count;
-    function int get_cp0_count();
-        return count;
-    endfunction
+    `ifdef VERILATOR
+    reg cp0_changed;
+    reg [`SINGLE_WORD] changed_pc;
+    always @(posedge clk) begin
+        if (!rst) begin
+            cp0_changed<= 1'b0;
+            changed_pc <= exceptPC;
+        end
+        else begin
+            cp0_changed<= isExceptionInNormal || eret || mtc0_wen;
+            changed_pc <= exceptPC;
+        end
+    end
+    export "DPI-C" function cp0_change_pc;
+    function int cp0_change_pc();
+        return changed_pc;
+    endfunction: cp0_change_pc
+    export "DPI-C" function cp0_change;
+    function bit cp0_change();
+        return cp0_changed;
+    endfunction: cp0_change
+    export "DPI-C" function get_cp0_value;
+    function int get_cp0_value(byte pos);
+    begin
+        assign  get_cp0_value =  
+            (pos==`ADDR_STATUS)      ? Status:        
+            (pos==`ADDR_CAUSE)       ? Cause :       
+            (pos==`ADDR_EPC)         ? EPC   :       
+            (pos==`ADDR_BADVADDR)    ? BadVAdder:    
+            (pos==`ADDR_COUNT)       ? Count:        
+            (pos==`ADDR_COMPARE)     ? Compare:      
+            (pos==`ADDR_INDEX)       ? Index:        
+            (pos==`ADDR_ENRTYLO0)    ? EntryLo0:     
+            (pos==`ADDR_ENRTYLO1)    ? EntryLo1:     
+            (pos==`ADDR_ENRTYHI)     ? EntryHi:      
+            (pos==`ADDR_CONFIG)      ? Config:       
+            (pos==`ADDR_CONFIG1)     ? Config1 : 32'h12345678;
+    end
+    endfunction: get_cp0_value
+`endif
 endmodule

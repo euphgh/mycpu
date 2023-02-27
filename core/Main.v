@@ -940,6 +940,8 @@ WriteBack  u_WriteBack (
     .MEM_rtData_i            ( MEM_rtData_i          ),
     .MEM_alignCheck_i        ( MEM_alignCheck_i      ),
     .MEM_loadSel_i           ( MEM_loadSel_i         ),
+    .CP0_excOccur_w_i        ( CP0_excOccur_w_i      ),
+    .CP0_exceptSeg_w_i       ( CP0_exceptSeg_w_i     ),
 
     .WB_writeNum_w_o         ( WB_writeNum_w_o       ),
     .WB_hasDangerous_w_o     ( WB_hasDangerous_w_o   ),

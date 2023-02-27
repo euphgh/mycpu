@@ -49,6 +49,9 @@ module WriteBack (
     output	wire	[`SINGLE_WORD]          WB_finalRes_w_o,        // 送回寄存器堆的数据
     // ID回写信号
     output	wire	                        WB_writeEnable_w_o,       // 回写使能
+    // Exception process
+    input	wire	                        CP0_excOccur_w_i,
+    input	wire	[`EXCEP_SEG]            CP0_exceptSeg_w_i,
 /*}}}*/
     ///////////////////////////////////////////////////
     //////////////     寄存器输出       ///////////////{{{
@@ -62,7 +65,7 @@ module WriteBack (
     //////////////      寄存器输入      //////////////{{{
     //////////////////////////////////////////////////
     input	wire	[`GPR_NUM]              MEM_writeNum_i,         // 回写寄存器数值,0为不回写
-    input	wire	                        MEM_exceptionRisk_i,
+    input	wire	                        MEM_exceptionRisk_i,    // is interrupt or not
     input	wire	                        MEM_memReq_i,
     input	wire	[`SINGLE_WORD]          MEM_VAddr_i,
     input	wire	                        MEM_isDangerous_i,      // 表示该条指令是不是危险指令,传递给下一级
@@ -103,7 +106,17 @@ module WriteBack (
 			MEM_alignCheck_r_i	<=	'b0;
 			MEM_loadSel_r_i	<=	'b0;
         end
-        else if (needUpdata) begin
+        else if (needUpdata && CP0_excOccur_w_i && CP0_exceptSeg_w_i[`EXCEP_MEM]) begin/*{{{*/
+			MEM_VAddr_r_i	<=	MEM_VAddr_i;
+			MEM_exceptionRisk_r_i	<=	MEM_exceptionRisk_i;
+			MEM_memReq_r_i	<=	'd0;
+			MEM_isDangerous_r_i	<=	'd0;
+			MEM_finalRes_r_i	<=	'd0;
+			MEM_rtData_r_i	<=	'd0;
+			MEM_alignCheck_r_i	<=	'd0;
+			MEM_loadSel_r_i	<=	'd0;
+        end/*}}}*/
+        else if (needUpdata) begin/*{{{*/
 			MEM_writeNum_r_i	<=	MEM_writeNum_i;
 			MEM_exceptionRisk_r_i	<=	MEM_exceptionRisk_i;
 			MEM_memReq_r_i	<=	MEM_memReq_i;
@@ -113,11 +126,11 @@ module WriteBack (
 			MEM_rtData_r_i	<=	MEM_rtData_i;
 			MEM_alignCheck_r_i	<=	MEM_alignCheck_i;
 			MEM_loadSel_r_i	<=	MEM_loadSel_i;
-        end
+        end/*}}}*/
     end
     /*}}}*/
     // 线信号处理{{{
-    assign WB_hasRisk_w_o  = MEM_exceptionRisk_r_i;
+    assign WB_hasRisk_w_o  = 1'b0;
     assign WB_writeNum_w_o = MEM_writeNum_r_i;
     assign WB_hasDangerous_w_o = MEM_isDangerous_r_i;
     // 流水线互锁
@@ -188,10 +201,15 @@ module WriteBack (
             debug_wb_rf_wdata1  <=  WB_finalRes_w_o;
         end
     end
+`ifdef VERILATOR
     reg commit;
+    reg is_int_inst;
     always @(posedge clk) begin
         if (!rst) commit <= 1'b0;
-        else commit <= hasData;
+        else begin
+            commit <= hasData;
+            is_int_inst <= MEM_exceptionRisk_r_i;
+        end
     end
     export "DPI-C" function commit1;
     function bit commit1();
@@ -217,6 +235,13 @@ module WriteBack (
     function int commitWDATA1();
         return debug_wb_rf_wdata1;
     endfunction
+
+    export "DPI-C" function is_interrupt;
+    function bit is_interrupt();
+        return is_int_inst;
+    endfunction
+
+`endif
     // }}}
 endmodule
  

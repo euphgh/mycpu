@@ -2,3 +2,4 @@
 core/tags
 core/.undodir/
 core/.vim/
+.nvim/

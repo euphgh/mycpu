@@ -5,7 +5,7 @@ module ip_multiplier (
     output wire [65:0] P
 );
     
-`ifndef __SIM_IP__
+`ifndef VERILATOR
 Multiplier Multiplier_u(
     /*autoinst*/
     .CLK                    (clk), //input */

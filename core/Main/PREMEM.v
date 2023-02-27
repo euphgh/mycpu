@@ -215,11 +215,43 @@ module PREMEM (
 			EXE_down_isCacheInst_r_i	<=	'b0;
 			EXE_down_CacheOperator_r_i	<=	'b0;
         end
-        else if (needUpdata) begin
+        else if (needUpdata && CP0_excOccur_w_i && CP0_exceptSeg_w_i[`EXCEP_EXE]) begin/*{{{*/
+			EXE_down_VAddr_r_i	<=	EXE_down_VAddr_i;
+			EXE_down_writeNum_r_i	<=	'd0;
+			EXE_down_isDelaySlot_r_i	<=	'd0;
+			EXE_down_isDangerous_r_i	<=	'd0;
+			EXE_down_aluRes_r_i	<=	'd0;
+			EXE_down_mduRes_r_i	<=	'd0;
+			EXE_down_clRes_r_i	<=	'd0;
+			EXE_down_mulRes_r_i	<=	'd0;
+			EXE_down_mathResSel_r_i	<=	'd0;
+			EXE_down_nonBlockMark_r_i	<=	'd0;
+			EXE_up_branchRisk_r_i	<=	'd0;
+			EXE_down_ExcCode_r_i	<=	'd0;
+			EXE_down_hasException_r_i	<=	'd0;
+			EXE_down_exceptionRisk_r_i	<=	'd0;
+			EXE_down_exceptBadVAddr_r_i	<=	'd0;
+			EXE_down_eret_r_i	<=	'd0;
+			EXE_down_isRefill_r_i	<=	'd0;
+			EXE_down_positionCp0_r_i	<=	'd0;
+			EXE_down_readCp0_r_i	<=	'd0;
+			EXE_down_writeCp0_r_i	<=	'd0;
+			EXE_down_memReq_r_i	<=	'd0;
+			EXE_down_memWR_r_i	<=	'd0;
+			EXE_down_memEnable_r_i	<=	'd0;
+			EXE_down_memAtom_r_i	<=	'd0;
+			EXE_down_storeData_r_i	<=	'd0;
+			EXE_down_loadSel_r_i	<=	'd0;
+			EXE_down_isTLBInst_r_i	<=	'd0;
+			EXE_down_TLBInstOperator_r_i	<=	'd0;
+			EXE_down_isCacheInst_r_i	<=	'd0;
+			EXE_down_CacheOperator_r_i	<=	'd0;
+        end/*}}}*/
+        else if (needUpdata) begin/*{{{*/
+			EXE_down_VAddr_r_i	<=	EXE_down_VAddr_i;
 			EXE_down_writeNum_r_i	<=	EXE_down_writeNum_i;
 			EXE_down_isDelaySlot_r_i	<=	EXE_down_isDelaySlot_i;
 			EXE_down_isDangerous_r_i	<=	EXE_down_isDangerous_i;
-			EXE_down_VAddr_r_i	<=	EXE_down_VAddr_i;
 			EXE_down_aluRes_r_i	<=	EXE_down_aluRes_i;
 			EXE_down_mduRes_r_i	<=	EXE_down_mduRes_i;
 			EXE_down_clRes_r_i	<=	EXE_down_clRes_i;
@@ -246,7 +278,7 @@ module PREMEM (
 			EXE_down_TLBInstOperator_r_i	<=	EXE_down_TLBInstOperator_i;
 			EXE_down_isCacheInst_r_i	<=	EXE_down_isCacheInst_i;
 			EXE_down_CacheOperator_r_i	<=	EXE_down_CacheOperator_i;
-        end
+        end/*}}}*/
     end
     /*}}}*/
     // 原子访存处理{{{
@@ -266,18 +298,19 @@ module PREMEM (
     // 流水线互锁
     reg hasData;
     // 如果因为非对齐异常导致没有请求从而cache不接受，则一直等待到异常被处理
-    wire   cache_noAccept  = !data_index_ok && EXE_down_memReq_r_i;
+    wire   cache_noAccept  = (!data_index_ok && !PREMEM_hasException_w_o) && EXE_down_memReq_r_i;
     wire   store_conflict  = EXE_down_memReq_r_i && MEM_hasRisk_w_i;
     wire   tlb_conflict    = EXE_down_isTLBInst_r_i && MEM_hasRisk_w_i;
     wire ready = !(store_conflict || tlb_conflict || cache_noAccept);
     // 上下控制
     assign PREMEM_allowin_w_o = SBA_okToChange_w_i && (ready||!hasData) && MEM_allowin_w_i;
     // 上下不同部分
-    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i;
+    wire is_pc_save = PREMEM_hasException_w_o || PREMEM_eret_w_o;
+    wire needFlush = CP0_exceptSeg_w_i[`EXCEP_PREMEM] && CP0_excOccur_w_i && (!is_pc_save);
     wire pre_valid = EXE_down_valid_w_i && !SBA_flush_w_i;
     assign PREMEM_valid_w_o =   hasData &&
                                 ready &&
-                                PREMEM_allowin_w_o&&
+                                PREMEM_allowin_w_o &&
                                 !needFlush;
     assign needUpdata = PREMEM_allowin_w_o && pre_valid;
     assign needClear  = (!pre_valid&&PREMEM_allowin_w_o) || needFlush;
@@ -311,6 +344,18 @@ module PREMEM (
     assign data_size=   (size=='d1) ? 2'b00 : 
                         (size=='d2) ? 2'b01 : 2'b10;
     assign data_wdata   =   EXE_down_storeData_r_i;
+    `ifndef VERILATOR
+    always@(*) begin
+        if (hasData && data_req) begin
+            if (data_wr) begin
+                $display("MTRACE:\twrite MEM \"%h\" at pc %h",EXE_down_aluRes_r_i & 32'h1fffffff, EXE_down_VAddr_r_i);
+            end
+            else begin
+                $display("MTRACE:\tread  MEM \"%h\" at pc %h",EXE_down_aluRes_r_i & 32'h1fffffff, EXE_down_VAddr_r_i);
+            end
+        end
+    end
+    `endif
     // }}}
     // 简单的信号传递{{{
     assign PREMEM_writeNum_o        = EXE_down_writeNum_r_i;
