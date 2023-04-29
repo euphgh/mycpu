@@ -128,7 +128,7 @@ module BranchTargetBuffer (
                 end
             end
             assign BTB_predDest_up[i]   = BTB_predTake_up[i] ? predDest_up[i] : seq_dest[i];
-            assign BTB_predTake_p_o[i]  = BTB_predTake_up[i];
+            /* assign BTB_predTake_p_o[i]  = BTB_predTake_up[i]; */
         end
     endgenerate
     //}}}

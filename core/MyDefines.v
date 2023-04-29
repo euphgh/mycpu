@@ -442,7 +442,7 @@
 `define TLB_WIDTH `TLB_ENTRY_NUM-1:0
 /*}}}*/
 //二维数组打包为一维数组{{{
-`define PACK_ARRAY(PK_WIDTH,PK_LEN,PK_SRC,PK_DEST) \
+`define PACK_ARRAY(PK_WIDTH, PK_LEN, PK_SRC, PK_DEST) \
                 generate \
                 for (genvar pk_idx = 0; pk_idx <(PK_LEN); pk_idx = pk_idx + 1) \
                 begin \
